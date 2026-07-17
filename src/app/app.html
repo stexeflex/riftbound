@@ -177,7 +177,8 @@
         <div class="title-buttons">
           @if (game.deckEditorMode() === 'run') {
             <button class="btn btn-primary" [disabled]="!game.canConfirmDeck()" (click)="game.confirmDeck()">
-              Run starten ({{ game.deckSelectionSize() }} Karten)
+              Run starten ({{ game.deckSelectionSize() }}
+              {{ game.deckSelectionSize() === 1 ? 'Karte' : 'Karten' }})
             </button>
             <button class="btn" (click)="game.backToTitle()">Abbrechen</button>
           } @else {
