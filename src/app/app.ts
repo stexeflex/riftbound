@@ -107,8 +107,20 @@ export class App {
     return this.game.previewBlock(card);
   }
 
-  hpPercent(hp: number, max: number): number {
-    return Math.max(0, Math.round((hp / max) * 100));
+  barPercent(value: number, max: number): number {
+    return max > 0 ? (Math.max(0, value) / max) * 100 : 0;
+  }
+
+  /** Skaliert Leben und Schild gemeinsam, damit beides vollständig in die Leiste passt. */
+  playerHpBarMax(): number {
+    return Math.max(
+      this.game.playerMaxHp(),
+      this.game.playerHp() + this.game.block() + this.blockPreview(),
+    );
+  }
+
+  enemyHpBarMax(e: EnemyState): number {
+    return Math.max(e.maxHp, e.hp + e.block);
   }
 
   intentText(e: EnemyState): string {
@@ -189,11 +201,14 @@ export class App {
   }
 
   projectedPlayerHpPercent(): number {
-    return (this.projectedPlayerHp() / this.game.playerMaxHp()) * 100;
+    return this.barPercent(this.projectedPlayerHp(), this.playerHpBarMax());
   }
 
   playerIncomingPercent(): number {
-    return (Math.min(this.game.playerHp(), this.totalIncomingDamage()) / this.game.playerMaxHp()) * 100;
+    return this.barPercent(
+      Math.min(this.game.playerHp(), this.totalIncomingDamage()),
+      this.playerHpBarMax(),
+    );
   }
 
   projectedEnemyHp(e: EnemyState): number {
@@ -202,11 +217,13 @@ export class App {
   }
 
   projectedEnemyHpPercent(e: EnemyState): number {
-    return (this.projectedEnemyHp(e) / e.maxHp) * 100;
+    return this.barPercent(this.projectedEnemyHp(e), this.enemyHpBarMax(e));
   }
 
   enemyIncomingPercent(e: EnemyState): number {
     const preview = this.damagePreview(e);
-    return preview ? (Math.min(e.hp, preview.afterBlock) / e.maxHp) * 100 : 0;
+    return preview
+      ? this.barPercent(Math.min(e.hp, preview.afterBlock), this.enemyHpBarMax(e))
+      : 0;
   }
 }

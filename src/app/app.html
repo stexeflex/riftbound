@@ -253,7 +253,17 @@
             <div class="fighter-emoji">🧙‍♂️</div>
             <div class="fighter-name">Du</div>
             <div class="hp-bar">
-              <div class="hp-fill" [style.width.%]="hpPercent(game.playerHp(), game.playerMaxHp())"></div>
+              <div class="hp-fill" [style.width.%]="barPercent(game.playerHp(), playerHpBarMax())"></div>
+              @if (game.block() > 0) {
+                <div class="hp-shield"
+                     [style.left.%]="barPercent(game.playerHp(), playerHpBarMax())"
+                     [style.width.%]="barPercent(game.block(), playerHpBarMax())"></div>
+              }
+              @if (blockPreview() > 0) {
+                <div class="hp-shield hp-shield-preview"
+                     [style.left.%]="barPercent(game.playerHp() + game.block(), playerHpBarMax())"
+                     [style.width.%]="barPercent(blockPreview(), playerHpBarMax())"></div>
+              }
               @if (totalIncomingDamage() > 0) {
                 <div class="hp-loss-preview player-loss-preview"
                      [style.left.%]="projectedPlayerHpPercent()"
@@ -304,7 +314,12 @@
               <div class="fighter-emoji">{{ e.def.emoji }}</div>
               <div class="fighter-name">{{ e.def.name }}</div>
               <div class="hp-bar">
-                <div class="hp-fill enemy-fill" [style.width.%]="hpPercent(e.hp, e.maxHp)"></div>
+                <div class="hp-fill enemy-fill" [style.width.%]="barPercent(e.hp, enemyHpBarMax(e))"></div>
+                @if (e.block > 0) {
+                  <div class="hp-shield enemy-shield"
+                       [style.left.%]="barPercent(e.hp, enemyHpBarMax(e))"
+                       [style.width.%]="barPercent(e.block, enemyHpBarMax(e))"></div>
+                }
                 @if (damagePreview(e); as hpPreview) {
                   @if (hpPreview.afterBlock > 0) {
                     <div class="hp-loss-preview enemy-loss-preview"
