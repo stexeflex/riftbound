@@ -476,6 +476,155 @@ h1, h2 {
   p { color: #cabfa5; margin: 0; }
 }
 
+// ---------- Tooltips ----------
+
+.tip {
+  position: relative;
+  cursor: help;
+
+  &:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 240px;
+    padding: 0.45rem 0.65rem;
+    border-radius: 6px;
+    border: 1px solid rgba(160, 130, 70, 0.5);
+    background: #1a1426;
+    color: #e8dcc0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    text-align: left;
+    white-space: normal;
+    z-index: 50;
+    pointer-events: none;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  }
+}
+
+// ---------- Hover-Vorschau im Kampf ----------
+
+.chip-preview {
+  border-color: rgba(120, 220, 140, 0.6);
+  color: #a8f0b0;
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+
+.dmg-preview {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #ffd76b;
+  background: rgba(70, 45, 10, 0.75);
+  border: 1px solid rgba(240, 190, 80, 0.55);
+  border-radius: 6px;
+  padding: 0.25rem 0.7rem;
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+
+.dmg-after-block {
+  font-weight: normal;
+  color: #cab98a;
+  font-size: 0.8rem;
+}
+
+@keyframes pulse {
+  from { opacity: 0.75; }
+  to { opacity: 1; }
+}
+
+.intent-real {
+  display: block;
+  font-size: 0.75rem;
+  color: #ff8d7a;
+}
+
+// ---------- Deck-Auswahl & Kartenshop ----------
+
+.deck-counter {
+  font-size: 1.05rem;
+  color: #d0aa6a;
+  padding: 0.3rem 1rem;
+  border: 1px solid rgba(200, 160, 80, 0.4);
+  border-radius: 20px;
+
+  &.deck-ok {
+    color: #a8f0b0;
+    border-color: rgba(120, 220, 140, 0.5);
+  }
+}
+
+.collection-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  max-width: 1000px;
+}
+
+.collection-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+
+  .card { cursor: pointer; }
+  .card.selected {
+    outline: 2px solid #c9a84c;
+    box-shadow: 0 0 14px rgba(201, 168, 76, 0.45);
+  }
+}
+
+.sel-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sel-count {
+  min-width: 2.6rem;
+  text-align: center;
+  color: #cabfa5;
+  font-size: 0.9rem;
+}
+
+.owned-count {
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  background: radial-gradient(circle at 35% 30%, #58c06a, #1f6b2d 70%);
+  border: 2px solid rgba(140, 240, 160, 0.7);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.buy-btn { min-width: 5.5rem; }
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.filter-label { color: #9c92b5; font-size: 0.85rem; margin-left: 0.6rem; }
+
+.filter-btn.filter-active {
+  border-color: #c9a84c;
+  box-shadow: 0 0 10px rgba(201, 168, 76, 0.35);
+  color: #ffd76b;
+}
+
 // ---------- Kampagne ----------
 
 .stage-list {

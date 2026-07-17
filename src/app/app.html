@@ -17,6 +17,7 @@
           <button class="btn btn-primary" (click)="game.startNewRun()">Dungeon-Run</button>
           <button class="btn btn-primary" (click)="game.goTo('campaign')">Kampagne</button>
           <button class="btn" (click)="game.goTo('meta')">Metafortschritt</button>
+          <button class="btn" (click)="game.goTo('cards')">Kartenshop</button>
         </div>
         <div class="meta-summary">
           <span>🔮 {{ game.meta().splitter }} Splitter</span>
@@ -113,9 +114,108 @@
             @if (!$last) { <div class="map-connector" [class.done]="s.done"></div> }
           }
         </div>
-        <button class="btn btn-primary" (click)="game.enterStation()">
-          {{ stationLabel(game.currentStation().kind) }} betreten
-        </button>
+        <div class="title-buttons">
+          <button class="btn btn-primary" (click)="game.enterStation()">
+            {{ stationLabel(game.currentStation().kind) }} betreten
+          </button>
+          <button class="btn" (click)="game.toMenu()">Zum Menü</button>
+        </div>
+      </div>
+    }
+
+    <!-- ==================== STARTDECK WÄHLEN ==================== -->
+    @case ('deck') {
+      <div class="screen deck-screen">
+        <h2>Startdeck zusammenstellen</h2>
+        <p class="hint">
+          Wähle {{ game.deckMin }}–{{ game.deckMax }} Karten aus deiner Sammlung.
+          Neue Karten kaufst du im Kartenshop.
+        </p>
+        <div class="deck-counter" [class.deck-ok]="game.canConfirmDeck()">
+          {{ game.deckSelectionSize() }} / {{ game.deckMax }} Karten gewählt
+        </div>
+        <div class="collection-grid">
+          @for (def of game.collectionCards(); track def.id) {
+            <div class="collection-item">
+              <button
+                class="card"
+                [class]="typeClass(def.type)"
+                [class.selected]="game.selectionCount(def.id) > 0"
+                (click)="game.addToSelection(def.id)"
+              >
+                <span class="card-cost">{{ def.cost }}</span>
+                <span class="card-name">{{ def.name }}</span>
+                <span class="card-type">{{ def.type }} · {{ def.category }}</span>
+                <span class="card-text">{{ def.text }}</span>
+              </button>
+              <div class="sel-controls">
+                <button class="btn btn-small" (click)="game.removeFromSelection(def.id)"
+                        [disabled]="game.selectionCount(def.id) === 0">−</button>
+                <span class="sel-count">{{ game.selectionCount(def.id) }}/{{ game.cardCount(def.id) }}</span>
+                <button class="btn btn-small" (click)="game.addToSelection(def.id)"
+                        [disabled]="game.selectionCount(def.id) >= game.cardCount(def.id) || game.deckSelectionSize() >= game.deckMax">+</button>
+              </div>
+            </div>
+          }
+        </div>
+        <div class="title-buttons">
+          <button class="btn btn-primary" [disabled]="!game.canConfirmDeck()" (click)="game.confirmDeck()">
+            Run starten ({{ game.deckSelectionSize() }} Karten)
+          </button>
+          <button class="btn" (click)="game.backToTitle()">Abbrechen</button>
+        </div>
+      </div>
+    }
+
+    <!-- ==================== KARTENSHOP ==================== -->
+    @case ('cards') {
+      <div class="screen cards-screen">
+        <h2>Kartenshop</h2>
+        <div class="meta-summary">
+          <span>🔮 {{ game.meta().splitter }} Splitter</span>
+          <span>Max. {{ game.maxCopies }} Kopien pro Karte</span>
+        </div>
+        <div class="filter-bar">
+          <span class="filter-label">Besitz:</span>
+          @for (f of ['alle', 'besitzt', 'fehlt']; track f) {
+            <button class="btn btn-small filter-btn"
+                    [class.filter-active]="game.shopFilter() === f"
+                    (click)="game.shopFilter.set($any(f))">{{ f }}</button>
+          }
+          <span class="filter-label">Typ:</span>
+          <button class="btn btn-small filter-btn"
+                  [class.filter-active]="game.shopTypeFilter() === 'alle'"
+                  (click)="game.shopTypeFilter.set('alle')">alle</button>
+          @for (t of cardTypes; track t) {
+            <button class="btn btn-small filter-btn"
+                    [class.filter-active]="game.shopTypeFilter() === t"
+                    (click)="game.shopTypeFilter.set(t)">{{ t }}</button>
+          }
+        </div>
+        <div class="collection-grid">
+          @for (def of game.filteredShopCards(); track def.id) {
+            <div class="collection-item">
+              <button class="card" [class]="typeClass(def.type)" (click)="game.buyCard(def)">
+                <span class="card-cost">{{ def.cost }}</span>
+                <span class="card-name">{{ def.name }}</span>
+                <span class="card-type">{{ def.type }} · {{ def.category }}</span>
+                <span class="card-text">{{ def.text }}</span>
+                @if (game.cardCount(def.id) > 0) {
+                  <span class="owned-count">{{ game.cardCount(def.id) }}×</span>
+                }
+              </button>
+              <button class="btn btn-small buy-btn"
+                      [disabled]="!game.canBuyCard(def)"
+                      (click)="game.buyCard(def)">
+                @if (game.cardCount(def.id) >= game.maxCopies) { Max } @else { 🔮 {{ def.price }} }
+              </button>
+            </div>
+          }
+          @if (game.filteredShopCards().length === 0) {
+            <p class="hint">Keine Karten für diesen Filter.</p>
+          }
+        </div>
+        <button class="btn" (click)="game.backToTitle()">Zurück</button>
       </div>
     }
 
@@ -131,10 +231,21 @@
               <span class="hp-text">{{ game.playerHp() }}/{{ game.playerMaxHp() }}</span>
             </div>
             <div class="status-row">
-              @if (game.block() > 0) { <span class="chip chip-block">🛡️ {{ game.block() }}</span> }
-              @if (game.strength() > 0) { <span class="chip chip-str">💪 +{{ game.strength() }}</span> }
-              @if (game.playerWeak() > 0) { <span class="chip chip-weak">😵 {{ game.playerWeak() }}</span> }
-              @if (game.artifact(); as art) { <span class="chip">{{ art.icon }}</span> }
+              @if (game.block() > 0) {
+                <span class="chip chip-block tip" [attr.data-tip]="tips.schild">🛡️ {{ game.block() }}</span>
+              }
+              @if (game.strength() > 0) {
+                <span class="chip chip-str tip" [attr.data-tip]="tips.staerke">💪 +{{ game.strength() }}</span>
+              }
+              @if (game.playerWeak() > 0) {
+                <span class="chip chip-weak tip" [attr.data-tip]="tips.schwaeche">😵 {{ game.playerWeak() }}</span>
+              }
+              @if (game.artifact(); as art) {
+                <span class="chip tip" [attr.data-tip]="art.name + ': ' + art.text">{{ art.icon }}</span>
+              }
+              @if (blockPreview() > 0) {
+                <span class="chip chip-preview">🛡️ +{{ blockPreview() }}</span>
+              }
             </div>
           </div>
 
@@ -142,7 +253,20 @@
 
           @for (e of game.enemies(); track e.def.id) {
             <div class="fighter enemy" [class.dead]="e.hp <= 0">
-              <div class="intent">{{ intentText(e) }}</div>
+              <div class="intent tip" [attr.data-tip]="tips.intent">
+                {{ intentText(e) }}
+                @if (incomingDamage(e) > 0 && e.hp > 0) {
+                  <span class="intent-real">→ du verlierst {{ incomingDamage(e) }} ❤️</span>
+                }
+              </div>
+              @if (damagePreview(e); as prev) {
+                <div class="dmg-preview">
+                  ⚔️ {{ prev.total }} Schaden
+                  @if (prev.afterBlock < prev.total) {
+                    <span class="dmg-after-block">({{ prev.afterBlock }} nach Schild)</span>
+                  }
+                </div>
+              }
               <div class="fighter-emoji">{{ e.def.emoji }}</div>
               <div class="fighter-name">{{ e.def.name }}</div>
               <div class="hp-bar">
@@ -150,10 +274,18 @@
                 <span class="hp-text">{{ e.hp }}/{{ e.maxHp }}</span>
               </div>
               <div class="status-row">
-                @if (e.block > 0) { <span class="chip chip-block">🛡️ {{ e.block }}</span> }
-                @if (e.strength > 0) { <span class="chip chip-str">💪 +{{ e.strength }}</span> }
-                @if (e.weak > 0) { <span class="chip chip-weak">😵 {{ e.weak }}</span> }
-                @if (e.vulnerable > 0) { <span class="chip chip-vuln">💔 {{ e.vulnerable }}</span> }
+                @if (e.block > 0) {
+                  <span class="chip chip-block tip" [attr.data-tip]="tips.schild">🛡️ {{ e.block }}</span>
+                }
+                @if (e.strength > 0) {
+                  <span class="chip chip-str tip" [attr.data-tip]="tips.staerke">💪 +{{ e.strength }}</span>
+                }
+                @if (e.weak > 0) {
+                  <span class="chip chip-weak tip" [attr.data-tip]="tips.schwaeche">😵 {{ e.weak }}</span>
+                }
+                @if (e.vulnerable > 0) {
+                  <span class="chip chip-vuln tip" [attr.data-tip]="tips.verwundbar">💔 {{ e.vulnerable }}</span>
+                }
               </div>
               @if (e.def.passive) { <div class="passive">{{ e.def.passive }}</div> }
             </div>
@@ -167,7 +299,7 @@
         </div>
 
         <div class="resonance-bar">
-          <span class="resonance-label">Resonanz:</span>
+          <span class="resonance-label tip" [attr.data-tip]="tips.resonanz">Resonanz ℹ️:</span>
           @for (cat of ['Kraft', 'Schutz', 'Kontrolle', 'Chaos']; track cat) {
             <span class="resonance-dot" [class.active]="game.playedCategories().includes($any(cat))">
               {{ cat }}
@@ -180,8 +312,8 @@
 
         <div class="combat-bottom">
           <div class="pile-info">
-            <div class="energy-orb">{{ game.energy() }}/{{ game.maxEnergy() }}</div>
-            <div class="pile">🂠 {{ game.drawPile().length }}</div>
+            <div class="energy-orb tip" [attr.data-tip]="tips.energie">{{ game.energy() }}/{{ game.maxEnergy() }}</div>
+            <div class="pile tip" [attr.data-tip]="tips.zieh">🂠 {{ game.drawPile().length }}</div>
           </div>
 
           <div class="hand">
@@ -191,6 +323,8 @@
                 [class]="typeClass(card.def.type)"
                 [class.unplayable]="!game.canPlay(card)"
                 (click)="play(card)"
+                (mouseenter)="hoverCard(card)"
+                (mouseleave)="hoverCard(null)"
               >
                 <span class="card-cost">{{ game.costOf(card) }}</span>
                 <span class="card-name">{{ card.def.name }}</span>
@@ -204,8 +338,9 @@
           </div>
 
           <div class="turn-controls">
-            <div class="pile">🗑️ {{ game.discardPile().length }}</div>
+            <div class="pile tip" [attr.data-tip]="tips.ablage">🗑️ {{ game.discardPile().length }}</div>
             <button class="btn btn-primary" (click)="game.endTurn()">Zug beenden</button>
+            <button class="btn btn-small" (click)="game.toMenu()">Menü</button>
           </div>
         </div>
       </div>
@@ -343,7 +478,10 @@
             </div>
           }
         </div>
-        <button class="btn" (click)="game.backToTitle()">Zurück</button>
+        <div class="title-buttons">
+          <button class="btn" (click)="game.goTo('cards')">Zum Kartenshop</button>
+          <button class="btn" (click)="game.backToTitle()">Zurück</button>
+        </div>
       </div>
     }
   }

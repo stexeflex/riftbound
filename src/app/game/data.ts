@@ -4,59 +4,59 @@ import { ArtifactDef, CampaignStage, CardDef, EnemyDef, MetaUpgradeDef } from '.
 
 export const CARDS: Record<string, CardDef> = {
   hiebschlag: {
-    id: 'hiebschlag', name: 'Hiebschlag', cost: 1, type: 'Angriff', category: 'Kraft',
+    id: 'hiebschlag', name: 'Hiebschlag', cost: 1, type: 'Angriff', category: 'Kraft', price: 40,
     text: 'Füge 8 Schaden zu.', damage: 8,
   },
   schildstoss: {
-    id: 'schildstoss', name: 'Schildstoß', cost: 1, type: 'Verteidigung', category: 'Schutz',
+    id: 'schildstoss', name: 'Schildstoß', cost: 1, type: 'Verteidigung', category: 'Schutz', price: 40,
     text: 'Erhalte 8 Schild.', block: 8,
   },
   konzentration: {
-    id: 'konzentration', name: 'Konzentration', cost: 1, type: 'Technik', category: 'Kontrolle',
+    id: 'konzentration', name: 'Konzentration', cost: 1, type: 'Technik', category: 'Kontrolle', price: 60,
     text: 'Ziehe 2 Karten.', draw: 2,
   },
   schattenklinge: {
-    id: 'schattenklinge', name: 'Schattenklinge', cost: 1, type: 'Angriff', category: 'Chaos',
+    id: 'schattenklinge', name: 'Schattenklinge', cost: 1, type: 'Angriff', category: 'Chaos', price: 80,
     text: 'Füge 12 Schaden zu. Erhalte 1 Schwäche.', damage: 12, selfWeak: 1,
   },
   chaoswoge: {
-    id: 'chaoswoge', name: 'Chaoswoge', cost: 2, type: 'Angriff', category: 'Chaos',
+    id: 'chaoswoge', name: 'Chaoswoge', cost: 2, type: 'Angriff', category: 'Chaos', price: 80,
     text: 'Füge 6 Schaden zu. Zufälliger Zusatzeffekt.', damage: 6, randomBonus: true,
   },
   defensiveHaltung: {
-    id: 'defensiveHaltung', name: 'Defensive Haltung', cost: 2, type: 'Verteidigung', category: 'Schutz',
+    id: 'defensiveHaltung', name: 'Defensive Haltung', cost: 2, type: 'Verteidigung', category: 'Schutz', price: 70,
     text: 'Erhalte 13 Schild.', block: 13,
   },
   klingenwirbel: {
-    id: 'klingenwirbel', name: 'Klingenwirbel', cost: 2, type: 'Angriff', category: 'Kraft',
+    id: 'klingenwirbel', name: 'Klingenwirbel', cost: 2, type: 'Angriff', category: 'Kraft', price: 80,
     text: 'Füge 2-mal 7 Schaden zu.', damage: 7, hits: 2,
   },
   gezielterSchlag: {
-    id: 'gezielterSchlag', name: 'Gezielter Schlag', cost: 1, type: 'Angriff', category: 'Kontrolle',
+    id: 'gezielterSchlag', name: 'Gezielter Schlag', cost: 1, type: 'Angriff', category: 'Kontrolle', price: 60,
     text: 'Füge 6 Schaden zu. Verursache 2 Verwundbarkeit.', damage: 6, vulnerableEnemy: 2,
   },
   zerreissen: {
-    id: 'zerreissen', name: 'Zerreißen', cost: 1, type: 'Angriff', category: 'Kraft',
+    id: 'zerreissen', name: 'Zerreißen', cost: 1, type: 'Angriff', category: 'Kraft', price: 60,
     text: 'Füge 5 Schaden zu. Verursache 2 Schwäche.', damage: 5, weakEnemy: 2,
   },
   magischeBarriere: {
-    id: 'magischeBarriere', name: 'Magische Barriere', cost: 1, type: 'Verteidigung', category: 'Kontrolle',
+    id: 'magischeBarriere', name: 'Magische Barriere', cost: 1, type: 'Verteidigung', category: 'Kontrolle', price: 70,
     text: 'Erhalte 6 Schild. Ziehe 1 Karte.', block: 6, draw: 1,
   },
   praezision: {
-    id: 'praezision', name: 'Präzision', cost: 1, type: 'Macht', category: 'Kontrolle',
+    id: 'praezision', name: 'Präzision', cost: 1, type: 'Macht', category: 'Kontrolle', price: 90,
     text: 'Deine Angriffe verursachen diesen Kampf +2 Schaden.', strength: 2,
   },
   eiserneHaut: {
-    id: 'eiserneHaut', name: 'Eiserne Haut', cost: 2, type: 'Macht', category: 'Schutz',
+    id: 'eiserneHaut', name: 'Eiserne Haut', cost: 2, type: 'Macht', category: 'Schutz', price: 90,
     text: 'Erhalte am Ende jedes Zuges 3 Schild.', endTurnBlock: 3,
   },
   nachladen: {
-    id: 'nachladen', name: 'Nachladen', cost: 0, type: 'Technik', category: 'Chaos',
+    id: 'nachladen', name: 'Nachladen', cost: 0, type: 'Technik', category: 'Chaos', price: 50,
     text: 'Ziehe 1 Karte.', draw: 1,
   },
   instabilerSchlag: {
-    id: 'instabilerSchlag', name: 'Instabiler Schlag', cost: 0, type: 'Angriff', category: 'Chaos',
+    id: 'instabilerSchlag', name: 'Instabiler Schlag', cost: 0, type: 'Angriff', category: 'Chaos', price: 40,
     text: 'Füge 4 Schaden zu.', damage: 4,
   },
   schwaeche: {
@@ -77,6 +77,20 @@ export const STARTER_DECK: string[] = [
   'schildstoss', 'schildstoss', 'schildstoss', 'schildstoss',
   'konzentration', 'konzentration',
 ];
+
+// Startsammlung: diese Karten besitzt jeder Spieler von Anfang an
+export const STARTER_COLLECTION: Record<string, number> = {
+  hiebschlag: 4,
+  schildstoss: 4,
+  konzentration: 2,
+};
+
+// Maximale Kopien einer Karte in der Sammlung
+export const MAX_CARD_COPIES = 4;
+
+// Regeln fürs Startdeck
+export const DECK_MIN = 5;
+export const DECK_MAX = 10;
 
 // ------------------------- Gegner -------------------------
 

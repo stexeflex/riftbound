@@ -1,11 +1,13 @@
 import { Injectable, computed, signal } from '@angular/core';
 import {
-  ArtifactDef, CampaignStage, CardDef, CardInstance, Category, EnemyDef,
-  EnemyState, GameMode, MetaState, RunSave, Screen, Station, StationKind,
+  ArtifactDef, CampaignStage, CardDef, CardInstance, Category, CombatSave,
+  EnemyDef, EnemyState, GameMode, MetaState, RunSave, Screen, Station,
+  StationKind,
 } from './models';
 import {
-  ARTIFACTS, CAMPAIGN_STAGES, CARDS, ELITE_POOL, ENEMIES, META_UPGRADES,
-  NORMAL_POOL, REWARD_POOL, STARTER_DECK,
+  ARTIFACTS, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, ELITE_POOL, ENEMIES,
+  MAX_CARD_COPIES, META_UPGRADES, NORMAL_POOL, REWARD_POOL, STARTER_COLLECTION,
+  STARTER_DECK,
 } from './data';
 import { legacyLoad, secureLoad, secureRemove, secureSave } from './storage';
 
@@ -40,6 +42,10 @@ export class GameService {
   readonly metaUpgrades = META_UPGRADES;
   readonly allArtifacts = ARTIFACTS;
   readonly campaignStages = CAMPAIGN_STAGES;
+  readonly allCards: CardDef[] = Object.values(CARDS).filter(c => c.price !== undefined);
+  readonly deckMin = DECK_MIN;
+  readonly deckMax = DECK_MAX;
+  readonly maxCopies = MAX_CARD_COPIES;
 
   // ---------- Bildschirm & Modus ----------
   readonly screen = signal<Screen>('title');
@@ -55,6 +61,27 @@ export class GameService {
   readonly playerMaxHp = signal(BASE_HP);
   readonly playerHp = signal(BASE_HP);
   readonly runSplitter = signal(0);
+  readonly runUpgrades = signal<Record<string, number>>({});
+
+  // ---------- Deck-Auswahl (vor dem Run) ----------
+  readonly deckSelection = signal<Record<string, number>>({});
+  readonly deckSelectionSize = computed(() =>
+    Object.values(this.deckSelection()).reduce((a, b) => a + b, 0),
+  );
+
+  // ---------- Kartenshop-Filter ----------
+  readonly shopFilter = signal<'alle' | 'besitzt' | 'fehlt'>('alle');
+  readonly shopTypeFilter = signal<string>('alle');
+  readonly filteredShopCards = computed(() => {
+    const owned = this.meta().cards;
+    return this.allCards.filter(c => {
+      const count = owned[c.id] ?? 0;
+      if (this.shopFilter() === 'besitzt' && count === 0) return false;
+      if (this.shopFilter() === 'fehlt' && count > 0) return false;
+      if (this.shopTypeFilter() !== 'alle' && c.type !== this.shopTypeFilter()) return false;
+      return true;
+    });
+  });
 
   // ---------- Kampf ----------
   readonly enemies = signal<EnemyState[]>([]);
@@ -74,6 +101,9 @@ export class GameService {
   readonly cardsPlayedThisTurn = signal(0);
   readonly attackPlayedThisTurn = signal(false);
   readonly log = signal<string[]>([]);
+
+  // ---------- Hover-Vorschau ----------
+  readonly hoveredCard = signal<CardInstance | null>(null);
 
   // ---------- Belohnung / Run-Ende ----------
   readonly rewardCards = signal<CardDef[]>([]);
@@ -95,6 +125,10 @@ export class GameService {
     for (const a of ARTIFACTS) {
       if (a.starter && !artifacts.includes(a.id)) artifacts.push(a.id);
     }
+    let cards = m?.cards;
+    if (!cards || typeof cards !== 'object' || Object.keys(cards).length === 0) {
+      cards = { ...STARTER_COLLECTION };
+    }
     return {
       splitter: m?.splitter ?? 0,
       kerne: m?.kerne ?? 0,
@@ -103,6 +137,8 @@ export class GameService {
       runs: m?.runs ?? 0,
       artifacts,
       completedStages: Array.isArray(m?.completedStages) ? m.completedStages : [],
+      cards,
+      lastDeck: Array.isArray(m?.lastDeck) ? m.lastDeck : [],
     };
   }
 
@@ -125,6 +161,11 @@ export class GameService {
 
   upgradeLevel(id: string): number {
     return this.meta().upgrades[id] ?? 0;
+  }
+
+  /** Upgrade-Stufe für den laufenden Run (beim Start eingefroren). */
+  runUpgradeLevel(id: string): number {
+    return this.runUpgrades()[id] ?? 0;
   }
 
   buyUpgrade(id: string) {
@@ -165,7 +206,144 @@ export class GameService {
     this.saveMeta();
   }
 
+  // ================= Kartensammlung & Shop =================
+
+  cardCount(id: string): number {
+    return this.meta().cards[id] ?? 0;
+  }
+
+  canBuyCard(def: CardDef): boolean {
+    if (def.price === undefined) return false;
+    if (this.cardCount(def.id) >= MAX_CARD_COPIES) return false;
+    return this.meta().splitter >= def.price;
+  }
+
+  buyCard(def: CardDef) {
+    if (!this.canBuyCard(def)) return;
+    const m = this.meta();
+    this.meta.set({
+      ...m,
+      splitter: m.splitter - def.price!,
+      cards: { ...m.cards, [def.id]: (m.cards[def.id] ?? 0) + 1 },
+    });
+    this.saveMeta();
+  }
+
+  // ================= Deck-Auswahl =================
+
+  /** Karten der Sammlung, sortiert für die Deck-Auswahl. */
+  readonly collectionCards = computed(() => {
+    const owned = this.meta().cards;
+    return this.allCards.filter(c => (owned[c.id] ?? 0) > 0);
+  });
+
+  private prefillDeckSelection() {
+    const owned = this.meta().cards;
+    const sel: Record<string, number> = {};
+    // Zuletzt genutztes Deck vorauswählen, sofern noch alles vorhanden ist
+    const source = this.meta().lastDeck.length > 0 ? this.meta().lastDeck : STARTER_DECK;
+    for (const id of source) {
+      const have = owned[id] ?? 0;
+      const cur = sel[id] ?? 0;
+      if (cur < have && this.sumSelection(sel) < DECK_MAX) sel[id] = cur + 1;
+    }
+    this.deckSelection.set(sel);
+  }
+
+  private sumSelection(sel: Record<string, number>): number {
+    return Object.values(sel).reduce((a, b) => a + b, 0);
+  }
+
+  selectionCount(id: string): number {
+    return this.deckSelection()[id] ?? 0;
+  }
+
+  addToSelection(id: string) {
+    const sel = { ...this.deckSelection() };
+    const cur = sel[id] ?? 0;
+    if (cur >= this.cardCount(id)) return;
+    if (this.deckSelectionSize() >= DECK_MAX) return;
+    sel[id] = cur + 1;
+    this.deckSelection.set(sel);
+  }
+
+  removeFromSelection(id: string) {
+    const sel = { ...this.deckSelection() };
+    const cur = sel[id] ?? 0;
+    if (cur <= 0) return;
+    if (cur === 1) delete sel[id];
+    else sel[id] = cur - 1;
+    this.deckSelection.set(sel);
+  }
+
+  canConfirmDeck(): boolean {
+    const size = this.deckSelectionSize();
+    return size >= DECK_MIN && size <= DECK_MAX;
+  }
+
+  confirmDeck() {
+    if (!this.canConfirmDeck()) return;
+    const ids: string[] = [];
+    for (const [id, count] of Object.entries(this.deckSelection())) {
+      for (let i = 0; i < count; i++) ids.push(id);
+    }
+
+    const m = this.meta();
+    this.meta.set({ ...m, runs: m.runs + 1, lastDeck: ids });
+    this.saveMeta();
+
+    // Upgrade-Stufen für diesen Run einfrieren
+    this.runUpgrades.set({ ...this.meta().upgrades });
+
+    let maxHp = BASE_HP + this.runUpgradeLevel('leben') * 2;
+    if (this.artifact()?.id === 'glasherz') maxHp = Math.round(maxHp * 0.8);
+    this.playerMaxHp.set(maxHp);
+    this.playerHp.set(maxHp);
+
+    this.deck.set(ids.map(id => this.makeCard(CARDS[id])));
+
+    const kinds = this.mode() === 'campaign'
+      ? this.currentStage()!.stations
+      : DUNGEON_STATIONS;
+    this.stations.set(kinds.map(kind => ({ kind, done: false })));
+    this.stationIndex.set(0);
+    this.runSplitter.set(0);
+
+    this.saveRun();
+    this.screen.set('map');
+  }
+
   // ================= Run speichern / fortsetzen =================
+
+  private buildCombatSave(): CombatSave | null {
+    if (this.screen() !== 'combat') return null;
+    return {
+      enemies: this.enemies().map(e => ({
+        id: e.def.id,
+        hp: e.hp,
+        maxHp: e.maxHp,
+        block: e.block,
+        strength: e.strength,
+        weak: e.weak,
+        vulnerable: e.vulnerable,
+        moveIndex: e.moveIndex,
+      })),
+      handIds: this.hand().map(c => c.def.id),
+      drawIds: this.drawPile().map(c => c.def.id),
+      discardIds: this.discardPile().map(c => c.def.id),
+      energy: this.energy(),
+      block: this.block(),
+      strength: this.strength(),
+      playerWeak: this.playerWeak(),
+      endTurnBlock: this.endTurnBlock(),
+      turn: this.turn(),
+      playedCategories: this.playedCategories(),
+      resonanceCount: this.resonanceCount(),
+      firstAttackDone: this.firstAttackDone(),
+      attackPlayedThisTurn: this.attackPlayedThisTurn(),
+      cardsPlayedThisTurn: this.cardsPlayedThisTurn(),
+    };
+  }
 
   private saveRun() {
     const save: RunSave = {
@@ -178,6 +356,11 @@ export class GameService {
       stationIndex: this.stationIndex(),
       stations: this.stations(),
       runSplitter: this.runSplitter(),
+      runUpgrades: this.runUpgrades(),
+      combat: this.buildCombatSave(),
+      reward: this.screen() === 'reward'
+        ? { cardIds: this.rewardCards().map(c => c.id), splitter: this.rewardSplitter() }
+        : null,
     };
     secureSave(RUN_KEY, save);
     this.hasRunSave.set(true);
@@ -207,13 +390,70 @@ export class GameService {
     this.stationIndex.set(save.stationIndex);
     this.stations.set(save.stations);
     this.runSplitter.set(save.runSplitter);
-    this.screen.set('map');
+    this.runUpgrades.set(save.runUpgrades ?? {});
+
+    if (save.combat) {
+      this.restoreCombat(save.combat);
+    } else if (save.reward) {
+      this.rewardCards.set(save.reward.cardIds.filter(id => CARDS[id]).map(id => CARDS[id]));
+      this.rewardSplitter.set(save.reward.splitter);
+      this.screen.set('reward');
+    } else {
+      this.screen.set('map');
+    }
+  }
+
+  private restoreCombat(c: CombatSave) {
+    this.enemies.set(
+      c.enemies
+        .filter(e => ENEMIES[e.id])
+        .map(e => {
+          const def = ENEMIES[e.id];
+          const state = this.makeEnemy(def);
+          state.hp = e.hp;
+          state.maxHp = e.maxHp;
+          state.block = e.block;
+          state.strength = e.strength;
+          state.weak = e.weak;
+          state.vulnerable = e.vulnerable;
+          state.moveIndex = e.moveIndex;
+          state.intent = def.moves[e.moveIndex % def.moves.length];
+          return state;
+        }),
+    );
+    const toCards = (ids: string[]) =>
+      ids.filter(id => CARDS[id]).map(id => this.makeCard(CARDS[id]));
+    this.hand.set(toCards(c.handIds));
+    this.drawPile.set(toCards(c.drawIds));
+    this.discardPile.set(toCards(c.discardIds));
+    this.energy.set(c.energy);
+    this.block.set(c.block);
+    this.strength.set(c.strength);
+    this.playerWeak.set(c.playerWeak);
+    this.endTurnBlock.set(c.endTurnBlock);
+    this.turn.set(c.turn);
+    this.playedCategories.set(c.playedCategories);
+    this.resonanceCount.set(c.resonanceCount);
+    this.firstAttackDone.set(c.firstAttackDone);
+    this.attackPlayedThisTurn.set(c.attackPlayedThisTurn);
+    this.cardsPlayedThisTurn.set(c.cardsPlayedThisTurn);
+    this.log.set([]);
+    this.screen.set('combat');
   }
 
   // ================= Run-Ablauf =================
 
   goTo(screen: Screen) {
     this.screen.set(screen);
+  }
+
+  /** Zurück zum Titel – der Run bleibt gespeichert und kann fortgesetzt werden. */
+  toMenu() {
+    if (this.screen() === 'combat' || this.screen() === 'reward' ||
+        this.screen() === 'map' || this.screen() === 'rest') {
+      this.saveRun();
+    }
+    this.screen.set('title');
   }
 
   startNewRun() {
@@ -243,26 +483,8 @@ export class GameService {
 
   chooseArtifact(a: ArtifactDef) {
     this.artifact.set(a);
-
-    let maxHp = BASE_HP + this.upgradeLevel('leben') * 2;
-    if (a.id === 'glasherz') maxHp = Math.round(maxHp * 0.8);
-    this.playerMaxHp.set(maxHp);
-    this.playerHp.set(maxHp);
-
-    this.deck.set(STARTER_DECK.map(id => this.makeCard(CARDS[id])));
-
-    const kinds = this.mode() === 'campaign'
-      ? this.currentStage()!.stations
-      : DUNGEON_STATIONS;
-    this.stations.set(kinds.map(kind => ({ kind, done: false })));
-    this.stationIndex.set(0);
-    this.runSplitter.set(0);
-
-    const m = this.meta();
-    this.meta.set({ ...m, runs: m.runs + 1 });
-    this.saveMeta();
-    this.saveRun();
-    this.screen.set('map');
+    this.prefillDeckSelection();
+    this.screen.set('deck');
   }
 
   enterStation() {
@@ -276,7 +498,7 @@ export class GameService {
   }
 
   restHeal() {
-    const bonus = 1 + this.upgradeLevel('heilung') * 0.05;
+    const bonus = 1 + this.runUpgradeLevel('heilung') * 0.05;
     const blutvertrag = this.artifact()?.id === 'blutvertrag' ? 0.7 : 1;
     const heal = Math.round(this.playerMaxHp() * 0.3 * bonus * blutvertrag);
     this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + heal));
@@ -378,6 +600,7 @@ export class GameService {
     this.log.set([]);
     this.screen.set('combat');
     this.startPlayerTurn(true);
+    this.saveRun();
   }
 
   private startPlayerTurn(first = false) {
@@ -445,8 +668,40 @@ export class GameService {
     return !card.def.unplayable && this.costOf(card) <= this.energy();
   }
 
+  // ---------- Schadens-/Schild-Vorschau (für Hover) ----------
+
+  /**
+   * Berechnet den tatsächlichen Schaden einer Karte gegen einen Gegner,
+   * mit exakt derselben Rechenreihenfolge wie dealDamage.
+   */
+  previewDamage(card: CardInstance, enemy: EnemyState): { total: number; afterBlock: number } {
+    const def = card.def;
+    if (!def.damage) return { total: 0, afterBlock: 0 };
+    const hits = def.hits ?? 1;
+    let total = 0;
+    let firstDone = this.firstAttackDone();
+    for (let h = 0; h < hits; h++) {
+      let dmg = def.damage + this.strength();
+      if (!firstDone) {
+        dmg += this.runUpgradeLevel('klingenmeisterschaft') * 2;
+        firstDone = true;
+      }
+      if (this.artifact()?.id === 'glasherz') dmg = Math.round(dmg * 1.2);
+      if (this.playerWeak() > 0) dmg = Math.round(dmg * 0.75);
+      if (enemy.vulnerable > 0) dmg = Math.round(dmg * 1.5);
+      total += dmg;
+    }
+    return { total, afterBlock: Math.max(0, total - enemy.block) };
+  }
+
+  /** Wie viel Schild eine Karte tatsächlich gibt. */
+  previewBlock(card: CardInstance): number {
+    return card.def.block ?? 0;
+  }
+
   playCard(card: CardInstance) {
     if (!this.canPlay(card)) return;
+    this.hoveredCard.set(null);
     const def = card.def;
     this.energy.set(this.energy() - this.costOf(card));
     this.cardsPlayedThisTurn.set(this.cardsPlayedThisTurn() + 1);
@@ -489,6 +744,7 @@ export class GameService {
 
     this.trackResonance(def.category);
     this.checkCombatEnd();
+    if (this.screen() === 'combat') this.saveRun();
   }
 
   private applyRandomBonus() {
@@ -544,7 +800,7 @@ export class GameService {
     if (!pure) {
       dmg += this.strength();
       if (!this.firstAttackDone()) {
-        const bonus = this.upgradeLevel('klingenmeisterschaft') * 2;
+        const bonus = this.runUpgradeLevel('klingenmeisterschaft') * 2;
         if (bonus > 0) {
           dmg += bonus;
           this.addLog(`Klingenmeisterschaft: +${bonus} Schaden.`);
@@ -599,7 +855,10 @@ export class GameService {
     this.enemies.set([...this.enemies()]);
 
     this.checkCombatEnd();
-    if (this.screen() === 'combat') this.startPlayerTurn();
+    if (this.screen() === 'combat') {
+      this.startPlayerTurn();
+      this.saveRun();
+    }
   }
 
   private executeEnemyMove(enemy: EnemyState) {
@@ -664,6 +923,7 @@ export class GameService {
     const pool = shuffle(REWARD_POOL);
     this.rewardCards.set(pool.slice(0, 3).map(id => CARDS[id]));
     this.screen.set('reward');
+    this.saveRun();
   }
 
   takeReward(def: CardDef | null) {

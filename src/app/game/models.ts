@@ -10,6 +10,7 @@ export interface CardDef {
   type: CardType;
   category: Category;
   text: string;
+  price?: number;          // Kaufpreis in Splittern (ohne Preis: nicht kaufbar)
   damage?: number;
   hits?: number;
   block?: number;
@@ -78,6 +79,7 @@ export interface ArtifactDef {
 export type Screen =
   | 'title'
   | 'artifact'
+  | 'deck'
   | 'campaign'
   | 'map'
   | 'combat'
@@ -85,7 +87,8 @@ export type Screen =
   | 'rest'
   | 'victory'
   | 'defeat'
-  | 'meta';
+  | 'meta'
+  | 'cards';
 
 export type GameMode = 'dungeon' | 'campaign';
 
@@ -96,6 +99,34 @@ export interface CampaignStage {
   stations: StationKind[];
   reward: number;   // Splitter-Bonus beim ersten Abschluss
   kern?: boolean;   // gibt beim ersten Abschluss zusätzlich 1 Kern
+}
+
+// Gespeicherter Kampfzustand (für exaktes Fortsetzen mitten im Kampf)
+export interface CombatSave {
+  enemies: {
+    id: string;
+    hp: number;
+    maxHp: number;
+    block: number;
+    strength: number;
+    weak: number;
+    vulnerable: number;
+    moveIndex: number;
+  }[];
+  handIds: string[];
+  drawIds: string[];
+  discardIds: string[];
+  energy: number;
+  block: number;
+  strength: number;
+  playerWeak: number;
+  endTurnBlock: number;
+  turn: number;
+  playedCategories: Category[];
+  resonanceCount: number;
+  firstAttackDone: boolean;
+  attackPlayedThisTurn: boolean;
+  cardsPlayedThisTurn: number;
 }
 
 // Gespeicherter Run (Fortsetzen-Funktion)
@@ -109,6 +140,10 @@ export interface RunSave {
   stationIndex: number;
   stations: Station[];
   runSplitter: number;
+  // Upgrade-Stufen werden beim Run-Start eingefroren (kein Nachkaufen mitten im Run)
+  runUpgrades: Record<string, number>;
+  combat: CombatSave | null;
+  reward: { cardIds: string[]; splitter: number } | null;
 }
 
 export interface MetaUpgradeDef {
@@ -128,4 +163,6 @@ export interface MetaState {
   runs: number;
   artifacts: string[];        // freigeschaltete Artefakte
   completedStages: string[];  // abgeschlossene Kampagnen-Stages
+  cards: Record<string, number>; // Kartensammlung (Karten-ID → Anzahl)
+  lastDeck: string[];         // zuletzt gewähltes Startdeck
 }
