@@ -236,6 +236,8 @@ h1, h2 {
   &.dead { opacity: 0.25; filter: grayscale(1); }
 }
 
+.fighter.enemy { position: relative; }
+
 .fighter-emoji { font-size: 4rem; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7)); }
 .fighter-name { color: #e8dcc0; font-weight: bold; }
 
@@ -514,6 +516,15 @@ h1, h2 {
 }
 
 .dmg-preview {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: 190px;
+  text-align: center;
+  pointer-events: none;
   font-size: 0.9rem;
   font-weight: bold;
   color: #ffd76b;
@@ -542,6 +553,37 @@ h1, h2 {
 }
 
 // ---------- Deck-Auswahl & Kartenshop ----------
+
+.deck-layouts {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.deck-layout-tab {
+  min-width: 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid rgba(140, 130, 170, 0.35);
+  background: #171221;
+  color: #c8bdd8;
+  cursor: pointer;
+  font-family: inherit;
+
+  small { color: #817794; }
+
+  &.active {
+    color: #ffd76b;
+    border-color: #c9a84c;
+    box-shadow: 0 0 12px rgba(201, 168, 76, 0.3);
+
+    small { color: #cab98a; }
+  }
+}
 
 .deck-counter {
   font-size: 1.05rem;

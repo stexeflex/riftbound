@@ -1,7 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import {
   ArtifactDef, CampaignStage, CardDef, CardInstance, Category, CombatSave,
-  EnemyDef, EnemyState, GameMode, MetaState, RunSave, Screen, Station,
+  DeckLayout, EnemyDef, EnemyState, GameMode, MetaState, RunSave, Screen, Station,
   StationKind,
 } from './models';
 import {
@@ -15,6 +15,7 @@ const META_KEY = 'riftbound-meta-v2';
 const LEGACY_META_KEY = 'riftbound-meta-v1';
 const RUN_KEY = 'riftbound-run-v1';
 const BASE_HP = 80;
+const DECK_LAYOUT_IDS = ['layout-1', 'layout-2', 'layout-3'];
 
 const DUNGEON_STATIONS: StationKind[] = [
   'kampf', 'kampf', 'elite', 'rast', 'kampf', 'kampf', 'elite', 'rast', 'boss',
@@ -65,9 +66,12 @@ export class GameService {
 
   // ---------- Deck-Auswahl (vor dem Run) ----------
   readonly deckSelection = signal<Record<string, number>>({});
+  readonly deckEditorMode = signal<'menu' | 'run'>('run');
+  readonly activeDeckLayoutId = signal(this.meta().activeDeckLayoutId);
   readonly deckSelectionSize = computed(() =>
     Object.values(this.deckSelection()).reduce((a, b) => a + b, 0),
   );
+  readonly deckLayouts = computed(() => this.meta().deckLayouts);
 
   // ---------- Kartenshop-Filter ----------
   readonly shopFilter = signal<'alle' | 'besitzt' | 'fehlt'>('alle');
@@ -129,6 +133,21 @@ export class GameService {
     if (!cards || typeof cards !== 'object' || Object.keys(cards).length === 0) {
       cards = { ...STARTER_COLLECTION };
     }
+    const lastDeck = Array.isArray(m?.lastDeck) ? m.lastDeck : [];
+    const storedLayouts = Array.isArray(m?.deckLayouts) ? m.deckLayouts : [];
+    const deckLayouts: DeckLayout[] = DECK_LAYOUT_IDS.map((id, index) => {
+      const stored = storedLayouts.find(layout => layout?.id === id);
+      return {
+        id,
+        name: `Layout ${index + 1}`,
+        cardIds: Array.isArray(stored?.cardIds)
+          ? stored.cardIds.filter(cardId => typeof cardId === 'string')
+          : index === 0 ? (lastDeck.length > 0 ? [...lastDeck] : [...STARTER_DECK]) : [],
+      };
+    });
+    const activeDeckLayoutId = deckLayouts.some(layout => layout.id === m?.activeDeckLayoutId)
+      ? m!.activeDeckLayoutId!
+      : deckLayouts[0].id;
     return {
       splitter: m?.splitter ?? 0,
       kerne: m?.kerne ?? 0,
@@ -138,7 +157,9 @@ export class GameService {
       artifacts,
       completedStages: Array.isArray(m?.completedStages) ? m.completedStages : [],
       cards,
-      lastDeck: Array.isArray(m?.lastDeck) ? m.lastDeck : [],
+      lastDeck,
+      deckLayouts,
+      activeDeckLayoutId,
     };
   }
 
@@ -237,17 +258,61 @@ export class GameService {
     return this.allCards.filter(c => (owned[c.id] ?? 0) > 0);
   });
 
-  private prefillDeckSelection() {
+  private prefillDeckSelection(layoutId = this.meta().activeDeckLayoutId) {
     const owned = this.meta().cards;
     const sel: Record<string, number> = {};
-    // Zuletzt genutztes Deck vorauswählen, sofern noch alles vorhanden ist
-    const source = this.meta().lastDeck.length > 0 ? this.meta().lastDeck : STARTER_DECK;
+    const layout = this.meta().deckLayouts.find(item => item.id === layoutId);
+    const source = layout?.cardIds ?? [];
     for (const id of source) {
       const have = owned[id] ?? 0;
       const cur = sel[id] ?? 0;
       if (cur < have && this.sumSelection(sel) < DECK_MAX) sel[id] = cur + 1;
     }
     this.deckSelection.set(sel);
+  }
+
+  /** Öffnet die dauerhaft gespeicherten Deck-Layouts direkt aus dem Hauptmenü. */
+  openDeckSelection() {
+    this.deckEditorMode.set('menu');
+    this.activeDeckLayoutId.set(this.meta().activeDeckLayoutId);
+    this.prefillDeckSelection();
+    this.screen.set('deck');
+  }
+
+  selectDeckLayout(id: string) {
+    if (!this.meta().deckLayouts.some(layout => layout.id === id)) return;
+    this.activeDeckLayoutId.set(id);
+    this.meta.set({ ...this.meta(), activeDeckLayoutId: id });
+    this.saveMeta();
+    this.prefillDeckSelection(id);
+  }
+
+  layoutCardCount(layout: DeckLayout): number {
+    return layout.cardIds.length;
+  }
+
+  private selectionIds(): string[] {
+    const ids: string[] = [];
+    for (const [id, count] of Object.entries(this.deckSelection())) {
+      for (let i = 0; i < count; i++) ids.push(id);
+    }
+    return ids;
+  }
+
+  /** Jede Änderung wird sofort im aktiven Layout gespeichert. */
+  private saveDeckLayout() {
+    const ids = this.selectionIds();
+    const activeId = this.activeDeckLayoutId();
+    const m = this.meta();
+    this.meta.set({
+      ...m,
+      lastDeck: ids,
+      activeDeckLayoutId: activeId,
+      deckLayouts: m.deckLayouts.map(layout =>
+        layout.id === activeId ? { ...layout, cardIds: ids } : layout,
+      ),
+    });
+    this.saveMeta();
   }
 
   private sumSelection(sel: Record<string, number>): number {
@@ -265,6 +330,7 @@ export class GameService {
     if (this.deckSelectionSize() >= DECK_MAX) return;
     sel[id] = cur + 1;
     this.deckSelection.set(sel);
+    this.saveDeckLayout();
   }
 
   removeFromSelection(id: string) {
@@ -274,6 +340,7 @@ export class GameService {
     if (cur === 1) delete sel[id];
     else sel[id] = cur - 1;
     this.deckSelection.set(sel);
+    this.saveDeckLayout();
   }
 
   canConfirmDeck(): boolean {
@@ -283,10 +350,7 @@ export class GameService {
 
   confirmDeck() {
     if (!this.canConfirmDeck()) return;
-    const ids: string[] = [];
-    for (const [id, count] of Object.entries(this.deckSelection())) {
-      for (let i = 0; i < count; i++) ids.push(id);
-    }
+    const ids = this.selectionIds();
 
     const m = this.meta();
     this.meta.set({ ...m, runs: m.runs + 1, lastDeck: ids });
@@ -483,6 +547,8 @@ export class GameService {
 
   chooseArtifact(a: ArtifactDef) {
     this.artifact.set(a);
+    this.deckEditorMode.set('run');
+    this.activeDeckLayoutId.set(this.meta().activeDeckLayoutId);
     this.prefillDeckSelection();
     this.screen.set('deck');
   }

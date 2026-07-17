@@ -16,7 +16,8 @@
           }
           <button class="btn btn-primary" (click)="game.startNewRun()">Dungeon-Run</button>
           <button class="btn btn-primary" (click)="game.goTo('campaign')">Kampagne</button>
-          <button class="btn" (click)="game.goTo('meta')">Metafortschritt</button>
+          <button class="btn" (click)="game.openDeckSelection()">Kartenauswahl</button>
+          <button class="btn" (click)="game.goTo('meta')">Upgrades</button>
           <button class="btn" (click)="game.goTo('cards')">Kartenshop</button>
         </div>
         <div class="meta-summary">
@@ -69,7 +70,7 @@
           @if (game.mode() === 'campaign') {
             {{ game.currentStage()?.name }} · Wähle 1 Artefakt für diesen Run.
           } @else {
-            Wähle 1 Artefakt für diesen Run. Weitere Artefakte kaufst du im Metafortschritt.
+            Wähle 1 Artefakt für diesen Run. Weitere Artefakte kaufst du bei den Upgrades.
           }
         </p>
         <div class="artifact-list">
@@ -126,11 +127,23 @@
     <!-- ==================== STARTDECK WÄHLEN ==================== -->
     @case ('deck') {
       <div class="screen deck-screen">
-        <h2>Startdeck zusammenstellen</h2>
+        <h2>{{ game.deckEditorMode() === 'menu' ? 'Kartenauswahl' : 'Startdeck zusammenstellen' }}</h2>
         <p class="hint">
           Wähle {{ game.deckMin }}–{{ game.deckMax }} Karten aus deiner Sammlung.
-          Neue Karten kaufst du im Kartenshop.
+          Neue Karten kaufst du im Kartenshop. Änderungen werden automatisch gespeichert.
         </p>
+        <div class="deck-layouts" aria-label="Deck-Layouts">
+          @for (layout of game.deckLayouts(); track layout.id) {
+            <button
+              class="deck-layout-tab"
+              [class.active]="game.activeDeckLayoutId() === layout.id"
+              (click)="game.selectDeckLayout(layout.id)"
+            >
+              <span>{{ layout.name }}</span>
+              <small>{{ game.layoutCardCount(layout) }} Karten</small>
+            </button>
+          }
+        </div>
         <div class="deck-counter" [class.deck-ok]="game.canConfirmDeck()">
           {{ game.deckSelectionSize() }} / {{ game.deckMax }} Karten gewählt
         </div>
@@ -159,10 +172,14 @@
           }
         </div>
         <div class="title-buttons">
-          <button class="btn btn-primary" [disabled]="!game.canConfirmDeck()" (click)="game.confirmDeck()">
-            Run starten ({{ game.deckSelectionSize() }} Karten)
-          </button>
-          <button class="btn" (click)="game.backToTitle()">Abbrechen</button>
+          @if (game.deckEditorMode() === 'run') {
+            <button class="btn btn-primary" [disabled]="!game.canConfirmDeck()" (click)="game.confirmDeck()">
+              Run starten ({{ game.deckSelectionSize() }} Karten)
+            </button>
+            <button class="btn" (click)="game.backToTitle()">Abbrechen</button>
+          } @else {
+            <button class="btn btn-primary" (click)="game.backToTitle()">Fertig</button>
+          }
         </div>
       </div>
     }
@@ -422,10 +439,10 @@
       </div>
     }
 
-    <!-- ==================== METAFORTSCHRITT ==================== -->
+    <!-- ==================== UPGRADES ==================== -->
     @case ('meta') {
       <div class="screen meta-screen">
-        <h2>Metafortschritt</h2>
+        <h2>Upgrades</h2>
         <div class="meta-summary">
           <span>🔮 {{ game.meta().splitter }} Splitter</span>
           <span>🟡 {{ game.meta().kerne }} Kerne</span>

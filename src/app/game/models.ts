@@ -165,4 +165,12 @@ export interface MetaState {
   completedStages: string[];  // abgeschlossene Kampagnen-Stages
   cards: Record<string, number>; // Kartensammlung (Karten-ID → Anzahl)
   lastDeck: string[];         // zuletzt gewähltes Startdeck
+  deckLayouts: DeckLayout[];  // dauerhaft gespeicherte Startdeck-Layouts
+  activeDeckLayoutId: string;
+}
+
+export interface DeckLayout {
+  id: string;
+  name: string;
+  cardIds: string[];
 }
