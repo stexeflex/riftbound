@@ -158,7 +158,7 @@
                 [class]="typeClass(def.type)"
                 [class.selected]="game.selectionCount(def.id) > 0"
                 [attr.data-card-tip]="cardDetails(def)"
-                [attr.aria-description]="cardDetails(def)"
+                [attr.aria-description]="cardDetails(def) || null"
                 (click)="game.addToSelection(def.id)"
               >
                 <span class="card-cost">{{ def.cost }}</span>
@@ -220,7 +220,7 @@
             <div class="collection-item">
               <button class="card card-detail" [class]="typeClass(def.type)"
                       [attr.data-card-tip]="cardDetails(def)"
-                      [attr.aria-description]="cardDetails(def)"
+                      [attr.aria-description]="cardDetails(def) || null"
                       (click)="game.buyCard(def)">
                 <span class="card-cost">{{ def.cost }}</span>
                 <span class="card-name">{{ def.name }}</span>
@@ -365,8 +365,8 @@
                 class="card card-detail"
                 [class]="typeClass(card.def.type)"
                 [class.unplayable]="!game.canPlay(card)"
-                [attr.data-card-tip]="cardDetails(card.def, card)"
-                [attr.aria-description]="cardDetails(card.def, card)"
+                [attr.data-card-tip]="cardDetails(card.def)"
+                [attr.aria-description]="cardDetails(card.def) || null"
                 (click)="play(card)"
                 (mouseenter)="hoverCard(card)"
                 (mouseleave)="hoverCard(null)"
@@ -402,7 +402,7 @@
           @for (def of game.rewardCards(); track def.id) {
             <button class="card card-detail reward-card" [class]="typeClass(def.type)"
                     [attr.data-card-tip]="cardDetails(def)"
-                    [attr.aria-description]="cardDetails(def)"
+                    [attr.aria-description]="cardDetails(def) || null"
                     (click)="game.takeReward(def)">
               <span class="card-cost">{{ def.cost }}</span>
               <span class="card-name">{{ def.name }}</span>

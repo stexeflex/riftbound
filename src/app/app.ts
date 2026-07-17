@@ -70,57 +70,33 @@ export class App {
     return this.game.previewDamage(card, e);
   }
 
-  /** Ausführliche Erklärung einer Karte, im Kampf inklusive aktueller Werte. */
-  cardDetails(def: CardDef, card?: CardInstance): string {
+  /** Nur Zusatzwissen zu Effekten, das nicht bereits direkt auf der Karte steht. */
+  cardDetails(def: CardDef): string {
     const lines: string[] = [];
-    const cost = card ? this.game.costOf(card) : def.cost;
-    lines.push(`Kosten: ${cost} Energie.`);
-
-    if (def.damage) {
-      const hits = def.hits ?? 1;
-      lines.push(
-        hits > 1
-          ? `Angriff: ${hits} Treffer mit je ${def.damage} Basisschaden.`
-          : `Angriff: ${def.damage} Basisschaden.`,
-      );
-      const target = card ? this.game.aliveEnemies()[0] : null;
-      if (card && target) {
-        const preview = this.game.previewDamage(card, target);
-        lines.push(
-          `Aktuell gegen ${target.def.name}: ${preview.total} Schaden, ` +
-          `${preview.afterBlock} davon treffen die Lebenspunkte.`,
-        );
-      }
-      lines.push('Stärke gilt für jeden Treffer; Schwäche und Verwundbarkeit verändern den Schaden. Schild blockt zuerst.');
-    }
     if (def.block) {
-      lines.push(`Schild: +${def.block}. Er blockt Schaden und verfällt zu Beginn deines nächsten Zuges.`);
+      lines.push('Schild blockt eingehenden Schaden und verfällt zu Beginn deines nächsten Zuges.');
     }
     if (def.draw) {
-      lines.push(`Kartenziehen: Ziehe ${def.draw} ${def.draw === 1 ? 'Karte' : 'Karten'} vom Nachziehstapel.`);
+      lines.push('Ist der Nachziehstapel leer, wird der Ablagestapel gemischt und zum neuen Nachziehstapel.');
     }
     if (def.strength) {
-      lines.push(`Stärke: +${def.strength} für diesen Kampf. Jeder Angriffstreffer verursacht entsprechend mehr Schaden.`);
+      lines.push('Stärke erhöht jeden einzelnen Angriffstreffer und bleibt bis zum Ende des Kampfes bestehen.');
     }
     if (def.endTurnBlock) {
-      lines.push(`Dauerhafter Effekt: Am Ende jedes deiner Züge erhältst du ${def.endTurnBlock} Schild.`);
+      lines.push('Als Macht bleibt dieser Effekt nach dem Ausspielen für den gesamten Kampf aktiv.');
     }
     if (def.weakEnemy) {
-      lines.push(`Schwäche: Der Gegner verursacht 25 % weniger Schaden. Wert ${def.weakEnemy}; sinkt nach jedem Gegnerzug um 1.`);
+      lines.push('Schwäche: Der Gegner verursacht 25 % weniger Schaden. Sie sinkt nach jedem Gegnerzug um 1.');
     }
     if (def.vulnerableEnemy) {
-      lines.push(`Verwundbarkeit: Der Gegner erleidet 50 % mehr Schaden. Wert ${def.vulnerableEnemy}; sinkt nach jedem Gegnerzug um 1.`);
+      lines.push('Verwundbarkeit: Der Gegner erleidet 50 % mehr Schaden. Sie sinkt nach jedem Gegnerzug um 1.');
     }
     if (def.selfWeak) {
-      lines.push(`Nachteil: Du erhältst ${def.selfWeak} Schwäche und verursachst dadurch 25 % weniger Schaden. Sie sinkt pro Zug um 1.`);
+      lines.push('Schwäche: Du verursachst 25 % weniger Schaden. Sie sinkt pro Zug um 1.');
     }
     if (def.randomBonus) {
       lines.push('Zufallseffekt (je 1/3): Ziehe 1 Karte, erhalte 5 Schild oder verursache 5 zusätzlichen Schaden.');
     }
-    if (def.unplayable) {
-      lines.push('Nicht spielbar: Diese Karte bleibt als blockierter Platz auf deiner Hand, bis sie abgelegt wird.');
-    }
-    lines.push(`Kategorie ${def.category}: zählt für den Aufbau einer Resonanz.`);
     return lines.join('\n');
   }
 
