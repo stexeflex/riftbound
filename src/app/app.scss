@@ -476,7 +476,52 @@ h1, h2 {
   p { color: #cabfa5; margin: 0; }
 }
 
+// ---------- Kampagne ----------
+
+.stage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  width: 100%;
+  max-width: 680px;
+}
+
+.stage-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(140, 110, 60, 0.3);
+  background: #171221;
+
+  &.locked { opacity: 0.45; }
+  &.completed { border-color: rgba(80, 180, 100, 0.4); }
+}
+
+.stage-icon { font-size: 1.6rem; }
+.stage-info { flex: 1; }
+.stage-name { color: #e8dcc0; font-weight: bold; }
+.stage-desc { font-size: 0.85rem; color: #b8ae96; }
+.stage-reward { font-size: 0.8rem; color: #9c92b5; margin-top: 0.2rem; }
+
 // ---------- Metafortschritt ----------
+
+.meta-section {
+  font-family: 'Cinzel', 'Georgia', serif;
+  color: #c9b88a;
+  letter-spacing: 0.08em;
+  margin: 0.6rem 0 0;
+  align-self: flex-start;
+}
+
+.owned-artifact { border-color: rgba(80, 180, 100, 0.35); }
+
+.owned-badge {
+  font-size: 0.85rem;
+  color: #7fc98a;
+  white-space: nowrap;
+}
 
 .upgrade-list {
   display: flex;

@@ -1,4 +1,4 @@
-import { ArtifactDef, CardDef, EnemyDef, MetaUpgradeDef } from './models';
+import { ArtifactDef, CampaignStage, CardDef, EnemyDef, MetaUpgradeDef } from './models';
 
 // ------------------------- Karten -------------------------
 
@@ -150,16 +150,70 @@ export const ELITE_POOL = ['klingenwaechter', 'riftbestie'];
 
 export const ARTIFACTS: ArtifactDef[] = [
   {
-    id: 'glasherz', name: 'Glasherz', icon: '❤️‍🔥',
-    text: '20 % weniger maximales Leben, aber 20 % mehr verursachter Schaden.',
-  },
-  {
-    id: 'schildkern', name: 'Schildkern', icon: '🔷',
+    id: 'schildkern', name: 'Schildkern', icon: '🔷', starter: true,
     text: 'Beginne jeden Zug mit 2 Schild.',
   },
   {
-    id: 'dornenkrone', name: 'Dornenkrone', icon: '👑',
+    id: 'glasherz', name: 'Glasherz', icon: '❤️‍🔥', costSplitter: 100,
+    text: '20 % weniger maximales Leben, aber 20 % mehr verursachter Schaden.',
+  },
+  {
+    id: 'dornenkrone', name: 'Dornenkrone', icon: '👑', costSplitter: 100,
     text: 'Bei direktem Schaden erhältst du 1 zusätzlichen Schaden, fügst dem Angreifer aber 4 Schaden zu.',
+  },
+  {
+    id: 'sanduhr', name: 'Gebrochene Sanduhr', icon: '⏳', costSplitter: 150,
+    text: 'Die erste Karte jedes Zuges kostet 1 Energie weniger.',
+  },
+  {
+    id: 'vampirfang', name: 'Vampirfang', icon: '🦇', costSplitter: 150,
+    text: 'Die erste Angriffskarte jedes Zuges heilt dich um 2 Leben.',
+  },
+  {
+    id: 'phasenanker', name: 'Phasenanker', icon: '⚓', costSplitter: 150,
+    text: 'Erhalte in jedem dritten Zug +1 Energie.',
+  },
+  {
+    id: 'seelenspiegel', name: 'Seelenspiegel', icon: '🪞', costSplitter: 200,
+    text: 'Behalte zu Beginn deines Zuges die Hälfte deines übrigen Schilds.',
+  },
+  {
+    id: 'resonanzstein', name: 'Resonanzstein', icon: '💠', costSplitter: 200,
+    text: 'Resonanz kann zweimal pro Zug ausgelöst werden.',
+  },
+  {
+    id: 'blutvertrag', name: 'Blutvertrag', icon: '📜', costKerne: 1,
+    text: 'Heilung ist 30 % schwächer. Elitegegner geben doppelte Splitter und +5 maximales Leben für den Run.',
+  },
+];
+
+// ------------------------- Kampagne -------------------------
+
+export const CAMPAIGN_STAGES: CampaignStage[] = [
+  {
+    id: 'stage1', name: 'Randzone des Risses',
+    desc: 'Die ersten Ausläufer der Instabilität. Ein guter Ort zum Lernen.',
+    stations: ['kampf', 'kampf', 'rast', 'elite'], reward: 60,
+  },
+  {
+    id: 'stage2', name: 'Zerbrochener Wald',
+    desc: 'Zwischen gespaltenen Bäumen lauern Schattenwölfe.',
+    stations: ['kampf', 'kampf', 'elite', 'rast', 'kampf'], reward: 80,
+  },
+  {
+    id: 'stage3', name: 'Kristallhöhlen',
+    desc: 'Das Licht bricht sich tausendfach – und mit ihm die Realität.',
+    stations: ['kampf', 'elite', 'rast', 'kampf', 'elite'], reward: 100,
+  },
+  {
+    id: 'stage4', name: 'Sturmfestung',
+    desc: 'Eine Festung im Auge des Riss-Sturms, gehalten von Wächtern.',
+    stations: ['kampf', 'kampf', 'elite', 'rast', 'kampf', 'elite'], reward: 120,
+  },
+  {
+    id: 'stage5', name: 'Herz des Risses',
+    desc: 'Hier wartet Vorax, der Verschlinger. Das Ende der Reise – vorerst.',
+    stations: ['kampf', 'elite', 'rast', 'kampf', 'boss'], reward: 150, kern: true,
   },
 ];
 

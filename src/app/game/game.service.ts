@@ -1,15 +1,22 @@
 import { Injectable, computed, signal } from '@angular/core';
 import {
-  ArtifactDef, CardDef, CardInstance, Category, EnemyDef, EnemyState,
-  MetaState, Screen, Station,
+  ArtifactDef, CampaignStage, CardDef, CardInstance, Category, EnemyDef,
+  EnemyState, GameMode, MetaState, RunSave, Screen, Station, StationKind,
 } from './models';
 import {
-  ARTIFACTS, CARDS, ELITE_POOL, ENEMIES, META_UPGRADES, NORMAL_POOL,
-  REWARD_POOL, STARTER_DECK,
+  ARTIFACTS, CAMPAIGN_STAGES, CARDS, ELITE_POOL, ENEMIES, META_UPGRADES,
+  NORMAL_POOL, REWARD_POOL, STARTER_DECK,
 } from './data';
+import { legacyLoad, secureLoad, secureRemove, secureSave } from './storage';
 
-const META_KEY = 'riftbound-meta-v1';
+const META_KEY = 'riftbound-meta-v2';
+const LEGACY_META_KEY = 'riftbound-meta-v1';
+const RUN_KEY = 'riftbound-run-v1';
 const BASE_HP = 80;
+
+const DUNGEON_STATIONS: StationKind[] = [
+  'kampf', 'kampf', 'elite', 'rast', 'kampf', 'kampf', 'elite', 'rast', 'boss',
+];
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -31,13 +38,17 @@ export class GameService {
   // ---------- Meta (bleibt über Runs erhalten) ----------
   readonly meta = signal<MetaState>(this.loadMeta());
   readonly metaUpgrades = META_UPGRADES;
+  readonly allArtifacts = ARTIFACTS;
+  readonly campaignStages = CAMPAIGN_STAGES;
 
-  // ---------- Bildschirm ----------
+  // ---------- Bildschirm & Modus ----------
   readonly screen = signal<Screen>('title');
+  readonly mode = signal<GameMode>('dungeon');
+  readonly currentStage = signal<CampaignStage | null>(null);
+  readonly hasRunSave = signal<boolean>(secureLoad<RunSave>(RUN_KEY) !== null);
 
   // ---------- Run ----------
   readonly artifact = signal<ArtifactDef | null>(null);
-  readonly artifactChoices = signal<ArtifactDef[]>(ARTIFACTS);
   readonly stations = signal<Station[]>([]);
   readonly stationIndex = signal(0);
   readonly deck = signal<CardInstance[]>([]);
@@ -58,31 +69,58 @@ export class GameService {
   readonly endTurnBlock = signal(0);
   readonly turn = signal(1);
   readonly playedCategories = signal<Category[]>([]);
-  readonly resonanceTriggered = signal(false);
+  readonly resonanceCount = signal(0);
   readonly firstAttackDone = signal(false);
+  readonly cardsPlayedThisTurn = signal(0);
+  readonly attackPlayedThisTurn = signal(false);
   readonly log = signal<string[]>([]);
 
-  // ---------- Belohnung ----------
+  // ---------- Belohnung / Run-Ende ----------
   readonly rewardCards = signal<CardDef[]>([]);
   readonly rewardSplitter = signal(0);
+  readonly endSplitter = signal(0);
+  readonly endKerne = signal(0);
+  readonly endFirstClear = signal(false);
 
   readonly aliveEnemies = computed(() => this.enemies().filter(e => e.hp > 0));
   readonly currentStation = computed(() => this.stations()[this.stationIndex()]);
+  readonly ownedArtifacts = computed(() =>
+    ARTIFACTS.filter(a => this.meta().artifacts.includes(a.id)),
+  );
 
   // ================= Meta =================
 
+  private normalizeMeta(m: Partial<MetaState> | null): MetaState {
+    const artifacts = Array.isArray(m?.artifacts) ? m.artifacts : [];
+    for (const a of ARTIFACTS) {
+      if (a.starter && !artifacts.includes(a.id)) artifacts.push(a.id);
+    }
+    return {
+      splitter: m?.splitter ?? 0,
+      kerne: m?.kerne ?? 0,
+      upgrades: m?.upgrades ?? {},
+      wins: m?.wins ?? 0,
+      runs: m?.runs ?? 0,
+      artifacts,
+      completedStages: Array.isArray(m?.completedStages) ? m.completedStages : [],
+    };
+  }
+
   private loadMeta(): MetaState {
-    try {
-      const raw = localStorage.getItem(META_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch { /* localStorage nicht verfügbar oder korrupt */ }
-    return { splitter: 0, kerne: 0, upgrades: {}, wins: 0, runs: 0 };
+    const signed = secureLoad<MetaState>(META_KEY);
+    if (signed) return this.normalizeMeta(signed);
+    // Migration vom alten, unsignierten Format
+    const legacy = legacyLoad<MetaState>(LEGACY_META_KEY);
+    const meta = this.normalizeMeta(legacy);
+    if (legacy) {
+      secureSave(META_KEY, meta);
+      secureRemove(LEGACY_META_KEY);
+    }
+    return meta;
   }
 
   private saveMeta() {
-    try {
-      localStorage.setItem(META_KEY, JSON.stringify(this.meta()));
-    } catch { /* ignorieren */ }
+    secureSave(META_KEY, this.meta());
   }
 
   upgradeLevel(id: string): number {
@@ -103,6 +141,75 @@ export class GameService {
     this.saveMeta();
   }
 
+  ownsArtifact(id: string): boolean {
+    return this.meta().artifacts.includes(id);
+  }
+
+  canBuyArtifact(a: ArtifactDef): boolean {
+    const m = this.meta();
+    if (this.ownsArtifact(a.id)) return false;
+    if (a.costKerne) return m.kerne >= a.costKerne;
+    if (a.costSplitter) return m.splitter >= a.costSplitter;
+    return false;
+  }
+
+  buyArtifact(a: ArtifactDef) {
+    if (!this.canBuyArtifact(a)) return;
+    const m = this.meta();
+    this.meta.set({
+      ...m,
+      splitter: m.splitter - (a.costSplitter ?? 0),
+      kerne: m.kerne - (a.costKerne ?? 0),
+      artifacts: [...m.artifacts, a.id],
+    });
+    this.saveMeta();
+  }
+
+  // ================= Run speichern / fortsetzen =================
+
+  private saveRun() {
+    const save: RunSave = {
+      mode: this.mode(),
+      stageId: this.currentStage()?.id ?? null,
+      artifactId: this.artifact()?.id ?? null,
+      deckIds: this.deck().map(c => c.def.id),
+      hp: this.playerHp(),
+      maxHp: this.playerMaxHp(),
+      stationIndex: this.stationIndex(),
+      stations: this.stations(),
+      runSplitter: this.runSplitter(),
+    };
+    secureSave(RUN_KEY, save);
+    this.hasRunSave.set(true);
+  }
+
+  private clearRunSave() {
+    secureRemove(RUN_KEY);
+    this.hasRunSave.set(false);
+  }
+
+  continueRun() {
+    const save = secureLoad<RunSave>(RUN_KEY);
+    if (!save) {
+      this.hasRunSave.set(false);
+      return;
+    }
+    this.mode.set(save.mode);
+    this.currentStage.set(
+      save.stageId ? CAMPAIGN_STAGES.find(s => s.id === save.stageId) ?? null : null,
+    );
+    this.artifact.set(ARTIFACTS.find(a => a.id === save.artifactId) ?? null);
+    this.deck.set(
+      save.deckIds.filter(id => CARDS[id]).map(id => this.makeCard(CARDS[id])),
+    );
+    this.playerMaxHp.set(save.maxHp);
+    this.playerHp.set(save.hp);
+    this.stationIndex.set(save.stationIndex);
+    this.stations.set(save.stations);
+    this.runSplitter.set(save.runSplitter);
+    this.screen.set('map');
+  }
+
   // ================= Run-Ablauf =================
 
   goTo(screen: Screen) {
@@ -110,7 +217,26 @@ export class GameService {
   }
 
   startNewRun() {
-    this.artifactChoices.set(ARTIFACTS);
+    this.mode.set('dungeon');
+    this.currentStage.set(null);
+    this.artifact.set(null);
+    this.screen.set('artifact');
+  }
+
+  stageUnlocked(stage: CampaignStage): boolean {
+    const idx = CAMPAIGN_STAGES.indexOf(stage);
+    if (idx <= 0) return true;
+    return this.meta().completedStages.includes(CAMPAIGN_STAGES[idx - 1].id);
+  }
+
+  stageCompleted(stage: CampaignStage): boolean {
+    return this.meta().completedStages.includes(stage.id);
+  }
+
+  startStage(stage: CampaignStage) {
+    if (!this.stageUnlocked(stage)) return;
+    this.mode.set('campaign');
+    this.currentStage.set(stage);
     this.artifact.set(null);
     this.screen.set('artifact');
   }
@@ -124,22 +250,18 @@ export class GameService {
     this.playerHp.set(maxHp);
 
     this.deck.set(STARTER_DECK.map(id => this.makeCard(CARDS[id])));
-    this.stations.set([
-      { kind: 'kampf', done: false },
-      { kind: 'kampf', done: false },
-      { kind: 'elite', done: false },
-      { kind: 'rast', done: false },
-      { kind: 'kampf', done: false },
-      { kind: 'kampf', done: false },
-      { kind: 'elite', done: false },
-      { kind: 'rast', done: false },
-      { kind: 'boss', done: false },
-    ]);
+
+    const kinds = this.mode() === 'campaign'
+      ? this.currentStage()!.stations
+      : DUNGEON_STATIONS;
+    this.stations.set(kinds.map(kind => ({ kind, done: false })));
     this.stationIndex.set(0);
     this.runSplitter.set(0);
+
     const m = this.meta();
     this.meta.set({ ...m, runs: m.runs + 1 });
     this.saveMeta();
+    this.saveRun();
     this.screen.set('map');
   }
 
@@ -155,7 +277,8 @@ export class GameService {
 
   restHeal() {
     const bonus = 1 + this.upgradeLevel('heilung') * 0.05;
-    const heal = Math.round(this.playerMaxHp() * 0.3 * bonus);
+    const blutvertrag = this.artifact()?.id === 'blutvertrag' ? 0.7 : 1;
+    const heal = Math.round(this.playerMaxHp() * 0.3 * bonus * blutvertrag);
     this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + heal));
     this.completeStation();
   }
@@ -169,18 +292,44 @@ export class GameService {
     } else {
       this.stationIndex.set(this.stationIndex() + 1);
       this.screen.set('map');
+      this.saveRun();
     }
   }
 
   private finishRun(won: boolean) {
+    this.clearRunSave();
     const m = this.meta();
-    const earned = this.runSplitter() + (won ? 100 : 0);
-    this.runSplitter.set(earned);
+    let earned = this.runSplitter();
+    let kerne = 0;
+    let completed = m.completedStages;
+    let firstClear = false;
+
+    if (won) {
+      if (this.mode() === 'dungeon') {
+        earned += 100;
+        kerne = 1;
+      } else {
+        const stage = this.currentStage();
+        if (stage) {
+          firstClear = !completed.includes(stage.id);
+          earned += firstClear ? stage.reward : Math.round(stage.reward * 0.25);
+          if (firstClear) {
+            if (stage.kern) kerne = 1;
+            completed = [...completed, stage.id];
+          }
+        }
+      }
+    }
+
+    this.endSplitter.set(earned);
+    this.endKerne.set(kerne);
+    this.endFirstClear.set(firstClear);
     this.meta.set({
       ...m,
       splitter: m.splitter + earned,
-      kerne: m.kerne + (won ? 1 : 0),
+      kerne: m.kerne + kerne,
       wins: m.wins + (won ? 1 : 0),
+      completedStages: completed,
     });
     this.saveMeta();
     this.screen.set(won ? 'victory' : 'defeat');
@@ -233,12 +382,28 @@ export class GameService {
 
   private startPlayerTurn(first = false) {
     if (!first) this.turn.set(this.turn() + 1);
-    this.energy.set(this.maxEnergy());
+    let energy = this.maxEnergy();
+    if (this.artifact()?.id === 'phasenanker' && this.turn() % 3 === 0) {
+      energy += 1;
+      this.addLog('Phasenanker: +1 Energie in diesem Zug.');
+    }
+    this.energy.set(energy);
+
     let startBlock = 0;
-    if (this.artifact()?.id === 'schildkern') startBlock = 2;
+    if (this.artifact()?.id === 'schildkern') startBlock += 2;
+    if (this.artifact()?.id === 'seelenspiegel' && this.block() > 0) {
+      const kept = Math.floor(this.block() / 2);
+      if (kept > 0) {
+        startBlock += kept;
+        this.addLog(`Seelenspiegel: ${kept} Schild bleibt erhalten.`);
+      }
+    }
     this.block.set(startBlock);
+
     this.playedCategories.set([]);
-    this.resonanceTriggered.set(false);
+    this.resonanceCount.set(0);
+    this.cardsPlayedThisTurn.set(0);
+    this.attackPlayedThisTurn.set(false);
     this.drawCards(5);
     if (this.playerWeak() > 0) this.playerWeak.set(this.playerWeak() - 1);
   }
@@ -264,20 +429,38 @@ export class GameService {
     this.log.set([msg, ...this.log()].slice(0, 6));
   }
 
+  costOf(card: CardInstance): number {
+    let cost = card.def.cost;
+    if (
+      this.artifact()?.id === 'sanduhr' &&
+      this.cardsPlayedThisTurn() === 0 &&
+      cost > 0
+    ) {
+      cost -= 1;
+    }
+    return cost;
+  }
+
   canPlay(card: CardInstance): boolean {
-    return !card.def.unplayable && card.def.cost <= this.energy();
+    return !card.def.unplayable && this.costOf(card) <= this.energy();
   }
 
   playCard(card: CardInstance) {
     if (!this.canPlay(card)) return;
     const def = card.def;
-    this.energy.set(this.energy() - def.cost);
+    this.energy.set(this.energy() - this.costOf(card));
+    this.cardsPlayedThisTurn.set(this.cardsPlayedThisTurn() + 1);
     this.hand.set(this.hand().filter(c => c.uid !== card.uid));
     this.discardPile.set([...this.discardPile(), card]);
 
     const target = this.aliveEnemies()[0];
 
     if (def.damage && target) {
+      if (!this.attackPlayedThisTurn() && this.artifact()?.id === 'vampirfang') {
+        this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + 2));
+        this.addLog('Vampirfang: Du heilst 2 Leben.');
+      }
+      this.attackPlayedThisTurn.set(true);
       const hits = def.hits ?? 1;
       for (let h = 0; h < hits; h++) {
         this.dealDamage(target, def.damage);
@@ -323,12 +506,17 @@ export class GameService {
     }
   }
 
+  private maxResonancePerTurn(): number {
+    return this.artifact()?.id === 'resonanzstein' ? 2 : 1;
+  }
+
   private trackResonance(cat: Category) {
     const cats = this.playedCategories();
     if (!cats.includes(cat)) this.playedCategories.set([...cats, cat]);
     const set = new Set(this.playedCategories());
-    if (set.size >= 3 && !this.resonanceTriggered()) {
-      this.resonanceTriggered.set(true);
+    if (set.size >= 3 && this.resonanceCount() < this.maxResonancePerTurn()) {
+      this.resonanceCount.set(this.resonanceCount() + 1);
+      this.playedCategories.set([]); // Kategorien zurücksetzen, damit ggf. eine neue Resonanz aufgebaut werden kann
       // Resonanz: Effekt hängt von den gespielten Kategorien ab
       if (set.has('Kraft') && set.has('Schutz') && set.has('Kontrolle')) {
         this.drawCards(1);
@@ -454,7 +642,21 @@ export class GameService {
 
   private onCombatWon() {
     const station = this.currentStation();
-    const splitter = station.kind === 'boss' ? 60 : station.kind === 'elite' ? 30 : 15;
+    let splitter = station.kind === 'boss' ? 60 : station.kind === 'elite' ? 30 : 15;
+
+    if (station.kind === 'elite' && this.artifact()?.id === 'blutvertrag') {
+      splitter *= 2;
+      const newMax = this.playerMaxHp() + 5;
+      this.playerMaxHp.set(newMax);
+      this.playerHp.set(Math.min(newMax, this.playerHp() + 5));
+    }
+
+    // Bereits abgeschlossene Kampagnen-Stages geben nur halben Loot
+    const stage = this.currentStage();
+    if (this.mode() === 'campaign' && stage && this.stageCompleted(stage)) {
+      splitter = Math.round(splitter * 0.5);
+    }
+
     this.runSplitter.set(this.runSplitter() + splitter);
     this.rewardSplitter.set(splitter);
 

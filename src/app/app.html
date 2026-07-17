@@ -11,7 +11,11 @@
           Überliste deine Gegner. Werde stärker – in jedem Run.
         </p>
         <div class="title-buttons">
-          <button class="btn btn-primary" (click)="game.startNewRun()">Neuer Run</button>
+          @if (game.hasRunSave()) {
+            <button class="btn btn-primary" (click)="game.continueRun()">▶️ Weiter</button>
+          }
+          <button class="btn btn-primary" (click)="game.startNewRun()">Dungeon-Run</button>
+          <button class="btn btn-primary" (click)="game.goTo('campaign')">Kampagne</button>
           <button class="btn" (click)="game.goTo('meta')">Metafortschritt</button>
         </div>
         <div class="meta-summary">
@@ -22,13 +26,53 @@
       </div>
     }
 
+    <!-- ==================== KAMPAGNE ==================== -->
+    @case ('campaign') {
+      <div class="screen campaign-screen">
+        <h2>Kampagne</h2>
+        <p class="hint">Schließe Stages ab, um die nächste freizuschalten. Abgeschlossene Stages geben weniger Loot.</p>
+        <div class="stage-list">
+          @for (s of game.campaignStages; track s.id; let i = $index) {
+            <div class="stage-row"
+                 [class.locked]="!game.stageUnlocked(s)"
+                 [class.completed]="game.stageCompleted(s)">
+              <span class="stage-icon">
+                @if (!game.stageUnlocked(s)) { 🔒 }
+                @else if (game.stageCompleted(s)) { ✅ }
+                @else { ⚔️ }
+              </span>
+              <div class="stage-info">
+                <div class="stage-name">Stage {{ i + 1 }} – {{ s.name }}</div>
+                <div class="stage-desc">{{ s.desc }}</div>
+                <div class="stage-reward">
+                  {{ s.stations.length }} Stationen ·
+                  Belohnung: 🔮 {{ game.stageCompleted(s) ? s.reward * 0.25 : s.reward }}
+                  @if (s.kern && !game.stageCompleted(s)) { + 🟡 1 Kern }
+                </div>
+              </div>
+              <button class="btn btn-small" [disabled]="!game.stageUnlocked(s)" (click)="game.startStage(s)">
+                {{ game.stageCompleted(s) ? 'Erneut' : 'Start' }}
+              </button>
+            </div>
+          }
+        </div>
+        <button class="btn" (click)="game.backToTitle()">Zurück</button>
+      </div>
+    }
+
     <!-- ==================== ARTEFAKT WÄHLEN ==================== -->
     @case ('artifact') {
       <div class="screen artifact-screen">
         <h2>Artefakt wählen</h2>
-        <p class="hint">Wähle 1 Artefakt für diesen Run.</p>
+        <p class="hint">
+          @if (game.mode() === 'campaign') {
+            {{ game.currentStage()?.name }} · Wähle 1 Artefakt für diesen Run.
+          } @else {
+            Wähle 1 Artefakt für diesen Run. Weitere Artefakte kaufst du im Metafortschritt.
+          }
+        </p>
         <div class="artifact-list">
-          @for (a of game.artifactChoices(); track a.id) {
+          @for (a of game.ownedArtifacts(); track a.id) {
             <button class="artifact-card" (click)="game.chooseArtifact(a)">
               <span class="artifact-icon">{{ a.icon }}</span>
               <span class="artifact-name">{{ a.name }}</span>
@@ -42,7 +86,11 @@
     <!-- ==================== KARTE / MAP ==================== -->
     @case ('map') {
       <div class="screen map-screen">
-        <h2>Gebiet 1 – Die zerrissene Ebene</h2>
+        @if (game.mode() === 'campaign' && game.currentStage(); as stage) {
+          <h2>{{ stage.name }}</h2>
+        } @else {
+          <h2>Gebiet 1 – Die zerrissene Ebene</h2>
+        }
         <div class="player-status">
           <span>❤️ {{ game.playerHp() }}/{{ game.playerMaxHp() }}</span>
           <span>🃏 {{ game.deck().length }} Karten</span>
@@ -125,7 +173,9 @@
               {{ cat }}
             </span>
           }
-          @if (game.resonanceTriggered()) { <span class="resonance-active">✨ ausgelöst!</span> }
+          @if (game.resonanceCount() > 0) {
+            <span class="resonance-active">✨ {{ game.resonanceCount() }}× ausgelöst!</span>
+          }
         </div>
 
         <div class="combat-bottom">
@@ -142,7 +192,7 @@
                 [class.unplayable]="!game.canPlay(card)"
                 (click)="play(card)"
               >
-                <span class="card-cost">{{ card.def.cost }}</span>
+                <span class="card-cost">{{ game.costOf(card) }}</span>
                 <span class="card-name">{{ card.def.name }}</span>
                 <span class="card-type">{{ card.def.type }} · {{ card.def.category }}</span>
                 <span class="card-text">{{ card.def.text }}</span>
@@ -193,11 +243,26 @@
     <!-- ==================== SIEG ==================== -->
     @case ('victory') {
       <div class="screen end-screen">
-        <h2>🏆 Run geschafft!</h2>
-        <p>Vorax, der Verschlinger, wurde besiegt.</p>
-        <p class="hint">🔮 +{{ game.runSplitter() }} Splitter · 🟡 +1 Kern</p>
+        @if (game.mode() === 'campaign') {
+          <h2>🏆 Stage abgeschlossen!</h2>
+          <p>{{ game.currentStage()?.name }} liegt hinter dir.</p>
+          @if (!game.endFirstClear()) {
+            <p class="hint">Bereits abgeschlossene Stage – reduzierter Loot.</p>
+          }
+        } @else {
+          <h2>🏆 Run geschafft!</h2>
+          <p>Vorax, der Verschlinger, wurde besiegt.</p>
+        }
+        <p class="hint">
+          🔮 +{{ game.endSplitter() }} Splitter
+          @if (game.endKerne() > 0) { · 🟡 +{{ game.endKerne() }} Kern }
+        </p>
         <div class="title-buttons">
-          <button class="btn btn-primary" (click)="game.startNewRun()">Neuer Run</button>
+          @if (game.mode() === 'campaign') {
+            <button class="btn btn-primary" (click)="game.goTo('campaign')">Zur Kampagne</button>
+          } @else {
+            <button class="btn btn-primary" (click)="game.startNewRun()">Neuer Run</button>
+          }
           <button class="btn" (click)="game.goTo('meta')">Metafortschritt</button>
           <button class="btn" (click)="game.backToTitle()">Zum Titel</button>
         </div>
@@ -209,9 +274,13 @@
       <div class="screen end-screen">
         <h2>💀 Niederlage</h2>
         <p>Der Riss hat dich verschlungen … aber dein Fortschritt bleibt.</p>
-        <p class="hint">🔮 +{{ game.runSplitter() }} Splitter gesammelt</p>
+        <p class="hint">🔮 +{{ game.endSplitter() }} Splitter gesammelt</p>
         <div class="title-buttons">
-          <button class="btn btn-primary" (click)="game.startNewRun()">Neuer Run</button>
+          @if (game.mode() === 'campaign') {
+            <button class="btn btn-primary" (click)="game.goTo('campaign')">Zur Kampagne</button>
+          } @else {
+            <button class="btn btn-primary" (click)="game.startNewRun()">Neuer Run</button>
+          }
           <button class="btn" (click)="game.goTo('meta')">Metafortschritt</button>
           <button class="btn" (click)="game.backToTitle()">Zum Titel</button>
         </div>
@@ -228,6 +297,7 @@
           <span>Runs: {{ game.meta().runs }}</span>
           <span>Siege: {{ game.meta().wins }}</span>
         </div>
+        <h3 class="meta-section">Upgrades</h3>
         <div class="upgrade-list">
           @for (u of game.metaUpgrades; track u.id) {
             <div class="upgrade-row">
@@ -246,6 +316,30 @@
               >
                 @if (game.upgradeLevel(u.id) >= u.maxLevel) { Max } @else { 🔮 {{ u.cost }} }
               </button>
+            </div>
+          }
+        </div>
+
+        <h3 class="meta-section">Artefakte</h3>
+        <div class="upgrade-list">
+          @for (a of game.allArtifacts; track a.id) {
+            <div class="upgrade-row" [class.owned-artifact]="game.ownsArtifact(a.id)">
+              <span class="upgrade-icon">{{ a.icon }}</span>
+              <div class="upgrade-info">
+                <div class="upgrade-name">{{ a.name }}</div>
+                <div class="upgrade-text">{{ a.text }}</div>
+              </div>
+              @if (game.ownsArtifact(a.id)) {
+                <span class="owned-badge">✔ Freigeschaltet</span>
+              } @else {
+                <button
+                  class="btn btn-small"
+                  [disabled]="!game.canBuyArtifact(a)"
+                  (click)="game.buyArtifact(a)"
+                >
+                  @if (a.costKerne) { 🟡 {{ a.costKerne }} } @else { 🔮 {{ a.costSplitter }} }
+                </button>
+              }
             </div>
           }
         </div>

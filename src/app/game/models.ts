@@ -70,11 +70,15 @@ export interface ArtifactDef {
   name: string;
   icon: string;
   text: string;
+  costSplitter?: number; // Kaufpreis im Metafortschritt
+  costKerne?: number;
+  starter?: boolean;     // von Anfang an freigeschaltet
 }
 
 export type Screen =
   | 'title'
   | 'artifact'
+  | 'campaign'
   | 'map'
   | 'combat'
   | 'reward'
@@ -82,6 +86,30 @@ export type Screen =
   | 'victory'
   | 'defeat'
   | 'meta';
+
+export type GameMode = 'dungeon' | 'campaign';
+
+export interface CampaignStage {
+  id: string;
+  name: string;
+  desc: string;
+  stations: StationKind[];
+  reward: number;   // Splitter-Bonus beim ersten Abschluss
+  kern?: boolean;   // gibt beim ersten Abschluss zusätzlich 1 Kern
+}
+
+// Gespeicherter Run (Fortsetzen-Funktion)
+export interface RunSave {
+  mode: GameMode;
+  stageId: string | null;
+  artifactId: string | null;
+  deckIds: string[];
+  hp: number;
+  maxHp: number;
+  stationIndex: number;
+  stations: Station[];
+  runSplitter: number;
+}
 
 export interface MetaUpgradeDef {
   id: string;
@@ -98,4 +126,6 @@ export interface MetaState {
   upgrades: Record<string, number>;
   wins: number;
   runs: number;
+  artifacts: string[];        // freigeschaltete Artefakte
+  completedStages: string[];  // abgeschlossene Kampagnen-Stages
 }
