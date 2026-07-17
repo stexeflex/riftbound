@@ -565,8 +565,7 @@ export class GameService {
 
   restHeal() {
     const bonus = 1 + this.runUpgradeLevel('heilung') * 0.05;
-    const blutvertrag = this.artifact()?.id === 'blutvertrag' ? 0.7 : 1;
-    const heal = Math.round(this.playerMaxHp() * 0.3 * bonus * blutvertrag);
+    const heal = Math.round(this.playerMaxHp() * 0.3 * bonus);
     this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + heal));
     this.completeStation();
   }
@@ -664,6 +663,11 @@ export class GameService {
     this.turn.set(1);
     this.firstAttackDone.set(false);
     this.log.set([]);
+    if (this.artifact()?.id === 'blutvertrag') {
+      this.playerHp.set(Math.max(1, this.playerHp() - 6));
+      this.strength.set(2);
+      this.addLog('Blutvertrag: Leben geopfert, +2 Stärke für diesen Kampf.');
+    }
     this.screen.set('combat');
     this.startPlayerTurn(true);
     this.saveRun();
@@ -968,13 +972,6 @@ export class GameService {
   private onCombatWon() {
     const station = this.currentStation();
     let splitter = station.kind === 'boss' ? 60 : station.kind === 'elite' ? 30 : 15;
-
-    if (station.kind === 'elite' && this.artifact()?.id === 'blutvertrag') {
-      splitter *= 2;
-      const newMax = this.playerMaxHp() + 5;
-      this.playerMaxHp.set(newMax);
-      this.playerHp.set(Math.min(newMax, this.playerHp() + 5));
-    }
 
     // Bereits abgeschlossene Kampagnen-Stages geben nur halben Loot
     const stage = this.currentStage();

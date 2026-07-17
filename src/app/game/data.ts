@@ -89,7 +89,7 @@ export const STARTER_COLLECTION: Record<string, number> = {
 export const MAX_CARD_COPIES = 4;
 
 // Regeln fürs Startdeck
-export const DECK_MIN = 5;
+export const DECK_MIN = 10;
 export const DECK_MAX = 10;
 
 // ------------------------- Gegner -------------------------
@@ -197,7 +197,7 @@ export const ARTIFACTS: ArtifactDef[] = [
   },
   {
     id: 'blutvertrag', name: 'Blutvertrag', icon: '📜', costKerne: 1,
-    text: 'Heilung ist 30 % schwächer. Elitegegner geben doppelte Splitter und +5 maximales Leben für den Run.',
+    text: 'Opfere zu Beginn jedes Kampfes bis zu 6 Leben (mindestens 1 bleibt) und erhalte +2 Stärke.',
   },
 ];
 
