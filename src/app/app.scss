@@ -275,6 +275,34 @@ h1, h2 {
   transition: width 0.3s ease;
 }
 
+.hp-loss-preview {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(255, 238, 150, 0.95) 0 4px,
+    rgba(210, 60, 45, 0.92) 4px 8px
+  );
+  border-inline: 1px solid rgba(255, 245, 185, 0.8);
+  animation: hp-warning 0.8s ease-in-out infinite alternate;
+}
+
+.enemy-loss-preview {
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(255, 224, 110, 0.98) 0 4px,
+    rgba(125, 30, 25, 0.95) 4px 8px
+  );
+}
+
+@keyframes hp-warning {
+  from { filter: brightness(0.85); }
+  to { filter: brightness(1.2); }
+}
+
 .enemy-fill { background: linear-gradient(180deg, #e05545, #a03024); }
 
 .hp-text {
@@ -286,6 +314,7 @@ h1, h2 {
   font-size: 0.75rem;
   color: #fff;
   text-shadow: 0 1px 2px #000;
+  z-index: 3;
 }
 
 .status-row {
@@ -507,6 +536,14 @@ h1, h2 {
   }
 }
 
+.intent.tip:hover::after {
+  top: calc(100% + 8px);
+  bottom: auto;
+  width: 300px;
+  max-width: min(300px, 82vw);
+  white-space: pre-line;
+}
+
 // ---------- Hover-Vorschau im Kampf ----------
 
 .chip-preview {
@@ -583,6 +620,30 @@ h1, h2 {
 
     small { color: #cab98a; }
   }
+}
+
+.card-detail:hover::after {
+  content: attr(data-card-tip);
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  max-width: min(280px, 82vw);
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(188, 153, 85, 0.7);
+  background: rgba(20, 15, 30, 0.98);
+  color: #eee3c8;
+  font-size: 0.75rem;
+  font-weight: normal;
+  line-height: 1.45;
+  text-align: left;
+  text-transform: none;
+  white-space: pre-line;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
 }
 
 .deck-counter {

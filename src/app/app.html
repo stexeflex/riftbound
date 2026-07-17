@@ -154,9 +154,11 @@
           @for (def of game.collectionCards(); track def.id) {
             <div class="collection-item">
               <button
-                class="card"
+                class="card card-detail"
                 [class]="typeClass(def.type)"
                 [class.selected]="game.selectionCount(def.id) > 0"
+                [attr.data-card-tip]="cardDetails(def)"
+                [attr.aria-description]="cardDetails(def)"
                 (click)="game.addToSelection(def.id)"
               >
                 <span class="card-cost">{{ def.cost }}</span>
@@ -216,7 +218,10 @@
         <div class="collection-grid">
           @for (def of game.filteredShopCards(); track def.id) {
             <div class="collection-item">
-              <button class="card" [class]="typeClass(def.type)" (click)="game.buyCard(def)">
+              <button class="card card-detail" [class]="typeClass(def.type)"
+                      [attr.data-card-tip]="cardDetails(def)"
+                      [attr.aria-description]="cardDetails(def)"
+                      (click)="game.buyCard(def)">
                 <span class="card-cost">{{ def.cost }}</span>
                 <span class="card-name">{{ def.name }}</span>
                 <span class="card-type">{{ def.type }} · {{ def.category }}</span>
@@ -249,7 +254,15 @@
             <div class="fighter-name">Du</div>
             <div class="hp-bar">
               <div class="hp-fill" [style.width.%]="hpPercent(game.playerHp(), game.playerMaxHp())"></div>
-              <span class="hp-text">{{ game.playerHp() }}/{{ game.playerMaxHp() }}</span>
+              @if (totalIncomingDamage() > 0) {
+                <div class="hp-loss-preview player-loss-preview"
+                     [style.left.%]="projectedPlayerHpPercent()"
+                     [style.width.%]="playerIncomingPercent()"></div>
+              }
+              <span class="hp-text">
+                {{ game.playerHp() }}/{{ game.playerMaxHp() }}
+                @if (totalIncomingDamage() > 0) { → {{ projectedPlayerHp() }} }
+              </span>
             </div>
             <div class="status-row">
               @if (game.block() > 0) {
@@ -274,7 +287,7 @@
 
           @for (e of game.enemies(); track e.def.id) {
             <div class="fighter enemy" [class.dead]="e.hp <= 0">
-              <div class="intent tip" [attr.data-tip]="tips.intent">
+              <div class="intent tip" [attr.data-tip]="enemyIntentDetails(e)">
                 {{ intentText(e) }}
                 @if (incomingDamage(e) > 0 && e.hp > 0) {
                   <span class="intent-real">→ du verlierst {{ incomingDamage(e) }} ❤️</span>
@@ -292,7 +305,16 @@
               <div class="fighter-name">{{ e.def.name }}</div>
               <div class="hp-bar">
                 <div class="hp-fill enemy-fill" [style.width.%]="hpPercent(e.hp, e.maxHp)"></div>
-                <span class="hp-text">{{ e.hp }}/{{ e.maxHp }}</span>
+                @if (damagePreview(e); as hpPreview) {
+                  @if (hpPreview.afterBlock > 0) {
+                    <div class="hp-loss-preview enemy-loss-preview"
+                         [style.left.%]="projectedEnemyHpPercent(e)"
+                         [style.width.%]="enemyIncomingPercent(e)"></div>
+                  }
+                  <span class="hp-text">{{ e.hp }}/{{ e.maxHp }} → {{ projectedEnemyHp(e) }}</span>
+                } @else {
+                  <span class="hp-text">{{ e.hp }}/{{ e.maxHp }}</span>
+                }
               </div>
               <div class="status-row">
                 @if (e.block > 0) {
@@ -340,9 +362,11 @@
           <div class="hand">
             @for (card of game.hand(); track card.uid) {
               <button
-                class="card"
+                class="card card-detail"
                 [class]="typeClass(card.def.type)"
                 [class.unplayable]="!game.canPlay(card)"
+                [attr.data-card-tip]="cardDetails(card.def, card)"
+                [attr.aria-description]="cardDetails(card.def, card)"
                 (click)="play(card)"
                 (mouseenter)="hoverCard(card)"
                 (mouseleave)="hoverCard(null)"
@@ -374,7 +398,10 @@
         <p class="hint">🔮 +{{ game.rewardSplitter() }} Splitter · Wähle eine Karte oder überspringe.</p>
         <div class="reward-cards">
           @for (def of game.rewardCards(); track def.id) {
-            <button class="card reward-card" [class]="typeClass(def.type)" (click)="game.takeReward(def)">
+            <button class="card card-detail reward-card" [class]="typeClass(def.type)"
+                    [attr.data-card-tip]="cardDetails(def)"
+                    [attr.aria-description]="cardDetails(def)"
+                    (click)="game.takeReward(def)">
               <span class="card-cost">{{ def.cost }}</span>
               <span class="card-name">{{ def.name }}</span>
               <span class="card-type">{{ def.type }} · {{ def.category }}</span>

@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { GameService } from './game/game.service';
-import { CardInstance, CardType, EnemyState, StationKind } from './game/models';
+import { CardDef, CardInstance, CardType, EnemyState, StationKind } from './game/models';
 
 @Component({
   selector: 'app-root',
@@ -20,7 +20,6 @@ export class App {
     schwaeche: 'Schwäche: 25 % weniger Schaden verursachen. Sinkt pro Zug um 1.',
     verwundbar: 'Verwundbarkeit: 50 % mehr Schaden erleiden. Sinkt pro Zug um 1.',
     energie: 'Energie: Wird zum Ausspielen von Karten benötigt und pro Zug erneuert.',
-    intent: 'Das plant der Gegner für seinen nächsten Zug.',
     zieh: 'Nachziehstapel: von hier ziehst du Karten.',
     ablage: 'Ablagestapel: Wird neu gemischt, wenn der Nachziehstapel leer ist.',
     resonanz: 'Spiele 3 verschiedene Kategorien in einem Zug, um eine Resonanz auszulösen.',
@@ -71,6 +70,60 @@ export class App {
     return this.game.previewDamage(card, e);
   }
 
+  /** Ausführliche Erklärung einer Karte, im Kampf inklusive aktueller Werte. */
+  cardDetails(def: CardDef, card?: CardInstance): string {
+    const lines: string[] = [];
+    const cost = card ? this.game.costOf(card) : def.cost;
+    lines.push(`Kosten: ${cost} Energie.`);
+
+    if (def.damage) {
+      const hits = def.hits ?? 1;
+      lines.push(
+        hits > 1
+          ? `Angriff: ${hits} Treffer mit je ${def.damage} Basisschaden.`
+          : `Angriff: ${def.damage} Basisschaden.`,
+      );
+      const target = card ? this.game.aliveEnemies()[0] : null;
+      if (card && target) {
+        const preview = this.game.previewDamage(card, target);
+        lines.push(
+          `Aktuell gegen ${target.def.name}: ${preview.total} Schaden, ` +
+          `${preview.afterBlock} davon treffen die Lebenspunkte.`,
+        );
+      }
+      lines.push('Stärke gilt für jeden Treffer; Schwäche und Verwundbarkeit verändern den Schaden. Schild blockt zuerst.');
+    }
+    if (def.block) {
+      lines.push(`Schild: +${def.block}. Er blockt Schaden und verfällt zu Beginn deines nächsten Zuges.`);
+    }
+    if (def.draw) {
+      lines.push(`Kartenziehen: Ziehe ${def.draw} ${def.draw === 1 ? 'Karte' : 'Karten'} vom Nachziehstapel.`);
+    }
+    if (def.strength) {
+      lines.push(`Stärke: +${def.strength} für diesen Kampf. Jeder Angriffstreffer verursacht entsprechend mehr Schaden.`);
+    }
+    if (def.endTurnBlock) {
+      lines.push(`Dauerhafter Effekt: Am Ende jedes deiner Züge erhältst du ${def.endTurnBlock} Schild.`);
+    }
+    if (def.weakEnemy) {
+      lines.push(`Schwäche: Der Gegner verursacht 25 % weniger Schaden. Wert ${def.weakEnemy}; sinkt nach jedem Gegnerzug um 1.`);
+    }
+    if (def.vulnerableEnemy) {
+      lines.push(`Verwundbarkeit: Der Gegner erleidet 50 % mehr Schaden. Wert ${def.vulnerableEnemy}; sinkt nach jedem Gegnerzug um 1.`);
+    }
+    if (def.selfWeak) {
+      lines.push(`Nachteil: Du erhältst ${def.selfWeak} Schwäche und verursachst dadurch 25 % weniger Schaden. Sie sinkt pro Zug um 1.`);
+    }
+    if (def.randomBonus) {
+      lines.push('Zufallseffekt (je 1/3): Ziehe 1 Karte, erhalte 5 Schild oder verursache 5 zusätzlichen Schaden.');
+    }
+    if (def.unplayable) {
+      lines.push('Nicht spielbar: Diese Karte bleibt als blockierter Platz auf deiner Hand, bis sie abgelegt wird.');
+    }
+    lines.push(`Kategorie ${def.category}: zählt für den Aufbau einer Resonanz.`);
+    return lines.join('\n');
+  }
+
   /** Vorschau: Schild, das die gehoverte Karte gibt. */
   blockPreview(): number {
     const card = this.game.hoveredCard();
@@ -89,7 +142,7 @@ export class App {
       case 'attack':
         return i.hits ? `⚔️ ${dmg} × ${i.hits} Schaden` : `⚔️ ${dmg} Schaden`;
       case 'attack_debuff':
-        return `⚔️ ${dmg} Schaden + 😵 Schwäche`;
+        return `⚔️ ${dmg} Schaden + 😵 ${i.weak ?? 1} Schwäche`;
       case 'block':
         return `🛡️ ${i.value} Schild`;
       case 'buff':
@@ -101,20 +154,83 @@ export class App {
 
   /** Wie viel Leben der Spieler vom angezeigten Gegnerzug wirklich verlieren würde. */
   incomingDamage(e: EnemyState): number {
-    const i = e.intent;
-    if (i.kind !== 'attack' && i.kind !== 'attack_debuff') return 0;
-    let per = i.value + e.strength;
-    if (e.weak > 0) per = Math.round(per * 0.75);
-    const dornenkrone = this.game.artifact()?.id === 'dornenkrone';
+    return this.simulateIncomingDamage([e]);
+  }
+
+  /** Tatsächlicher Lebensverlust des gesamten bevorstehenden Gegnerzugs. */
+  totalIncomingDamage(): number {
+    return this.simulateIncomingDamage(this.game.aliveEnemies());
+  }
+
+  private simulateIncomingDamage(enemies: EnemyState[]): number {
     let remainingBlock = this.game.block();
     let hpDmg = 0;
-    for (let h = 0; h < (i.hits ?? 1); h++) {
-      const blocked = Math.min(remainingBlock, per);
-      remainingBlock -= blocked;
-      let through = per - blocked;
-      if (through > 0 && dornenkrone) through += 1;
-      hpDmg += through;
+    const dornenkrone = this.game.artifact()?.id === 'dornenkrone';
+    for (const e of enemies) {
+      const i = e.intent;
+      if (i.kind !== 'attack' && i.kind !== 'attack_debuff') continue;
+      let per = i.value + e.strength;
+      if (e.weak > 0) per = Math.round(per * 0.75);
+      for (let h = 0; h < (i.hits ?? 1); h++) {
+        const blocked = Math.min(remainingBlock, per);
+        remainingBlock -= blocked;
+        let through = per - blocked;
+        if (through > 0 && dornenkrone) through += 1;
+        hpDmg += through;
+      }
     }
     return hpDmg;
+  }
+
+  enemyIntentDetails(e: EnemyState): string {
+    const i = e.intent;
+    if (i.kind === 'block') {
+      return `${i.name}: Der Gegner erhält ${i.value} Schild. Schild blockt deine Angriffe bis zum nächsten Gegnerzug.`;
+    }
+    if (i.kind === 'buff') {
+      return `${i.name}: Der Gegner erhält +${i.value} Stärke. Jeder folgende Angriffstreffer verursacht in diesem Kampf entsprechend mehr Schaden.`;
+    }
+
+    let per = i.value + e.strength;
+    if (e.weak > 0) per = Math.round(per * 0.75);
+    const hits = i.hits ?? 1;
+    const lines = [
+      `${i.name}: ${hits > 1 ? `${hits} Treffer mit je ${per}` : `${per}`} Schaden vor deinem Schild.`,
+      `Dein aktueller Schild: ${this.game.block()}. Tatsächlicher Lebensverlust: ${this.incomingDamage(e)}.`,
+    ];
+    if (e.strength > 0) lines.push(`Gegnerische Stärke: +${e.strength} Schaden pro Treffer ist bereits eingerechnet.`);
+    if (e.weak > 0) lines.push('Gegnerische Schwäche: 25 % weniger Schaden ist bereits eingerechnet.');
+    if (i.kind === 'attack_debuff') {
+      lines.push(
+        `Danach erhältst du ${i.weak ?? 1} Schwäche: Deine Angriffe verursachen 25 % weniger Schaden; der Wert sinkt pro Zug um 1.`,
+      );
+    }
+    return lines.join('\n');
+  }
+
+  projectedPlayerHp(): number {
+    return Math.max(0, this.game.playerHp() - this.totalIncomingDamage());
+  }
+
+  projectedPlayerHpPercent(): number {
+    return (this.projectedPlayerHp() / this.game.playerMaxHp()) * 100;
+  }
+
+  playerIncomingPercent(): number {
+    return (Math.min(this.game.playerHp(), this.totalIncomingDamage()) / this.game.playerMaxHp()) * 100;
+  }
+
+  projectedEnemyHp(e: EnemyState): number {
+    const preview = this.damagePreview(e);
+    return preview ? Math.max(0, e.hp - preview.afterBlock) : e.hp;
+  }
+
+  projectedEnemyHpPercent(e: EnemyState): number {
+    return (this.projectedEnemyHp(e) / e.maxHp) * 100;
+  }
+
+  enemyIncomingPercent(e: EnemyState): number {
+    const preview = this.damagePreview(e);
+    return preview ? (Math.min(e.hp, preview.afterBlock) / e.maxHp) * 100 : 0;
   }
 }
