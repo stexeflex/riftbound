@@ -140,7 +140,10 @@
               (click)="game.selectDeckLayout(layout.id)"
             >
               <span>{{ layout.name }}</span>
-              <small>{{ game.layoutCardCount(layout) }} Karten</small>
+              <small>
+                {{ game.layoutCardCount(layout) }}
+                {{ game.layoutCardCount(layout) === 1 ? 'Karte' : 'Karten' }}
+              </small>
             </button>
           }
         </div>
