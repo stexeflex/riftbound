@@ -18,6 +18,7 @@ Ein rundenbasiertes Roguelite-Kartenspiel im Stil von Slay the Spire – mit per
 npm install
 npm start        # Dev-Server auf http://localhost:4200
 npm run build    # Produktions-Build
+npm run deploy   # Baut und veröffentlicht auf GitHub Pages (gh-pages-Branch)
 ```
 
-Erstellt mit Angular 22. Deployment über GitHub Actions auf GitHub Pages.
+Erstellt mit Angular 22. Deployment auf GitHub Pages über den `gh-pages`-Branch.
