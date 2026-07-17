@@ -370,6 +370,8 @@
                 (click)="play(card)"
                 (mouseenter)="hoverCard(card)"
                 (mouseleave)="hoverCard(null)"
+                (focus)="hoverCard(card)"
+                (blur)="hoverCard(null)"
               >
                 <span class="card-cost">{{ game.costOf(card) }}</span>
                 <span class="card-name">{{ card.def.name }}</span>

@@ -622,7 +622,8 @@ h1, h2 {
   }
 }
 
-.card-detail:hover::after {
+.card-detail:hover::after,
+.card-detail:focus-visible::after {
   content: attr(data-card-tip);
   position: absolute;
   bottom: calc(100% + 12px);
