@@ -76,9 +76,21 @@ export interface ArtifactDef {
   starter?: boolean;     // von Anfang an freigeschaltet
 }
 
+export interface ResonanceDef {
+  id: string;
+  name: string;
+  icon: string;
+  text: string;
+  costSplitter: number;
+  effect: 'draw' | 'block' | 'damage' | 'balance';
+}
+
 export type Screen =
   | 'title'
   | 'artifact'
+  | 'artifacts'
+  | 'resonance'
+  | 'resonances'
   | 'deck'
   | 'campaign'
   | 'map'
@@ -134,6 +146,7 @@ export interface RunSave {
   mode: GameMode;
   stageId: string | null;
   artifactId: string | null;
+  resonanceId?: string | null;
   deckIds: string[];
   hp: number;
   maxHp: number;
@@ -162,6 +175,7 @@ export interface MetaState {
   wins: number;
   runs: number;
   artifacts: string[];        // freigeschaltete Artefakte
+  resonances: string[];       // freigeschaltete Resonanzen
   completedStages: string[];  // abgeschlossene Kampagnen-Stages
   cards: Record<string, number>; // Kartensammlung (Karten-ID → Anzahl)
   lastDeck: string[];         // zuletzt gewähltes Startdeck

@@ -111,6 +111,31 @@ h1, h2 {
   justify-content: center;
 }
 
+.title-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+}
+
+.title-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.title-row-menu {
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(140, 130, 170, 0.22);
+}
+
+.screen-back {
+  align-self: flex-start;
+  margin-bottom: -0.25rem;
+}
+
 .meta-summary {
   display: flex;
   gap: 1.5rem;
@@ -153,6 +178,19 @@ h1, h2 {
 .artifact-icon { font-size: 2.6rem; }
 .artifact-name { font-weight: bold; font-size: 1.15rem; color: #ffb86b; }
 .artifact-text { font-size: 0.88rem; color: #b8ae96; line-height: 1.5; }
+
+.empty-resonance {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: 460px;
+  padding: 1.3rem 1.6rem;
+  border: 1px dashed rgba(150, 130, 190, 0.4);
+  border-radius: 10px;
+  color: #a99db8;
+  text-align: center;
+}
 
 // ---------- Map ----------
 
@@ -309,24 +347,24 @@ h1, h2 {
   pointer-events: none;
   background: repeating-linear-gradient(
     135deg,
-    rgba(255, 238, 150, 0.95) 0 4px,
-    rgba(210, 60, 45, 0.92) 4px 8px
+    rgba(239, 181, 145, 0.7) 0 5px,
+    rgba(155, 67, 64, 0.68) 5px 10px
   );
-  border-inline: 1px solid rgba(255, 245, 185, 0.8);
-  animation: hp-warning 0.8s ease-in-out infinite alternate;
+  border-inline: 1px solid rgba(255, 218, 190, 0.45);
+  animation: hp-warning 1.5s ease-in-out infinite alternate;
 }
 
 .enemy-loss-preview {
   background: repeating-linear-gradient(
     135deg,
-    rgba(255, 224, 110, 0.98) 0 4px,
-    rgba(125, 30, 25, 0.95) 4px 8px
+    rgba(232, 175, 112, 0.78) 0 5px,
+    rgba(115, 43, 40, 0.76) 5px 10px
   );
 }
 
 @keyframes hp-warning {
-  from { filter: brightness(0.85); }
-  to { filter: brightness(1.2); }
+  from { filter: brightness(0.94); }
+  to { filter: brightness(1.07); }
 }
 
 @keyframes shield-preview {
@@ -393,6 +431,16 @@ h1, h2 {
 }
 
 .resonance-label { color: #9c92b5; }
+
+.resonance-effect {
+  color: #c8bdd8;
+  padding-right: 0.4rem;
+}
+
+.resonance-disabled {
+  opacity: 0.72;
+  font-style: italic;
+}
 
 .resonance-dot {
   padding: 0.15rem 0.6rem;

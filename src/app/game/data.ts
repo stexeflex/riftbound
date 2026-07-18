@@ -1,4 +1,6 @@
-import { ArtifactDef, CampaignStage, CardDef, EnemyDef, MetaUpgradeDef } from './models';
+import {
+  ArtifactDef, CampaignStage, CardDef, EnemyDef, MetaUpgradeDef, ResonanceDef,
+} from './models';
 
 // ------------------------- Karten -------------------------
 
@@ -198,6 +200,28 @@ export const ARTIFACTS: ArtifactDef[] = [
   {
     id: 'blutvertrag', name: 'Blutvertrag', icon: '📜', costKerne: 1,
     text: 'Opfere zu Beginn jedes Kampfes bis zu 6 Leben (mindestens 1 bleibt) und erhalte +2 Stärke.',
+  },
+];
+
+// ------------------------- Resonanzen -------------------------
+
+export const RESONANCES: ResonanceDef[] = [
+  {
+    id: 'arkane-einsicht', name: 'Arkane Einsicht', icon: '🔮', costSplitter: 80,
+    text: 'Nach 3 verschiedenen Kategorien: Ziehe 1 Karte.', effect: 'draw',
+  },
+  {
+    id: 'aegis-klang', name: 'Aegis-Klang', icon: '🛡️', costSplitter: 100,
+    text: 'Nach 3 verschiedenen Kategorien: Erhalte 5 Schild.', effect: 'block',
+  },
+  {
+    id: 'rissblitz', name: 'Rissblitz', icon: '⚡', costSplitter: 120,
+    text: 'Nach 3 verschiedenen Kategorien: Füge allen Gegnern 6 Schaden zu.', effect: 'damage',
+  },
+  {
+    id: 'gleichgewicht', name: 'Gleichgewicht', icon: '⚖️', costSplitter: 140,
+    text: 'Nach 3 verschiedenen Kategorien: Füge allen Gegnern 3 Schaden zu und erhalte 3 Schild.',
+    effect: 'balance',
   },
 ];
 

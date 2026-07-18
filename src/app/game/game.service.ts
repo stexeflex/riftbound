@@ -2,12 +2,12 @@ import { Injectable, computed, signal } from '@angular/core';
 import {
   ArtifactDef, CampaignStage, CardDef, CardInstance, Category, CombatSave,
   DeckLayout, EnemyDef, EnemyState, GameMode, MetaState, RunSave, Screen, Station,
-  StationKind,
+  StationKind, ResonanceDef,
 } from './models';
 import {
   ARTIFACTS, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, ELITE_POOL, ENEMIES,
   MAX_CARD_COPIES, META_UPGRADES, NORMAL_POOL, REWARD_POOL, STARTER_COLLECTION,
-  STARTER_DECK,
+  STARTER_DECK, RESONANCES,
 } from './data';
 import { legacyLoad, secureLoad, secureRemove, secureSave } from './storage';
 
@@ -42,6 +42,7 @@ export class GameService {
   readonly meta = signal<MetaState>(this.loadMeta());
   readonly metaUpgrades = META_UPGRADES;
   readonly allArtifacts = ARTIFACTS;
+  readonly allResonances = RESONANCES;
   readonly campaignStages = CAMPAIGN_STAGES;
   readonly allCards: CardDef[] = Object.values(CARDS).filter(c => c.price !== undefined);
   readonly deckMin = DECK_MIN;
@@ -56,6 +57,7 @@ export class GameService {
 
   // ---------- Run ----------
   readonly artifact = signal<ArtifactDef | null>(null);
+  readonly resonance = signal<ResonanceDef | null>(null);
   readonly stations = signal<Station[]>([]);
   readonly stationIndex = signal(0);
   readonly deck = signal<CardInstance[]>([]);
@@ -121,6 +123,9 @@ export class GameService {
   readonly ownedArtifacts = computed(() =>
     ARTIFACTS.filter(a => this.meta().artifacts.includes(a.id)),
   );
+  readonly ownedResonances = computed(() =>
+    RESONANCES.filter(r => this.meta().resonances.includes(r.id)),
+  );
 
   // ================= Meta =================
 
@@ -155,6 +160,9 @@ export class GameService {
       wins: m?.wins ?? 0,
       runs: m?.runs ?? 0,
       artifacts,
+      resonances: Array.isArray(m?.resonances)
+        ? m.resonances.filter(id => RESONANCES.some(r => r.id === id))
+        : [],
       completedStages: Array.isArray(m?.completedStages) ? m.completedStages : [],
       cards,
       lastDeck,
@@ -315,6 +323,25 @@ export class GameService {
     this.saveMeta();
   }
 
+  ownsResonance(id: string): boolean {
+    return this.meta().resonances.includes(id);
+  }
+
+  canBuyResonance(r: ResonanceDef): boolean {
+    return !this.ownsResonance(r.id) && this.meta().splitter >= r.costSplitter;
+  }
+
+  buyResonance(r: ResonanceDef) {
+    if (!this.canBuyResonance(r)) return;
+    const m = this.meta();
+    this.meta.set({
+      ...m,
+      splitter: m.splitter - r.costSplitter,
+      resonances: [...m.resonances, r.id],
+    });
+    this.saveMeta();
+  }
+
   private sumSelection(sel: Record<string, number>): number {
     return Object.values(sel).reduce((a, b) => a + b, 0);
   }
@@ -414,6 +441,7 @@ export class GameService {
       mode: this.mode(),
       stageId: this.currentStage()?.id ?? null,
       artifactId: this.artifact()?.id ?? null,
+      resonanceId: this.resonance()?.id ?? null,
       deckIds: this.deck().map(c => c.def.id),
       hp: this.playerHp(),
       maxHp: this.playerMaxHp(),
@@ -446,6 +474,7 @@ export class GameService {
       save.stageId ? CAMPAIGN_STAGES.find(s => s.id === save.stageId) ?? null : null,
     );
     this.artifact.set(ARTIFACTS.find(a => a.id === save.artifactId) ?? null);
+    this.resonance.set(RESONANCES.find(r => r.id === save.resonanceId) ?? null);
     this.deck.set(
       save.deckIds.filter(id => CARDS[id]).map(id => this.makeCard(CARDS[id])),
     );
@@ -524,6 +553,7 @@ export class GameService {
     this.mode.set('dungeon');
     this.currentStage.set(null);
     this.artifact.set(null);
+    this.resonance.set(null);
     this.screen.set('artifact');
   }
 
@@ -542,11 +572,19 @@ export class GameService {
     this.mode.set('campaign');
     this.currentStage.set(stage);
     this.artifact.set(null);
+    this.resonance.set(null);
     this.screen.set('artifact');
   }
 
   chooseArtifact(a: ArtifactDef) {
     this.artifact.set(a);
+    this.resonance.set(null);
+    this.screen.set('resonance');
+  }
+
+  chooseResonance(r: ResonanceDef | null) {
+    if (r && !this.ownsResonance(r.id)) return;
+    this.resonance.set(r);
     this.deckEditorMode.set('run');
     this.activeDeckLayoutId.set(this.meta().activeDeckLayoutId);
     this.prefillDeckSelection();
@@ -837,26 +875,27 @@ export class GameService {
   }
 
   private trackResonance(cat: Category) {
+    const resonance = this.resonance();
+    if (!resonance) return;
     const cats = this.playedCategories();
     if (!cats.includes(cat)) this.playedCategories.set([...cats, cat]);
     const set = new Set(this.playedCategories());
     if (set.size >= 3 && this.resonanceCount() < this.maxResonancePerTurn()) {
       this.resonanceCount.set(this.resonanceCount() + 1);
       this.playedCategories.set([]); // Kategorien zurücksetzen, damit ggf. eine neue Resonanz aufgebaut werden kann
-      // Resonanz: Effekt hängt von den gespielten Kategorien ab
-      if (set.has('Kraft') && set.has('Schutz') && set.has('Kontrolle')) {
+      if (resonance.effect === 'draw') {
         this.drawCards(1);
-        this.addLog('✨ Resonanz! Du ziehst 1 Karte.');
-      } else if (set.has('Schutz') && set.has('Kontrolle') && set.has('Chaos')) {
+        this.addLog(`✨ ${resonance.name}: Du ziehst 1 Karte.`);
+      } else if (resonance.effect === 'block') {
         this.gainBlock(5);
-        this.addLog('✨ Resonanz! Du erhältst 5 Schild.');
-      } else if (set.has('Kraft') && set.has('Kontrolle') && set.has('Chaos')) {
+        this.addLog(`✨ ${resonance.name}: Du erhältst 5 Schild.`);
+      } else if (resonance.effect === 'damage') {
         for (const e of this.aliveEnemies()) this.dealDamage(e, 6, true);
-        this.addLog('✨ Resonanz! 6 Schaden an allen Gegnern.');
+        this.addLog(`✨ ${resonance.name}: 6 Schaden an allen Gegnern.`);
       } else {
         for (const e of this.aliveEnemies()) this.dealDamage(e, 3, true);
         this.gainBlock(3);
-        this.addLog('✨ Resonanz! 3 Schaden und 3 Schild.');
+        this.addLog(`✨ ${resonance.name}: 3 Schaden an allen Gegnern und 3 Schild.`);
       }
     }
   }
