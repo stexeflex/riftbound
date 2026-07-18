@@ -1,13 +1,13 @@
 import { Injectable, computed, signal } from '@angular/core';
 import {
-  ArtifactDef, CampaignStage, CardDef, CardInstance, Category, CombatSave,
-  DeckLayout, EnemyDef, EnemyState, GameMode, MetaState, RunSave, Screen, Station,
-  StationKind, ResonanceDef,
+  ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
+  DeckLayout, DungeonArea, EnemyDef, EnemyState, GameMode, MetaState, RunSave, Screen,
+  Station, StationKind, ResonanceDef,
 } from './models';
 import {
-  ARTIFACTS, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, ELITE_POOL, ENEMIES,
-  MAX_CARD_COPIES, META_UPGRADES, NORMAL_POOL, REWARD_POOL, STARTER_COLLECTION,
-  STARTER_DECK, RESONANCES,
+  ARTIFACTS, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, DUNGEON_AREAS, ENEMIES,
+  MAX_CARD_COPIES, META_UPGRADES, REWARD_POOL, STARTER_COLLECTION, STARTER_DECK,
+  RESONANCES,
 } from './data';
 import { legacyLoad, secureLoad, secureRemove, secureSave } from './storage';
 
@@ -16,10 +16,6 @@ const LEGACY_META_KEY = 'riftbound-meta-v1';
 const RUN_KEY = 'riftbound-run-v1';
 const BASE_HP = 80;
 const DECK_LAYOUT_IDS = ['layout-1', 'layout-2', 'layout-3', 'layout-4', 'layout-5'];
-
-const DUNGEON_STATIONS: StationKind[] = [
-  'kampf', 'kampf', 'elite', 'rast', 'kampf', 'kampf', 'elite', 'rast', 'boss',
-];
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -37,6 +33,7 @@ function pick<T>(arr: T[]): T {
 @Injectable({ providedIn: 'root' })
 export class GameService {
   private nextUid = 1;
+  private nextEnemyUid = 1;
 
   // ---------- Meta (bleibt über Runs erhalten) ----------
   readonly meta = signal<MetaState>(this.loadMeta());
@@ -44,6 +41,7 @@ export class GameService {
   readonly allArtifacts = ARTIFACTS;
   readonly allResonances = RESONANCES;
   readonly campaignStages = CAMPAIGN_STAGES;
+  readonly dungeonAreas = DUNGEON_AREAS;
   readonly allCards: CardDef[] = Object.values(CARDS).filter(c => c.price !== undefined);
   readonly deckMin = DECK_MIN;
   readonly deckMax = DECK_MAX;
@@ -53,6 +51,7 @@ export class GameService {
   readonly screen = signal<Screen>('title');
   readonly mode = signal<GameMode>('dungeon');
   readonly currentStage = signal<CampaignStage | null>(null);
+  readonly currentArea = signal<DungeonArea | null>(null);
   readonly hasRunSave = signal<boolean>(secureLoad<RunSave>(RUN_KEY) !== null);
 
   // ---------- Run ----------
@@ -82,19 +81,33 @@ export class GameService {
   // ---------- Kartenshop-Filter ----------
   readonly shopFilter = signal<'alle' | 'besitzt' | 'fehlt'>('alle');
   readonly shopTypeFilter = signal<string>('alle');
+  readonly shopCategoryFilter = signal<string>('alle');
+  readonly shopSort = signal<CardSort>('name-asc');
+  readonly shopSearch = signal('');
+  readonly deckTypeFilter = signal<string>('alle');
+  readonly deckCategoryFilter = signal<string>('alle');
+  readonly deckSort = signal<CardSort>('name-asc');
+  readonly deckSearch = signal('');
   readonly filteredShopCards = computed(() => {
     const owned = this.meta().cards;
-    return this.allCards.filter(c => {
+    const cards = this.allCards.filter(c => {
       const count = owned[c.id] ?? 0;
       if (this.shopFilter() === 'besitzt' && count === 0) return false;
       if (this.shopFilter() === 'fehlt' && count > 0) return false;
-      if (this.shopTypeFilter() !== 'alle' && c.type !== this.shopTypeFilter()) return false;
       return true;
     });
+    return this.filterAndSortCards(
+      cards,
+      this.shopTypeFilter(),
+      this.shopCategoryFilter(),
+      this.shopSort(),
+      this.shopSearch(),
+    );
   });
 
   // ---------- Kampf ----------
   readonly enemies = signal<EnemyState[]>([]);
+  readonly selectedEnemyUid = signal<number | null>(null);
   readonly hand = signal<CardInstance[]>([]);
   readonly drawPile = signal<CardInstance[]>([]);
   readonly discardPile = signal<CardInstance[]>([]);
@@ -123,6 +136,9 @@ export class GameService {
   readonly endFirstClear = signal(false);
 
   readonly aliveEnemies = computed(() => this.enemies().filter(e => e.hp > 0));
+  readonly currentTarget = computed(() =>
+    this.aliveEnemies().find(e => e.uid === this.selectedEnemyUid()) ?? this.aliveEnemies()[0] ?? null,
+  );
   readonly currentStation = computed(() => this.stations()[this.stationIndex()]);
   readonly ownedArtifacts = computed(() =>
     ARTIFACTS.filter(a => this.meta().artifacts.includes(a.id)),
@@ -179,6 +195,7 @@ export class GameService {
         ? m.resonances.filter(id => RESONANCES.some(r => r.id === id))
         : [],
       completedStages: Array.isArray(m?.completedStages) ? m.completedStages : [],
+      completedAreas: Array.isArray(m?.completedAreas) ? m.completedAreas : [],
       cards,
       lastDeck,
       deckLayouts,
@@ -273,12 +290,46 @@ export class GameService {
     this.saveMeta();
   }
 
+  private filterAndSortCards(
+    cards: CardDef[],
+    type: string,
+    category: string,
+    sort: CardSort,
+    search: string,
+  ): CardDef[] {
+    const needle = search.trim().toLocaleLowerCase('de');
+    const filtered = cards.filter(card => {
+      if (type !== 'alle' && card.type !== type) return false;
+      if (category !== 'alle' && card.category !== category) return false;
+      if (needle && !`${card.name} ${card.text}`.toLocaleLowerCase('de').includes(needle)) return false;
+      return true;
+    });
+    return [...filtered].sort((a, b) => {
+      switch (sort) {
+        case 'name-desc': return b.name.localeCompare(a.name, 'de');
+        case 'energy-asc': return a.cost - b.cost || a.name.localeCompare(b.name, 'de');
+        case 'energy-desc': return b.cost - a.cost || a.name.localeCompare(b.name, 'de');
+        case 'price-asc': return (a.price ?? Infinity) - (b.price ?? Infinity) || a.name.localeCompare(b.name, 'de');
+        case 'price-desc': return (b.price ?? -1) - (a.price ?? -1) || a.name.localeCompare(b.name, 'de');
+        case 'type': return a.type.localeCompare(b.type, 'de') || a.name.localeCompare(b.name, 'de');
+        case 'category': return a.category.localeCompare(b.category, 'de') || a.name.localeCompare(b.name, 'de');
+        case 'name-asc': return a.name.localeCompare(b.name, 'de');
+      }
+    });
+  }
+
   // ================= Deck-Auswahl =================
 
   /** Karten der Sammlung, sortiert für die Deck-Auswahl. */
   readonly collectionCards = computed(() => {
     const owned = this.meta().cards;
-    return this.allCards.filter(c => (owned[c.id] ?? 0) > 0);
+    return this.filterAndSortCards(
+      this.allCards.filter(c => (owned[c.id] ?? 0) > 0),
+      this.deckTypeFilter(),
+      this.deckCategoryFilter(),
+      this.deckSort(),
+      this.deckSearch(),
+    );
   });
 
   private prefillDeckSelection(layoutId = this.meta().activeDeckLayoutId) {
@@ -454,6 +505,7 @@ export class GameService {
 
     // Upgrade-Stufen für diesen Run einfrieren
     this.runUpgrades.set({ ...this.meta().upgrades });
+    this.maxEnergy.set(3 + this.runUpgradeLevel('energiekern'));
 
     let maxHp = BASE_HP + this.runUpgradeLevel('leben') * 2;
     if (this.artifact()?.id === 'glasherz') maxHp = Math.round(maxHp * 0.8);
@@ -464,7 +516,7 @@ export class GameService {
 
     const kinds = this.mode() === 'campaign'
       ? this.currentStage()!.stations
-      : DUNGEON_STATIONS;
+      : (this.currentArea() ?? DUNGEON_AREAS[0]).stations;
     this.stations.set(kinds.map(kind => ({ kind, done: false })));
     this.stationIndex.set(0);
     this.runSplitter.set(0);
@@ -502,6 +554,7 @@ export class GameService {
       firstAttackDone: this.firstAttackDone(),
       attackPlayedThisTurn: this.attackPlayedThisTurn(),
       cardsPlayedThisTurn: this.cardsPlayedThisTurn(),
+      targetIndex: Math.max(0, this.enemies().findIndex(e => e.uid === this.currentTarget()?.uid)),
     };
   }
 
@@ -509,6 +562,7 @@ export class GameService {
     const save: RunSave = {
       mode: this.mode(),
       stageId: this.currentStage()?.id ?? null,
+      areaId: this.currentArea()?.id ?? null,
       artifactId: this.artifact()?.id ?? null,
       resonanceId: this.resonance()?.id ?? null,
       deckIds: this.deck().map(c => c.def.id),
@@ -542,6 +596,8 @@ export class GameService {
     this.currentStage.set(
       save.stageId ? CAMPAIGN_STAGES.find(s => s.id === save.stageId) ?? null : null,
     );
+    const savedAreaId = save.areaId ?? this.currentStage()?.areaId ?? 'gebiet1';
+    this.currentArea.set(DUNGEON_AREAS.find(area => area.id === savedAreaId) ?? DUNGEON_AREAS[0]);
     this.artifact.set(ARTIFACTS.find(a => a.id === save.artifactId) ?? null);
     this.resonance.set(RESONANCES.find(r => r.id === save.resonanceId) ?? null);
     this.deck.set(
@@ -553,6 +609,7 @@ export class GameService {
     this.stations.set(save.stations);
     this.runSplitter.set(save.runSplitter);
     this.runUpgrades.set(save.runUpgrades ?? {});
+    this.maxEnergy.set(3 + this.runUpgradeLevel('energiekern'));
 
     if (save.combat) {
       this.restoreCombat(save.combat);
@@ -582,6 +639,10 @@ export class GameService {
           state.intent = def.moves[e.moveIndex % def.moves.length];
           return state;
         }),
+    );
+    const savedTarget = this.enemies()[c.targetIndex ?? 0];
+    this.selectedEnemyUid.set(
+      savedTarget?.hp > 0 ? savedTarget.uid : this.aliveEnemies()[0]?.uid ?? null,
     );
     const toCards = (ids: string[]) =>
       ids.filter(id => CARDS[id]).map(id => this.makeCard(CARDS[id]));
@@ -619,7 +680,27 @@ export class GameService {
   }
 
   startNewRun() {
+    this.startArea(this.currentArea() ?? DUNGEON_AREAS[0]);
+  }
+
+  openDungeons() {
+    this.screen.set('dungeons');
+  }
+
+  areaUnlocked(area: DungeonArea): boolean {
+    const idx = DUNGEON_AREAS.indexOf(area);
+    if (idx <= 0) return true;
+    return this.meta().completedAreas.includes(DUNGEON_AREAS[idx - 1].id);
+  }
+
+  areaCompleted(area: DungeonArea): boolean {
+    return this.meta().completedAreas.includes(area.id);
+  }
+
+  startArea(area: DungeonArea) {
+    if (!this.areaUnlocked(area)) return;
     this.mode.set('dungeon');
+    this.currentArea.set(area);
     this.currentStage.set(null);
     this.artifact.set(null);
     this.resonance.set(null);
@@ -640,6 +721,7 @@ export class GameService {
     if (!this.stageUnlocked(stage)) return;
     this.mode.set('campaign');
     this.currentStage.set(stage);
+    this.currentArea.set(DUNGEON_AREAS.find(area => area.id === stage.areaId) ?? DUNGEON_AREAS[0]);
     this.artifact.set(null);
     this.resonance.set(null);
     this.startConfiguredRun();
@@ -692,12 +774,18 @@ export class GameService {
     let earned = this.runSplitter();
     let kerne = 0;
     let completed = m.completedStages;
+    let completedAreas = m.completedAreas;
     let firstClear = false;
 
     if (won) {
       if (this.mode() === 'dungeon') {
-        earned += 100;
-        kerne = 1;
+        const area = this.currentArea() ?? DUNGEON_AREAS[0];
+        firstClear = !completedAreas.includes(area.id);
+        earned += firstClear ? area.reward : Math.round(area.reward * 0.35);
+        if (firstClear) {
+          if (area.kern) kerne = 1;
+          completedAreas = [...completedAreas, area.id];
+        }
       } else {
         const stage = this.currentStage();
         if (stage) {
@@ -720,6 +808,7 @@ export class GameService {
       kerne: m.kerne + kerne,
       wins: m.wins + (won ? 1 : 0),
       completedStages: completed,
+      completedAreas,
     });
     this.saveMeta();
     this.screen.set(won ? 'victory' : 'defeat');
@@ -733,6 +822,7 @@ export class GameService {
 
   private makeEnemy(def: EnemyDef): EnemyState {
     return {
+      uid: this.nextEnemyUid++,
       def,
       hp: def.maxHp,
       maxHp: def.maxHp,
@@ -746,15 +836,20 @@ export class GameService {
   }
 
   private startCombat(kind: 'kampf' | 'elite' | 'boss') {
-    let enemyDefs: EnemyDef[];
+    const area = this.currentArea() ?? DUNGEON_AREAS[0];
+    let encounterIds: string[];
     if (kind === 'boss') {
-      enemyDefs = [ENEMIES['vorax']];
+      encounterIds = this.mode() === 'campaign' && this.currentStage()?.bossEncounter
+        ? this.currentStage()!.bossEncounter!
+        : area.bossEncounter;
     } else if (kind === 'elite') {
-      enemyDefs = [ENEMIES[pick(ELITE_POOL)]];
+      encounterIds = pick(area.eliteEncounters);
     } else {
-      enemyDefs = [ENEMIES[pick(NORMAL_POOL)]];
+      encounterIds = pick(area.normalEncounters);
     }
+    const enemyDefs = encounterIds.map(id => ENEMIES[id]).filter(Boolean);
     this.enemies.set(enemyDefs.map(d => this.makeEnemy(d)));
+    this.selectedEnemyUid.set(this.enemies()[0]?.uid ?? null);
 
     this.drawPile.set(shuffle(this.deck()));
     this.hand.set([]);
@@ -779,6 +874,10 @@ export class GameService {
   private startPlayerTurn(first = false) {
     if (!first) this.turn.set(this.turn() + 1);
     let energy = this.maxEnergy();
+    if (first && this.artifact()?.id === 'funkenreif') {
+      energy += 1;
+      this.addLog('Funkenreif: +1 Energie im ersten Zug.');
+    }
     if (this.artifact()?.id === 'phasenanker' && this.turn() % 3 === 0) {
       energy += 1;
       this.addLog('Phasenanker: +1 Energie in diesem Zug.');
@@ -787,6 +886,10 @@ export class GameService {
 
     let startBlock = 0;
     if (this.artifact()?.id === 'schildkern') startBlock += 2;
+    if (first) {
+      startBlock += this.runUpgradeLevel('vorbereitung') * 3;
+      if (this.artifact()?.id === 'runenpanzer') startBlock += 8;
+    }
     if (this.artifact()?.id === 'seelenspiegel' && this.block() > 0) {
       const kept = Math.floor(this.block() / 2);
       if (kept > 0) {
@@ -800,7 +903,12 @@ export class GameService {
     this.resonanceCount.set(0);
     this.cardsPlayedThisTurn.set(0);
     this.attackPlayedThisTurn.set(false);
-    this.drawCards(5);
+    let draw = 5;
+    if (first) {
+      draw += this.runUpgradeLevel('vorausahnung');
+      if (this.artifact()?.id === 'weise-feder') draw += 2;
+    }
+    this.drawCards(draw);
     if (this.playerWeak() > 0) this.playerWeak.set(this.playerWeak() - 1);
   }
 
@@ -838,7 +946,27 @@ export class GameService {
   }
 
   canPlay(card: CardInstance): boolean {
-    return !card.def.unplayable && this.costOf(card) <= this.energy();
+    const needsEnemy = Boolean(card.def.damage || card.def.weakEnemy || card.def.vulnerableEnemy);
+    return !card.def.unplayable
+      && this.costOf(card) <= this.energy()
+      && (!needsEnemy || this.aliveEnemies().length > 0);
+  }
+
+  selectEnemy(enemy: EnemyState) {
+    if (enemy.hp <= 0) return;
+    this.selectedEnemyUid.set(enemy.uid);
+  }
+
+  cardTargetsEnemy(card: CardInstance, enemy: EnemyState): boolean {
+    return enemy.hp > 0 && (card.def.target === 'all' || this.currentTarget()?.uid === enemy.uid);
+  }
+
+  private ensureTarget() {
+    if (!this.currentTarget()) {
+      this.selectedEnemyUid.set(this.aliveEnemies()[0]?.uid ?? null);
+    } else if (this.selectedEnemyUid() !== this.currentTarget()?.uid) {
+      this.selectedEnemyUid.set(this.currentTarget()?.uid ?? null);
+    }
   }
 
   // ---------- Schadens-/Schild-Vorschau (für Hover) ----------
@@ -852,11 +980,13 @@ export class GameService {
     if (!def.damage) return { total: 0, afterBlock: 0 };
     const hits = def.hits ?? 1;
     let total = 0;
-    let firstDone = this.firstAttackDone();
+    let firstDone = this.firstAttackDone()
+      || (def.target === 'all' && this.aliveEnemies()[0]?.uid !== enemy.uid);
     for (let h = 0; h < hits; h++) {
       let dmg = def.damage + this.strength();
       if (!firstDone) {
         dmg += this.runUpgradeLevel('klingenmeisterschaft') * 2;
+        if (this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) dmg += 6;
         firstDone = true;
       }
       if (this.artifact()?.id === 'glasherz') dmg = Math.round(dmg * 1.2);
@@ -881,35 +1011,42 @@ export class GameService {
     this.hand.set(this.hand().filter(c => c.uid !== card.uid));
     this.discardPile.set([...this.discardPile(), card]);
 
-    const target = this.aliveEnemies()[0];
+    const targets = def.target === 'all'
+      ? [...this.aliveEnemies()]
+      : this.currentTarget() ? [this.currentTarget()!] : [];
 
-    if (def.damage && target) {
+    if (def.damage && targets.length > 0) {
       if (!this.attackPlayedThisTurn() && this.artifact()?.id === 'vampirfang') {
         this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + 2));
         this.addLog('Vampirfang: Du heilst 2 Leben.');
       }
       this.attackPlayedThisTurn.set(true);
-      const hits = def.hits ?? 1;
-      for (let h = 0; h < hits; h++) {
-        this.dealDamage(target, def.damage);
+      for (const target of targets) {
+        const hits = def.hits ?? 1;
+        for (let h = 0; h < hits; h++) {
+          this.dealDamage(target, def.damage);
+        }
       }
     }
     if (def.block) this.gainBlock(def.block);
+    if (def.blockPerEnemy) this.gainBlock(def.blockPerEnemy * this.aliveEnemies().length);
     if (def.draw) this.drawCards(def.draw);
+    if (def.energy) this.energy.set(this.energy() + def.energy);
+    if (def.heal) this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + def.heal));
     if (def.strength) {
       this.strength.set(this.strength() + def.strength);
-      this.addLog(`Präzision: +${def.strength} Schaden auf Angriffe.`);
+      this.addLog(`${def.name}: +${def.strength} Schaden auf Angriffe.`);
     }
     if (def.endTurnBlock) {
       this.endTurnBlock.set(this.endTurnBlock() + def.endTurnBlock);
-      this.addLog(`Eiserne Haut: +${def.endTurnBlock} Schild am Zugende.`);
+      this.addLog(`${def.name}: +${def.endTurnBlock} Schild am Zugende.`);
     }
-    if (def.weakEnemy && target) {
-      target.weak += def.weakEnemy;
+    if (def.weakEnemy) {
+      for (const target of targets) target.weak += def.weakEnemy;
       this.enemies.set([...this.enemies()]);
     }
-    if (def.vulnerableEnemy && target) {
-      target.vulnerable += def.vulnerableEnemy;
+    if (def.vulnerableEnemy) {
+      for (const target of targets) target.vulnerable += def.vulnerableEnemy;
       this.enemies.set([...this.enemies()]);
     }
     if (def.selfWeak) this.playerWeak.set(this.playerWeak() + def.selfWeak);
@@ -917,7 +1054,10 @@ export class GameService {
 
     this.trackResonance(def.category);
     this.checkCombatEnd();
-    if (this.screen() === 'combat') this.saveRun();
+    if (this.screen() === 'combat') {
+      this.ensureTarget();
+      this.saveRun();
+    }
   }
 
   private applyRandomBonus() {
@@ -929,7 +1069,7 @@ export class GameService {
       this.gainBlock(5);
       this.addLog('Chaoswoge: Du erhältst 5 Schild.');
     } else {
-      const target = this.aliveEnemies()[0];
+      const target = this.currentTarget();
       if (target) this.dealDamage(target, 5);
       this.addLog('Chaoswoge: 5 zusätzlicher Schaden!');
     }
@@ -948,19 +1088,35 @@ export class GameService {
     if (set.size >= 3 && this.resonanceCount() < this.maxResonancePerTurn()) {
       this.resonanceCount.set(this.resonanceCount() + 1);
       this.playedCategories.set([]); // Kategorien zurücksetzen, damit ggf. eine neue Resonanz aufgebaut werden kann
+      const echoBonus = this.runUpgradeLevel('nachhall');
       if (resonance.effect === 'draw') {
         this.drawCards(1);
         this.addLog(`✨ ${resonance.name}: Du ziehst 1 Karte.`);
       } else if (resonance.effect === 'block') {
-        this.gainBlock(5);
-        this.addLog(`✨ ${resonance.name}: Du erhältst 5 Schild.`);
+        this.gainBlock(5 + echoBonus);
+        this.addLog(`✨ ${resonance.name}: Du erhältst ${5 + echoBonus} Schild.`);
       } else if (resonance.effect === 'damage') {
-        for (const e of this.aliveEnemies()) this.dealDamage(e, 6, true);
-        this.addLog(`✨ ${resonance.name}: 6 Schaden an allen Gegnern.`);
-      } else {
-        for (const e of this.aliveEnemies()) this.dealDamage(e, 3, true);
-        this.gainBlock(3);
-        this.addLog(`✨ ${resonance.name}: 3 Schaden an allen Gegnern und 3 Schild.`);
+        for (const e of this.aliveEnemies()) this.dealDamage(e, 6 + echoBonus, true);
+        this.addLog(`✨ ${resonance.name}: ${6 + echoBonus} Schaden an allen Gegnern.`);
+      } else if (resonance.effect === 'balance') {
+        for (const e of this.aliveEnemies()) this.dealDamage(e, 3 + echoBonus, true);
+        this.gainBlock(3 + echoBonus);
+        this.addLog(`✨ ${resonance.name}: ${3 + echoBonus} Schaden an allen Gegnern und ${3 + echoBonus} Schild.`);
+      } else if (resonance.effect === 'energy') {
+        this.energy.set(this.energy() + 1);
+        this.addLog(`✨ ${resonance.name}: +1 Energie.`);
+      } else if (resonance.effect === 'echo') {
+        this.drawCards(1);
+        this.gainBlock(3 + echoBonus);
+        this.addLog(`✨ ${resonance.name}: 1 Karte und ${3 + echoBonus} Schild.`);
+      } else if (resonance.effect === 'storm') {
+        for (let hit = 0; hit < 3 && this.aliveEnemies().length > 0; hit++) {
+          this.dealDamage(pick(this.aliveEnemies()), 3 + echoBonus, true);
+        }
+        this.addLog(`✨ ${resonance.name}: 3 zufällige Treffer mit ${3 + echoBonus} Schaden.`);
+      } else if (resonance.effect === 'heal') {
+        this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + 2));
+        this.addLog(`✨ ${resonance.name}: Du heilst 2 Leben.`);
       }
     }
   }
@@ -978,6 +1134,10 @@ export class GameService {
         if (bonus > 0) {
           dmg += bonus;
           this.addLog(`Klingenmeisterschaft: +${bonus} Schaden.`);
+        }
+        if (this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) {
+          dmg += 6;
+          this.addLog('Jägerauge: +6 Schaden gegen ein unverletztes Ziel.');
         }
         this.firstAttackDone.set(true);
       }
@@ -1030,6 +1190,7 @@ export class GameService {
 
     this.checkCombatEnd();
     if (this.screen() === 'combat') {
+      this.ensureTarget();
       this.startPlayerTurn();
       this.saveRun();
     }
@@ -1076,6 +1237,7 @@ export class GameService {
   private onCombatWon() {
     const station = this.currentStation();
     let splitter = station.kind === 'boss' ? 60 : station.kind === 'elite' ? 30 : 15;
+    splitter = Math.round(splitter * (1 + this.runUpgradeLevel('pluenderer') * 0.1));
 
     // Bereits abgeschlossene Kampagnen-Stages geben nur halben Loot
     const stage = this.currentStage();
@@ -1086,9 +1248,15 @@ export class GameService {
     this.runSplitter.set(this.runSplitter() + splitter);
     this.rewardSplitter.set(splitter);
 
-    // 3 zufällige, unterschiedliche Belohnungskarten
+    if (this.artifact()?.id === 'risskelch') {
+      this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + 4));
+      this.addLog('Risskelch: Du heilst 4 Leben.');
+    }
+
+    // Zufällige, unterschiedliche Belohnungskarten
     const pool = shuffle(REWARD_POOL);
-    this.rewardCards.set(pool.slice(0, 3).map(id => CARDS[id]));
+    const rewardCount = this.artifact()?.id === 'beutesack' ? 4 : 3;
+    this.rewardCards.set(pool.slice(0, rewardCount).map(id => CARDS[id]));
     this.screen.set('reward');
     this.saveRun();
   }

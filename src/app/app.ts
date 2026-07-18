@@ -1,6 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { GameService } from './game/game.service';
-import { CardDef, CardInstance, CardType, EnemyState, StationKind } from './game/models';
+import {
+  CardDef, CardInstance, CardSort, CardType, Category, EnemyState, StationKind,
+} from './game/models';
 
 @Component({
   selector: 'app-root',
@@ -11,7 +13,18 @@ import { CardDef, CardInstance, CardType, EnemyState, StationKind } from './game
 export class App {
   readonly game = inject(GameService);
 
-  readonly cardTypes: string[] = ['Angriff', 'Verteidigung', 'Technik', 'Macht'];
+  readonly cardTypes: CardType[] = ['Angriff', 'Verteidigung', 'Technik', 'Macht'];
+  readonly cardCategories: Category[] = ['Kraft', 'Schutz', 'Kontrolle', 'Chaos'];
+  readonly cardSortOptions: { value: CardSort; label: string }[] = [
+    { value: 'name-asc', label: 'Name A–Z' },
+    { value: 'name-desc', label: 'Name Z–A' },
+    { value: 'energy-asc', label: 'Energie aufsteigend' },
+    { value: 'energy-desc', label: 'Energie absteigend' },
+    { value: 'price-asc', label: 'Preis aufsteigend' },
+    { value: 'price-desc', label: 'Preis absteigend' },
+    { value: 'type', label: 'Kartentyp' },
+    { value: 'category', label: 'Farbe / Kategorie' },
+  ];
 
   // ---------- Tooltip-Texte ----------
   readonly tips = {
@@ -65,8 +78,7 @@ export class App {
   damagePreview(e: EnemyState): { total: number; afterBlock: number } | null {
     const card = this.game.hoveredCard();
     if (!card || !card.def.damage || e.hp <= 0) return null;
-    // Nur der erste lebende Gegner wird angegriffen
-    if (this.game.aliveEnemies()[0] !== e) return null;
+    if (!this.game.cardTargetsEnemy(card, e)) return null;
     return this.game.previewDamage(card, e);
   }
 
@@ -78,6 +90,18 @@ export class App {
     }
     if (def.draw) {
       lines.push('Ist der Nachziehstapel leer, wird der Ablagestapel gemischt und zum neuen Nachziehstapel.');
+    }
+    if (def.energy) {
+      lines.push('Die Energie wird sofort gutgeschrieben und kann noch in diesem Zug verwendet werden.');
+    }
+    if (def.heal) {
+      lines.push('Heilung kann dein maximales Leben nicht überschreiten.');
+    }
+    if (def.blockPerEnemy) {
+      lines.push('Gezählt werden alle Gegner, die beim Ausspielen der Karte noch leben.');
+    }
+    if (def.target === 'all') {
+      lines.push('Dieser Effekt trifft jeden aktuell lebenden Gegner.');
     }
     if (def.strength) {
       lines.push('Stärke erhöht jeden einzelnen Angriffstreffer und bleibt bis zum Ende des Kampfes bestehen.');
@@ -104,7 +128,8 @@ export class App {
   blockPreview(): number {
     const card = this.game.hoveredCard();
     if (!card) return 0;
-    return this.game.previewBlock(card);
+    return this.game.previewBlock(card)
+      + (card.def.blockPerEnemy ?? 0) * this.game.aliveEnemies().length;
   }
 
   barPercent(value: number, max: number): number {
@@ -142,17 +167,20 @@ export class App {
 
   /** Wie viel Leben der Spieler vom angezeigten Gegnerzug wirklich verlieren würde. */
   incomingDamage(e: EnemyState): number {
-    return this.simulateIncomingDamage([e]);
+    return this.simulateIncomingDamage(this.game.aliveEnemies()).byEnemy[e.uid] ?? 0;
   }
 
   /** Tatsächlicher Lebensverlust des gesamten bevorstehenden Gegnerzugs. */
   totalIncomingDamage(): number {
-    return this.simulateIncomingDamage(this.game.aliveEnemies());
+    return this.simulateIncomingDamage(this.game.aliveEnemies()).total;
   }
 
-  private simulateIncomingDamage(enemies: EnemyState[]): number {
+  private simulateIncomingDamage(
+    enemies: EnemyState[],
+  ): { total: number; byEnemy: Record<number, number> } {
     let remainingBlock = this.game.block();
     let hpDmg = 0;
+    const byEnemy: Record<number, number> = {};
     const dornenkrone = this.game.artifact()?.id === 'dornenkrone';
     for (const e of enemies) {
       const i = e.intent;
@@ -165,9 +193,10 @@ export class App {
         let through = per - blocked;
         if (through > 0 && dornenkrone) through += 1;
         hpDmg += through;
+        byEnemy[e.uid] = (byEnemy[e.uid] ?? 0) + through;
       }
     }
-    return hpDmg;
+    return { total: hpDmg, byEnemy };
   }
 
   enemyIntentDetails(e: EnemyState): string {

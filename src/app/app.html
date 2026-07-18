@@ -15,7 +15,7 @@
           @if (game.hasRunSave()) {
             <button class="btn btn-primary" (click)="game.continueRun()">▶️ Weiter</button>
           }
-          <button class="btn btn-primary" (click)="game.startNewRun()">Dungeon-Run</button>
+          <button class="btn btn-primary" (click)="game.openDungeons()">Dungeon-Run</button>
           <button class="btn btn-primary" (click)="game.goTo('campaign')">Kampagne</button>
           </div>
           <div class="title-row title-row-menu">
@@ -30,6 +30,36 @@
           <span>🔮 {{ game.meta().splitter }} Splitter</span>
           <span>🟡 {{ game.meta().kerne }} Kerne</span>
           <span>🏆 {{ game.meta().wins }} Siege</span>
+        </div>
+      </div>
+    }
+
+    <!-- ==================== DUNGEON-GEBIETE ==================== -->
+    @case ('dungeons') {
+      <div class="screen campaign-screen">
+        <button class="btn btn-small screen-back" (click)="game.backToTitle()">← Zurück</button>
+        <h2>Dungeon-Gebiete</h2>
+        <p class="hint">Bezwinge ein Gebiet, um das nächste freizuschalten. Wiederholte Runs geben einen kleineren Gebietsbonus.</p>
+        <div class="stage-list area-list">
+          @for (area of game.dungeonAreas; track area.id; let i = $index) {
+            <div class="stage-row area-row"
+                 [class.locked]="!game.areaUnlocked(area)"
+                 [class.completed]="game.areaCompleted(area)">
+              <span class="stage-icon">{{ game.areaUnlocked(area) ? area.icon : '🔒' }}</span>
+              <div class="stage-info">
+                <div class="stage-name">Gebiet {{ i + 1 }} – {{ area.name }}</div>
+                <div class="stage-desc">{{ area.desc }}</div>
+                <div class="stage-reward">
+                  {{ area.stations.length }} Stationen · Gebietsbonus: 🔮
+                  {{ game.areaCompleted(area) ? area.reward * 0.35 : area.reward }}
+                  @if (area.kern && !game.areaCompleted(area)) { + 🟡 1 Kern }
+                </div>
+              </div>
+              <button class="btn btn-small" [disabled]="!game.areaUnlocked(area)" (click)="game.startArea(area)">
+                {{ game.areaCompleted(area) ? 'Erneut' : 'Start' }}
+              </button>
+            </div>
+          }
         </div>
       </div>
     }
@@ -73,8 +103,9 @@
       <div class="screen map-screen">
         @if (game.mode() === 'campaign' && game.currentStage(); as stage) {
           <h2>{{ stage.name }}</h2>
-        } @else {
-          <h2>Gebiet 1 – Die zerrissene Ebene</h2>
+        } @else if (game.currentArea(); as area) {
+          <h2>{{ area.icon }} {{ area.name }}</h2>
+          <p class="area-map-desc">{{ area.desc }}</p>
         }
         <div class="player-status">
           <span>❤️ {{ game.playerHp() }}/{{ game.playerMaxHp() }}</span>
@@ -205,6 +236,44 @@
         <div class="deck-counter" [class.deck-ok]="game.canConfirmDeck()">
           {{ game.deckSelectionSize() }} / {{ game.deckMax }} Karten gewählt
         </div>
+        <div class="card-tools" aria-label="Deckkarten filtern und sortieren">
+          <label class="search-field">
+            <span>Suche</span>
+            <input type="search" placeholder="Name oder Effekt"
+                   [value]="game.deckSearch()"
+                   (input)="game.deckSearch.set($any($event.target).value)" />
+          </label>
+          <label class="sort-field">
+            <span>Sortierung</span>
+            <select [value]="game.deckSort()" (change)="game.deckSort.set($any($event.target).value)">
+              @for (option of cardSortOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </label>
+          <div class="filter-bar">
+            <span class="filter-label">Typ:</span>
+            <button class="btn btn-small filter-btn"
+                    [class.filter-active]="game.deckTypeFilter() === 'alle'"
+                    (click)="game.deckTypeFilter.set('alle')">alle</button>
+            @for (t of cardTypes; track t) {
+              <button class="btn btn-small filter-btn"
+                      [class.filter-active]="game.deckTypeFilter() === t"
+                      (click)="game.deckTypeFilter.set(t)">{{ t }}</button>
+            }
+          </div>
+          <div class="filter-bar">
+            <span class="filter-label">Farbe:</span>
+            <button class="btn btn-small filter-btn"
+                    [class.filter-active]="game.deckCategoryFilter() === 'alle'"
+                    (click)="game.deckCategoryFilter.set('alle')">alle</button>
+            @for (category of cardCategories; track category) {
+              <button class="btn btn-small filter-btn"
+                      [class.filter-active]="game.deckCategoryFilter() === category"
+                      (click)="game.deckCategoryFilter.set(category)">{{ category }}</button>
+            }
+          </div>
+        </div>
         <div class="collection-grid">
           @for (def of game.collectionCards(); track def.id) {
             <div class="collection-item">
@@ -230,6 +299,9 @@
               </div>
             </div>
           }
+          @if (game.collectionCards().length === 0) {
+            <p class="hint">Keine Karten für diese Filter.</p>
+          }
         </div>
         <div class="title-buttons">
           @if (game.deckEditorMode() === 'run') {
@@ -252,22 +324,51 @@
           <span>🔮 {{ game.meta().splitter }} Splitter</span>
           <span>Max. {{ game.maxCopies }} Kopien pro Karte</span>
         </div>
-        <div class="filter-bar">
-          <span class="filter-label">Besitz:</span>
-          @for (f of ['alle', 'besitzt', 'fehlt']; track f) {
+        <div class="card-tools" aria-label="Shopkarten filtern und sortieren">
+          <label class="search-field">
+            <span>Suche</span>
+            <input type="search" placeholder="Name oder Effekt"
+                   [value]="game.shopSearch()"
+                   (input)="game.shopSearch.set($any($event.target).value)" />
+          </label>
+          <label class="sort-field">
+            <span>Sortierung</span>
+            <select [value]="game.shopSort()" (change)="game.shopSort.set($any($event.target).value)">
+              @for (option of cardSortOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </label>
+          <div class="filter-bar">
+            <span class="filter-label">Besitz:</span>
+            @for (f of ['alle', 'besitzt', 'fehlt']; track f) {
+              <button class="btn btn-small filter-btn"
+                      [class.filter-active]="game.shopFilter() === f"
+                      (click)="game.shopFilter.set($any(f))">{{ f }}</button>
+            }
+          </div>
+          <div class="filter-bar">
+            <span class="filter-label">Typ:</span>
             <button class="btn btn-small filter-btn"
-                    [class.filter-active]="game.shopFilter() === f"
-                    (click)="game.shopFilter.set($any(f))">{{ f }}</button>
-          }
-          <span class="filter-label">Typ:</span>
-          <button class="btn btn-small filter-btn"
-                  [class.filter-active]="game.shopTypeFilter() === 'alle'"
-                  (click)="game.shopTypeFilter.set('alle')">alle</button>
-          @for (t of cardTypes; track t) {
+                    [class.filter-active]="game.shopTypeFilter() === 'alle'"
+                    (click)="game.shopTypeFilter.set('alle')">alle</button>
+            @for (t of cardTypes; track t) {
+              <button class="btn btn-small filter-btn"
+                      [class.filter-active]="game.shopTypeFilter() === t"
+                      (click)="game.shopTypeFilter.set(t)">{{ t }}</button>
+            }
+          </div>
+          <div class="filter-bar">
+            <span class="filter-label">Farbe:</span>
             <button class="btn btn-small filter-btn"
-                    [class.filter-active]="game.shopTypeFilter() === t"
-                    (click)="game.shopTypeFilter.set(t)">{{ t }}</button>
-          }
+                    [class.filter-active]="game.shopCategoryFilter() === 'alle'"
+                    (click)="game.shopCategoryFilter.set('alle')">alle</button>
+            @for (category of cardCategories; track category) {
+              <button class="btn btn-small filter-btn"
+                      [class.filter-active]="game.shopCategoryFilter() === category"
+                      (click)="game.shopCategoryFilter.set(category)">{{ category }}</button>
+            }
+          </div>
         </div>
         <div class="collection-grid">
           @for (def of game.filteredShopCards(); track def.id) {
@@ -411,8 +512,17 @@
 
           <div class="vs">⚡</div>
 
-          @for (e of game.enemies(); track e.def.id) {
-            <div class="fighter enemy" [class.dead]="e.hp <= 0">
+          @for (e of game.enemies(); track e.uid) {
+            <button type="button" class="fighter enemy"
+                    [class.dead]="e.hp <= 0"
+                    [class.targeted]="game.currentTarget()?.uid === e.uid"
+                    [disabled]="e.hp <= 0"
+                    [attr.aria-pressed]="game.currentTarget()?.uid === e.uid"
+                    [attr.aria-label]="e.def.name + ' als Ziel wählen'"
+                    (click)="game.selectEnemy(e)">
+              @if (game.currentTarget()?.uid === e.uid && e.hp > 0) {
+                <span class="target-badge">🎯 Ziel</span>
+              }
               <div class="intent tip" [attr.data-tip]="enemyIntentDetails(e)">
                 {{ intentText(e) }}
                 @if (incomingDamage(e) > 0 && e.hp > 0) {
@@ -462,7 +572,7 @@
                 }
               </div>
               @if (e.def.passive) { <div class="passive">{{ e.def.passive }}</div> }
-            </div>
+            </button>
           }
         </div>
 
@@ -573,8 +683,11 @@
             <p class="hint">Bereits abgeschlossene Stage – reduzierter Loot.</p>
           }
         } @else {
-          <h2>🏆 Run geschafft!</h2>
-          <p>Vorax, der Verschlinger, wurde besiegt.</p>
+          <h2>🏆 Gebiet abgeschlossen!</h2>
+          <p>{{ game.currentArea()?.name }} liegt hinter dir.</p>
+          @if (!game.endFirstClear()) {
+            <p class="hint">Bereits abgeschlossenes Gebiet – reduzierter Gebietsbonus.</p>
+          }
         }
         <p class="hint">
           🔮 +{{ game.endSplitter() }} Splitter
@@ -584,7 +697,7 @@
           @if (game.mode() === 'campaign') {
             <button class="btn btn-primary" (click)="game.goTo('campaign')">Zur Kampagne</button>
           } @else {
-            <button class="btn btn-primary" (click)="game.startNewRun()">Neuer Run</button>
+            <button class="btn btn-primary" (click)="game.openDungeons()">Zu den Gebieten</button>
           }
           <button class="btn" (click)="game.goTo('meta')">Upgrades</button>
           <button class="btn" (click)="game.backToTitle()">Zum Titel</button>
@@ -602,7 +715,7 @@
           @if (game.mode() === 'campaign') {
             <button class="btn btn-primary" (click)="game.goTo('campaign')">Zur Kampagne</button>
           } @else {
-            <button class="btn btn-primary" (click)="game.startNewRun()">Neuer Run</button>
+            <button class="btn btn-primary" (click)="game.openDungeons()">Zu den Gebieten</button>
           }
           <button class="btn" (click)="game.goTo('meta')">Upgrades</button>
           <button class="btn" (click)="game.backToTitle()">Zum Titel</button>

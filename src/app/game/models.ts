@@ -2,6 +2,16 @@
 
 export type CardType = 'Angriff' | 'Verteidigung' | 'Technik' | 'Macht' | 'Fluch';
 export type Category = 'Kraft' | 'Schutz' | 'Kontrolle' | 'Chaos';
+export type CardTarget = 'single' | 'all';
+export type CardSort =
+  | 'name-asc'
+  | 'name-desc'
+  | 'energy-asc'
+  | 'energy-desc'
+  | 'price-asc'
+  | 'price-desc'
+  | 'type'
+  | 'category';
 
 export interface CardDef {
   id: string;
@@ -15,6 +25,10 @@ export interface CardDef {
   hits?: number;
   block?: number;
   draw?: number;
+  energy?: number;
+  heal?: number;
+  blockPerEnemy?: number;
+  target?: CardTarget;
   weakEnemy?: number;      // Schwäche auf Gegner (reduziert dessen Schaden)
   vulnerableEnemy?: number; // Verwundbarkeit auf Gegner (+50% erlittener Schaden)
   selfWeak?: number;       // Spieler erhält Schwäche
@@ -48,6 +62,7 @@ export interface EnemyDef {
 }
 
 export interface EnemyState {
+  uid: number;
   def: EnemyDef;
   hp: number;
   maxHp: number;
@@ -82,11 +97,12 @@ export interface ResonanceDef {
   icon: string;
   text: string;
   costSplitter: number;
-  effect: 'draw' | 'block' | 'damage' | 'balance';
+  effect: 'draw' | 'block' | 'damage' | 'balance' | 'energy' | 'echo' | 'storm' | 'heal';
 }
 
 export type Screen =
   | 'title'
+  | 'dungeons'
   | 'artifacts'
   | 'resonances'
   | 'deck'
@@ -102,11 +118,26 @@ export type Screen =
 
 export type GameMode = 'dungeon' | 'campaign';
 
+export interface DungeonArea {
+  id: string;
+  name: string;
+  desc: string;
+  icon: string;
+  stations: StationKind[];
+  normalEncounters: string[][];
+  eliteEncounters: string[][];
+  bossEncounter: string[];
+  reward: number;
+  kern?: boolean;
+}
+
 export interface CampaignStage {
   id: string;
   name: string;
   desc: string;
   stations: StationKind[];
+  areaId: string;
+  bossEncounter?: string[];
   reward: number;   // Splitter-Bonus beim ersten Abschluss
   kern?: boolean;   // gibt beim ersten Abschluss zusätzlich 1 Kern
 }
@@ -137,12 +168,14 @@ export interface CombatSave {
   firstAttackDone: boolean;
   attackPlayedThisTurn: boolean;
   cardsPlayedThisTurn: number;
+  targetIndex?: number;
 }
 
 // Gespeicherter Run (Fortsetzen-Funktion)
 export interface RunSave {
   mode: GameMode;
   stageId: string | null;
+  areaId?: string | null;
   artifactId: string | null;
   resonanceId?: string | null;
   deckIds: string[];
@@ -175,6 +208,7 @@ export interface MetaState {
   artifacts: string[];        // freigeschaltete Artefakte
   resonances: string[];       // freigeschaltete Resonanzen
   completedStages: string[];  // abgeschlossene Kampagnen-Stages
+  completedAreas: string[];   // abgeschlossene Dungeon-Gebiete
   cards: Record<string, number>; // Kartensammlung (Karten-ID → Anzahl)
   lastDeck: string[];         // zuletzt gewähltes Startdeck
   deckLayouts: DeckLayout[];  // dauerhaft gespeicherte Startdeck-Layouts
