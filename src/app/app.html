@@ -23,7 +23,7 @@
             <button class="btn" (click)="game.goTo('artifacts')">Artefakte</button>
             <button class="btn" (click)="game.goTo('resonances')">Resonanzshop</button>
             <button class="btn" (click)="game.goTo('cards')">Kartenshop</button>
-            <button class="btn" (click)="game.openDeckSelection()">Kartenauswahl</button>
+            <button class="btn" (click)="game.openEquipment()">Ausrüstung</button>
           </div>
         </div>
         <div class="meta-summary">
@@ -65,57 +65,6 @@
             </div>
           }
         </div>
-      </div>
-    }
-
-    <!-- ==================== ARTEFAKT WÄHLEN ==================== -->
-    @case ('artifact') {
-      <div class="screen artifact-screen">
-        <h2>Artefakt wählen</h2>
-        <p class="hint">
-          @if (game.mode() === 'campaign') {
-            {{ game.currentStage()?.name }} · Wähle 1 Artefakt für diesen Run.
-          } @else {
-            Wähle 1 Artefakt für diesen Run. Weitere Artefakte kaufst du im Artefaktshop.
-          }
-        </p>
-        <div class="artifact-list">
-          @for (a of game.ownedArtifacts(); track a.id) {
-            <button class="artifact-card" (click)="game.chooseArtifact(a)">
-              <span class="artifact-icon">{{ a.icon }}</span>
-              <span class="artifact-name">{{ a.name }}</span>
-              <span class="artifact-text">{{ a.text }}</span>
-            </button>
-          }
-        </div>
-      </div>
-    }
-
-    <!-- ==================== RESONANZ WÄHLEN ==================== -->
-    @case ('resonance') {
-      <div class="screen resonance-screen">
-        <h2>Resonanz wählen</h2>
-        <p class="hint">
-          Eine Resonanz löst ihren festen Effekt aus, sobald du in einem Zug 3 verschiedene Kategorien spielst.
-        </p>
-        @if (game.ownedResonances().length > 0) {
-          <div class="artifact-list">
-            @for (r of game.ownedResonances(); track r.id) {
-              <button class="artifact-card resonance-card" (click)="game.chooseResonance(r)">
-                <span class="artifact-icon">{{ r.icon }}</span>
-                <span class="artifact-name">{{ r.name }}</span>
-                <span class="artifact-text">{{ r.text }}</span>
-              </button>
-            }
-          </div>
-        } @else {
-          <div class="empty-resonance">
-            <span class="artifact-icon">◇</span>
-            <strong>Noch keine Resonanz freigeschaltet</strong>
-            <span>Kaufe deine erste Resonanz im Resonanzshop des Hauptmenüs.</span>
-          </div>
-        }
-        <button class="btn" (click)="game.chooseResonance(null)">Ohne Resonanz fortfahren</button>
       </div>
     }
 
@@ -163,16 +112,15 @@
       </div>
     }
 
-    <!-- ==================== STARTDECK WÄHLEN ==================== -->
+    <!-- ==================== AUSRÜSTUNG ==================== -->
     @case ('deck') {
       <div class="screen deck-screen">
         @if (game.deckEditorMode() === 'menu') {
           <button class="btn btn-small screen-back" (click)="game.backToTitle()">← Zurück</button>
         }
-        <h2>{{ game.deckEditorMode() === 'menu' ? 'Kartenauswahl' : 'Startdeck zusammenstellen' }}</h2>
+        <h2>{{ game.deckEditorMode() === 'menu' ? 'Ausrüstung' : 'Ausrüstung vervollständigen' }}</h2>
         <p class="hint">
-          Wähle genau {{ game.deckMax }} Karten aus deiner Sammlung.
-          Neue Karten kaufst du im Kartenshop. Änderungen werden automatisch gespeichert.
+          Jedes Layout speichert Deck, Artefakt und Resonanz gemeinsam. Änderungen werden automatisch gespeichert.
         </p>
         <div class="deck-layouts" aria-label="Deck-Layouts">
           @for (layout of game.deckLayouts(); track layout.id) {
@@ -185,10 +133,75 @@
               <small>
                 {{ game.layoutCardCount(layout) }}
                 {{ game.layoutCardCount(layout) === 1 ? 'Karte' : 'Karten' }}
+                · {{ game.layoutArtifact(layout)?.icon ?? '◇' }}
+                · {{ game.layoutResonance(layout)?.icon ?? '◇' }}
               </small>
             </button>
           }
         </div>
+
+        <div class="layout-rename">
+          <label for="active-layout-name">Layoutname</label>
+          <input
+            id="active-layout-name"
+            #layoutNameInput
+            class="layout-name-input"
+            maxlength="24"
+            [value]="game.activeDeckLayout()?.name ?? ''"
+            (keydown.enter)="game.renameDeckLayout(game.activeDeckLayoutId(), layoutNameInput.value)"
+          />
+          <button class="btn btn-small"
+                  (click)="game.renameDeckLayout(game.activeDeckLayoutId(), layoutNameInput.value)">
+            Umbenennen
+          </button>
+        </div>
+
+        <section class="loadout-section">
+          <h3>Artefakt</h3>
+          <div class="loadout-options">
+            <button class="loadout-choice"
+                    [class.selected]="!game.activeDeckLayout()?.artifactId"
+                    (click)="game.selectLayoutArtifact(null)">
+              <span class="loadout-icon">◇</span>
+              <span>Kein Artefakt</span>
+            </button>
+            @for (a of game.ownedArtifacts(); track a.id) {
+              <button class="loadout-choice"
+                      [class.selected]="game.activeDeckLayout()?.artifactId === a.id"
+                      [attr.title]="a.text"
+                      (click)="game.selectLayoutArtifact(a.id)">
+                <span class="loadout-icon">{{ a.icon }}</span>
+                <span>{{ a.name }}</span>
+              </button>
+            }
+          </div>
+        </section>
+
+        <section class="loadout-section">
+          <h3>Resonanz</h3>
+          <div class="loadout-options">
+            <button class="loadout-choice"
+                    [class.selected]="!game.activeDeckLayout()?.resonanceId"
+                    (click)="game.selectLayoutResonance(null)">
+              <span class="loadout-icon">◇</span>
+              <span>Keine Resonanz</span>
+            </button>
+            @for (r of game.ownedResonances(); track r.id) {
+              <button class="loadout-choice"
+                      [class.selected]="game.activeDeckLayout()?.resonanceId === r.id"
+                      [attr.title]="r.text"
+                      (click)="game.selectLayoutResonance(r.id)">
+                <span class="loadout-icon">{{ r.icon }}</span>
+                <span>{{ r.name }}</span>
+              </button>
+            }
+          </div>
+          @if (game.ownedResonances().length === 0) {
+            <p class="loadout-note">Noch keine Resonanz freigeschaltet – erhältlich im Resonanzshop.</p>
+          }
+        </section>
+
+        <h3 class="equipment-deck-heading">Deck</h3>
         <div class="deck-counter" [class.deck-ok]="game.canConfirmDeck()">
           {{ game.deckSelectionSize() }} / {{ game.deckMax }} Karten gewählt
         </div>

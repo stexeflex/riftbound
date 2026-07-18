@@ -15,7 +15,7 @@ const META_KEY = 'riftbound-meta-v2';
 const LEGACY_META_KEY = 'riftbound-meta-v1';
 const RUN_KEY = 'riftbound-run-v1';
 const BASE_HP = 80;
-const DECK_LAYOUT_IDS = ['layout-1', 'layout-2', 'layout-3'];
+const DECK_LAYOUT_IDS = ['layout-1', 'layout-2', 'layout-3', 'layout-4', 'layout-5'];
 
 const DUNGEON_STATIONS: StationKind[] = [
   'kampf', 'kampf', 'elite', 'rast', 'kampf', 'kampf', 'elite', 'rast', 'boss',
@@ -74,6 +74,10 @@ export class GameService {
     Object.values(this.deckSelection()).reduce((a, b) => a + b, 0),
   );
   readonly deckLayouts = computed(() => this.meta().deckLayouts);
+  readonly activeDeckLayout = computed(() =>
+    this.meta().deckLayouts.find(layout => layout.id === this.activeDeckLayoutId())
+      ?? this.meta().deckLayouts[0],
+  );
 
   // ---------- Kartenshop-Filter ----------
   readonly shopFilter = signal<'alle' | 'besitzt' | 'fehlt'>('alle');
@@ -144,10 +148,21 @@ export class GameService {
       const stored = storedLayouts.find(layout => layout?.id === id);
       return {
         id,
-        name: `Layout ${index + 1}`,
+        name: typeof stored?.name === 'string' && stored.name.trim()
+          ? stored.name.trim().slice(0, 24)
+          : `Layout ${index + 1}`,
         cardIds: Array.isArray(stored?.cardIds)
           ? stored.cardIds.filter(cardId => typeof cardId === 'string')
           : index === 0 ? (lastDeck.length > 0 ? [...lastDeck] : [...STARTER_DECK]) : [],
+        artifactId: typeof stored?.artifactId === 'string'
+          && artifacts.includes(stored.artifactId)
+          ? stored.artifactId
+          : 'schildkern',
+        resonanceId: typeof stored?.resonanceId === 'string'
+          && Array.isArray(m?.resonances)
+          && m.resonances.includes(stored.resonanceId)
+          ? stored.resonanceId
+          : null,
       };
     });
     const activeDeckLayoutId = deckLayouts.some(layout => layout.id === m?.activeDeckLayoutId)
@@ -279,8 +294,8 @@ export class GameService {
     this.deckSelection.set(sel);
   }
 
-  /** Öffnet die dauerhaft gespeicherten Deck-Layouts direkt aus dem Hauptmenü. */
-  openDeckSelection() {
+  /** Öffnet die dauerhaft gespeicherten Ausrüstungs-Layouts direkt aus dem Hauptmenü. */
+  openEquipment() {
     this.deckEditorMode.set('menu');
     this.activeDeckLayoutId.set(this.meta().activeDeckLayoutId);
     this.prefillDeckSelection();
@@ -295,8 +310,51 @@ export class GameService {
     this.prefillDeckSelection(id);
   }
 
+  renameDeckLayout(id: string, name: string) {
+    const cleanName = name.trim().slice(0, 24);
+    if (!cleanName) return;
+    const m = this.meta();
+    this.meta.set({
+      ...m,
+      deckLayouts: m.deckLayouts.map(layout =>
+        layout.id === id ? { ...layout, name: cleanName } : layout,
+      ),
+    });
+    this.saveMeta();
+  }
+
+  selectLayoutArtifact(id: string | null) {
+    if (id && !this.ownsArtifact(id)) return;
+    this.updateActiveLayout({ artifactId: id });
+  }
+
+  selectLayoutResonance(id: string | null) {
+    if (id && !this.ownsResonance(id)) return;
+    this.updateActiveLayout({ resonanceId: id });
+  }
+
+  private updateActiveLayout(change: Partial<DeckLayout>) {
+    const activeId = this.activeDeckLayoutId();
+    const m = this.meta();
+    this.meta.set({
+      ...m,
+      deckLayouts: m.deckLayouts.map(layout =>
+        layout.id === activeId ? { ...layout, ...change } : layout,
+      ),
+    });
+    this.saveMeta();
+  }
+
   layoutCardCount(layout: DeckLayout): number {
     return layout.cardIds.length;
+  }
+
+  layoutArtifact(layout: DeckLayout | undefined = this.activeDeckLayout()): ArtifactDef | null {
+    return layout?.artifactId ? ARTIFACTS.find(a => a.id === layout.artifactId) ?? null : null;
+  }
+
+  layoutResonance(layout: DeckLayout | undefined = this.activeDeckLayout()): ResonanceDef | null {
+    return layout?.resonanceId ? RESONANCES.find(r => r.id === layout.resonanceId) ?? null : null;
   }
 
   private selectionIds(): string[] {
@@ -378,6 +436,17 @@ export class GameService {
   confirmDeck() {
     if (!this.canConfirmDeck()) return;
     const ids = this.selectionIds();
+    const layout = this.activeDeckLayout();
+    this.artifact.set(
+      layout?.artifactId && this.ownsArtifact(layout.artifactId)
+        ? ARTIFACTS.find(a => a.id === layout.artifactId) ?? null
+        : null,
+    );
+    this.resonance.set(
+      layout?.resonanceId && this.ownsResonance(layout.resonanceId)
+        ? RESONANCES.find(r => r.id === layout.resonanceId) ?? null
+        : null,
+    );
 
     const m = this.meta();
     this.meta.set({ ...m, runs: m.runs + 1, lastDeck: ids });
@@ -554,7 +623,7 @@ export class GameService {
     this.currentStage.set(null);
     this.artifact.set(null);
     this.resonance.set(null);
-    this.screen.set('artifact');
+    this.startConfiguredRun();
   }
 
   stageUnlocked(stage: CampaignStage): boolean {
@@ -573,22 +642,18 @@ export class GameService {
     this.currentStage.set(stage);
     this.artifact.set(null);
     this.resonance.set(null);
-    this.screen.set('artifact');
+    this.startConfiguredRun();
   }
 
-  chooseArtifact(a: ArtifactDef) {
-    this.artifact.set(a);
-    this.resonance.set(null);
-    this.screen.set('resonance');
-  }
-
-  chooseResonance(r: ResonanceDef | null) {
-    if (r && !this.ownsResonance(r.id)) return;
-    this.resonance.set(r);
+  private startConfiguredRun() {
     this.deckEditorMode.set('run');
     this.activeDeckLayoutId.set(this.meta().activeDeckLayoutId);
     this.prefillDeckSelection();
-    this.screen.set('deck');
+    if (this.canConfirmDeck()) {
+      this.confirmDeck();
+    } else {
+      this.screen.set('deck');
+    }
   }
 
   enterStation() {

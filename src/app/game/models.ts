@@ -87,9 +87,7 @@ export interface ResonanceDef {
 
 export type Screen =
   | 'title'
-  | 'artifact'
   | 'artifacts'
-  | 'resonance'
   | 'resonances'
   | 'deck'
   | 'campaign'
@@ -187,4 +185,6 @@ export interface DeckLayout {
   id: string;
   name: string;
   cardIds: string[];
+  artifactId: string | null;
+  resonanceId: string | null;
 }

@@ -347,24 +347,24 @@ h1, h2 {
   pointer-events: none;
   background: repeating-linear-gradient(
     135deg,
-    rgba(239, 181, 145, 0.7) 0 5px,
-    rgba(155, 67, 64, 0.68) 5px 10px
+    rgba(244, 193, 150, 0.82) 0 5px,
+    rgba(178, 68, 59, 0.8) 5px 10px
   );
-  border-inline: 1px solid rgba(255, 218, 190, 0.45);
-  animation: hp-warning 1.5s ease-in-out infinite alternate;
+  border-inline: none;
+  animation: hp-warning 1.2s ease-in-out infinite alternate;
 }
 
 .enemy-loss-preview {
   background: repeating-linear-gradient(
     135deg,
-    rgba(232, 175, 112, 0.78) 0 5px,
-    rgba(115, 43, 40, 0.76) 5px 10px
+    rgba(238, 181, 105, 0.86) 0 5px,
+    rgba(120, 41, 36, 0.84) 5px 10px
   );
 }
 
 @keyframes hp-warning {
-  from { filter: brightness(0.94); }
-  to { filter: brightness(1.07); }
+  from { filter: brightness(0.91); }
+  to { filter: brightness(1.12); }
 }
 
 @keyframes shield-preview {
@@ -699,6 +699,92 @@ h1, h2 {
 
     small { color: #cab98a; }
   }
+}
+
+.layout-rename {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  color: #9c92b5;
+}
+
+.layout-name-input {
+  width: min(260px, 65vw);
+  padding: 0.5rem 0.7rem;
+  border-radius: 7px;
+  border: 1px solid rgba(140, 130, 170, 0.45);
+  background: #110d19;
+  color: #e8dcc0;
+  font: inherit;
+
+  &:focus {
+    outline: 1px solid #c9a84c;
+    border-color: #c9a84c;
+  }
+}
+
+.loadout-section {
+  width: 100%;
+  max-width: 920px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+
+  h3 {
+    margin: 0;
+    color: #c9b88a;
+    font-family: 'Cinzel', 'Georgia', serif;
+  }
+}
+
+.loadout-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+.loadout-choice {
+  min-width: 145px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(140, 130, 170, 0.35);
+  background: #171221;
+  color: #c8bdd8;
+  cursor: pointer;
+  font: inherit;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: rgba(201, 168, 76, 0.7);
+  }
+
+  &.selected {
+    color: #fff0bd;
+    border-color: #c9a84c;
+    background: linear-gradient(180deg, #33251a, #20170f);
+    box-shadow: 0 0 12px rgba(201, 168, 76, 0.25);
+  }
+}
+
+.loadout-icon { font-size: 1.35rem; }
+
+.loadout-note {
+  margin: 0;
+  color: #817794;
+  font-size: 0.82rem;
+}
+
+.equipment-deck-heading {
+  margin: 0.4rem 0 -0.3rem;
+  color: #c9b88a;
+  font-family: 'Cinzel', 'Georgia', serif;
 }
 
 .card-detail:not([data-card-tip='']):hover::after,
