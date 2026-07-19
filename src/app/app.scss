@@ -37,6 +37,60 @@ h1, h2 {
   margin: 0;
 }
 
+// ---------- Audio ----------
+
+.audio-controls {
+  position: fixed;
+  top: 1.35rem;
+  right: max(1.35rem, calc((100vw - 1100px) / 2 + 1.35rem));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  border: 1px solid rgba(140, 120, 170, 0.38);
+  border-radius: 999px;
+  background: rgba(15, 11, 23, 0.9);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+}
+
+.now-playing {
+  max-width: 155px;
+  padding-left: 0.45rem;
+  overflow: hidden;
+  color: #a99bc3;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audio-btn {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(140, 120, 170, 0.35);
+  border-radius: 50%;
+  background: #1b1527;
+  color: #d6cce8;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: #c9a84c;
+    outline: none;
+    transform: translateY(-1px);
+  }
+
+  &.audio-active {
+    border-color: rgba(201, 168, 76, 0.65);
+    background: #2a2117;
+  }
+}
+
 // ---------- Buttons ----------
 
 .btn {
@@ -1064,6 +1118,8 @@ h1, h2 {
 @media (max-width: 700px) {
   .game-shell { padding: 0.4rem; }
   .screen { padding: 0.8rem; }
+  .audio-controls { top: 0.7rem; right: 0.7rem; }
+  .now-playing { display: none; }
   .card { width: 118px; height: 160px; }
   .combat-bottom { flex-direction: column; }
   .pile-info, .turn-controls { flex-direction: row; }

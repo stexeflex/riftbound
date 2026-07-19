@@ -1,4 +1,5 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { AudioService } from '../audio.service';
 import {
   ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
   DeckLayout, DungeonArea, EnemyDef, EnemyState, GameMode, MetaState, RunSave, Screen,
@@ -32,6 +33,7 @@ function pick<T>(arr: T[]): T {
 
 @Injectable({ providedIn: 'root' })
 export class GameService {
+  private readonly audio = inject(AudioService);
   private nextUid = 1;
   private nextEnemyUid = 1;
 
@@ -1126,6 +1128,7 @@ export class GameService {
   }
 
   private dealDamage(enemy: EnemyState, base: number, pure = false) {
+    const wasAlive = enemy.hp > 0;
     let dmg = base;
     if (!pure) {
       dmg += this.strength();
@@ -1147,8 +1150,10 @@ export class GameService {
     if (enemy.vulnerable > 0) dmg = Math.round(dmg * 1.5);
 
     const blocked = Math.min(enemy.block, dmg);
+    const hpDamage = Math.min(enemy.hp, dmg - blocked);
     enemy.block -= blocked;
     enemy.hp = Math.max(0, enemy.hp - (dmg - blocked));
+    if (wasAlive) this.audio.playEnemyHit(Math.max(1, hpDamage || blocked), hpDamage === 0);
     this.enemies.set([...this.enemies()]);
   }
 
@@ -1231,6 +1236,7 @@ export class GameService {
     }
     if (hpDmg > 0) {
       this.playerHp.set(Math.max(0, this.playerHp() - hpDmg));
+      this.audio.playPlayerHit(hpDmg);
     }
   }
 

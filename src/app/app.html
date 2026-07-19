@@ -1,4 +1,29 @@
 <div class="game-shell">
+  <div class="audio-controls" aria-label="Audioeinstellungen"
+       [attr.data-music-playing]="audio.musicPlaying()"
+       [attr.data-track-index]="audio.currentTrackIndex()">
+    @if (audio.menuActive() && audio.musicEnabled()) {
+      <span class="now-playing" aria-live="polite">
+        {{ audio.musicPlaying() ? '♪ ' + audio.currentTrackLabel() : 'Tippen für Musik' }}
+      </span>
+    }
+    <button type="button" class="audio-btn"
+            [class.audio-active]="audio.musicEnabled()"
+            [attr.aria-pressed]="audio.musicEnabled()"
+            [attr.aria-label]="audio.musicEnabled() ? 'Menümusik ausschalten' : 'Menümusik einschalten'"
+            [attr.title]="audio.musicEnabled() ? 'Menümusik ausschalten' : 'Menümusik einschalten'"
+            (click)="audio.toggleMusic()">
+      {{ audio.musicEnabled() ? '🎵' : '🎵̸' }}
+    </button>
+    <button type="button" class="audio-btn"
+            [class.audio-active]="audio.sfxEnabled()"
+            [attr.aria-pressed]="audio.sfxEnabled()"
+            [attr.aria-label]="audio.sfxEnabled() ? 'Kampfsounds ausschalten' : 'Kampfsounds einschalten'"
+            [attr.title]="audio.sfxEnabled() ? 'Kampfsounds ausschalten' : 'Kampfsounds einschalten'"
+            (click)="audio.toggleSfx()">
+      {{ audio.sfxEnabled() ? '🔊' : '🔇' }}
+    </button>
+  </div>
   @switch (game.screen()) {
 
     <!-- ==================== TITEL ==================== -->

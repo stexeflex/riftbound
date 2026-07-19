@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, HostListener, effect, inject } from '@angular/core';
+import { AudioService } from './audio.service';
 import { GameService } from './game/game.service';
 import {
   CardDef, CardInstance, CardSort, CardType, Category, EnemyState, StationKind,
@@ -12,6 +13,21 @@ import {
 })
 export class App {
   readonly game = inject(GameService);
+  readonly audio = inject(AudioService);
+
+  constructor() {
+    effect(() => this.audio.syncScreen(this.game.screen()));
+  }
+
+  @HostListener('document:pointerdown')
+  unlockAudio() {
+    this.audio.unlock();
+  }
+
+  @HostListener('document:keydown')
+  unlockAudioWithKeyboard() {
+    this.audio.unlock();
+  }
 
   readonly cardTypes: CardType[] = ['Angriff', 'Verteidigung', 'Technik', 'Macht'];
   readonly cardCategories: Category[] = ['Kraft', 'Schutz', 'Kontrolle', 'Chaos'];

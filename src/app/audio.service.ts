@@ -1,0 +1,175 @@
+import { Injectable, computed, signal } from '@angular/core';
+import { Screen } from './game/models';
+
+const MUSIC_KEY = 'riftbound-music-enabled';
+const SFX_KEY = 'riftbound-sfx-enabled';
+
+const MENU_TRACKS = [
+  { label: 'Menu Theme 1', src: 'audio/menu/menu-01-theme-1.mp3' },
+  { label: 'Menu Theme 3', src: 'audio/menu/menu-02-theme-3.mp3' },
+  { label: 'Menu Theme 2', src: 'audio/menu/menu-03-theme-2.mp3' },
+] as const;
+
+const MENU_SCREENS = new Set<Screen>([
+  'title', 'dungeons', 'campaign', 'artifacts', 'resonances', 'deck', 'meta', 'cards',
+]);
+
+function loadSetting(key: string): boolean {
+  if (typeof localStorage === 'undefined') return true;
+  try {
+    return localStorage.getItem(key) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+function saveSetting(key: string, enabled: boolean) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(key, String(enabled));
+  } catch {
+    // Audio bleibt auch ohne localStorage nutzbar.
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class AudioService {
+  readonly musicEnabled = signal(loadSetting(MUSIC_KEY));
+  readonly sfxEnabled = signal(loadSetting(SFX_KEY));
+  readonly menuActive = signal(false);
+  readonly musicPlaying = signal(false);
+  readonly currentTrackIndex = signal(0);
+  readonly currentTrackLabel = computed(() => MENU_TRACKS[this.currentTrackIndex()].label);
+
+  private musicPlayer: HTMLAudioElement | null = null;
+  private audioContext: AudioContext | null = null;
+  private unlocked = false;
+
+  constructor() {
+    if (typeof Audio === 'undefined') return;
+    this.musicPlayer = new Audio();
+    this.musicPlayer.preload = 'metadata';
+    this.musicPlayer.volume = 0.26;
+    this.musicPlayer.addEventListener('playing', () => this.musicPlaying.set(true));
+    this.musicPlayer.addEventListener('pause', () => this.musicPlaying.set(false));
+    this.musicPlayer.addEventListener('ended', () => this.advanceTrack());
+    this.loadTrack(0);
+  }
+
+  syncScreen(screen: Screen) {
+    const active = MENU_SCREENS.has(screen);
+    this.menuActive.set(active);
+    if (active) {
+      void this.playMenuMusic();
+    } else {
+      this.musicPlayer?.pause();
+    }
+  }
+
+  /** Browser erlauben Audio erst nach der ersten Berührung oder Taste. */
+  unlock() {
+    this.unlocked = true;
+    const context = this.getAudioContext();
+    if (context?.state === 'suspended') void context.resume();
+    if (this.menuActive() && this.musicEnabled()) void this.playMenuMusic();
+  }
+
+  toggleMusic() {
+    const enabled = !this.musicEnabled();
+    this.musicEnabled.set(enabled);
+    saveSetting(MUSIC_KEY, enabled);
+    if (enabled) {
+      this.unlock();
+    } else {
+      this.musicPlayer?.pause();
+    }
+  }
+
+  toggleSfx() {
+    const enabled = !this.sfxEnabled();
+    this.sfxEnabled.set(enabled);
+    saveSetting(SFX_KEY, enabled);
+    if (enabled) this.unlock();
+  }
+
+  playEnemyHit(damage: number, blocked: boolean) {
+    this.playImpact('enemy', damage, blocked);
+  }
+
+  playPlayerHit(damage: number) {
+    this.playImpact('player', damage, false);
+  }
+
+  private async playMenuMusic() {
+    if (!this.unlocked || !this.menuActive() || !this.musicEnabled() || !this.musicPlayer) return;
+    try {
+      await this.musicPlayer.play();
+    } catch {
+      // Der nächste Tap versucht es erneut, falls der Browser Autoplay noch blockiert.
+    }
+  }
+
+  private advanceTrack() {
+    if (!this.menuActive() || !this.musicEnabled()) return;
+    this.loadTrack((this.currentTrackIndex() + 1) % MENU_TRACKS.length);
+    void this.playMenuMusic();
+  }
+
+  private loadTrack(index: number) {
+    if (!this.musicPlayer) return;
+    this.currentTrackIndex.set(index);
+    const track = MENU_TRACKS[index];
+    this.musicPlayer.src = typeof document === 'undefined'
+      ? track.src
+      : new URL(track.src, document.baseURI).toString();
+    this.musicPlayer.load();
+  }
+
+  private getAudioContext(): AudioContext | null {
+    if (this.audioContext) return this.audioContext;
+    if (typeof window === 'undefined') return null;
+    const AudioContextConstructor = window.AudioContext
+      ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextConstructor) return null;
+    this.audioContext = new AudioContextConstructor();
+    return this.audioContext;
+  }
+
+  private playImpact(target: 'enemy' | 'player', damage: number, blocked: boolean) {
+    if (!this.sfxEnabled() || !this.unlocked) return;
+    const context = this.getAudioContext();
+    if (!context) return;
+    if (context.state === 'suspended') void context.resume();
+
+    const now = context.currentTime;
+    const weight = Math.min(1, Math.max(0.25, damage / 24));
+    const master = context.createGain();
+    master.gain.setValueAtTime((blocked ? 0.055 : 0.075) + weight * 0.05, now);
+    master.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+    master.connect(context.destination);
+
+    const oscillator = context.createOscillator();
+    oscillator.type = target === 'player' ? 'sawtooth' : 'triangle';
+    oscillator.frequency.setValueAtTime(target === 'player' ? 115 : 185, now);
+    oscillator.frequency.exponentialRampToValueAtTime(target === 'player' ? 48 : 72, now + 0.14);
+    oscillator.connect(master);
+    oscillator.start(now);
+    oscillator.stop(now + 0.16);
+
+    const noiseLength = Math.floor(context.sampleRate * 0.1);
+    const noiseBuffer = context.createBuffer(1, noiseLength, context.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseLength; i++) {
+      noiseData[i] = (Math.random() * 2 - 1) * (1 - i / noiseLength);
+    }
+    const noise = context.createBufferSource();
+    noise.buffer = noiseBuffer;
+    const filter = context.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(blocked ? 900 : target === 'player' ? 1250 : 1750, now);
+    noise.connect(filter);
+    filter.connect(master);
+    noise.start(now);
+    noise.stop(now + 0.1);
+  }
+}
