@@ -1,0 +1,36 @@
+<div class="screen meta-screen">
+        <button class="btn btn-small screen-back" (click)="game.backToTitle()">← Zurück</button>
+        <h2>Upgrades</h2>
+        <div class="meta-summary">
+          <span>🔮 {{ game.meta().splitter }} Splitter</span>
+          <span>🟡 {{ game.meta().kerne }} Kerne</span>
+          <span>Runs: {{ game.meta().runs }}</span>
+          <span>Siege: {{ game.meta().wins }}</span>
+        </div>
+        <h3 class="meta-section">Upgrades</h3>
+        <div class="upgrade-list">
+          @for (u of game.metaUpgrades; track u.id) {
+            <div class="upgrade-row">
+              <span class="upgrade-icon">{{ u.icon }}</span>
+              <div class="upgrade-info">
+                <div class="upgrade-name">
+                  {{ u.name }}
+                  <span class="upgrade-level">Stufe {{ game.upgradeLevel(u.id) }}/{{ u.maxLevel }}</span>
+                </div>
+                <div class="upgrade-text">{{ u.describe(game.upgradeLevel(u.id)) }}</div>
+              </div>
+              <button
+                class="btn btn-small"
+                [disabled]="game.upgradeLevel(u.id) >= u.maxLevel || game.meta().splitter < u.cost"
+                (click)="game.buyUpgrade(u.id)"
+              >
+                @if (game.upgradeLevel(u.id) >= u.maxLevel) { Max } @else { 🔮 {{ u.cost }} }
+              </button>
+            </div>
+          }
+        </div>
+
+      </div>
+
+
+

@@ -1,0 +1,191 @@
+// ==================== Riftbound – Dark-Fantasy-Styling ====================
+
+.game-shell {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding: 1rem;
+}
+
+.game-shell.run-themed {
+  --theme-accent: #b08fff;
+  background:
+    linear-gradient(rgba(7, 5, 12, 0.15), rgba(7, 5, 12, 0.45)),
+    var(--dungeon-bg) center / cover no-repeat;
+  background-attachment: fixed;
+
+  .screen {
+    border-color: color-mix(in srgb, var(--theme-accent) 55%, transparent);
+    background:
+      linear-gradient(180deg, rgba(13, 10, 20, 0.42), rgba(8, 6, 13, 0.62)),
+      var(--dungeon-bg) center / cover no-repeat;
+    box-shadow:
+      0 0 50px rgba(0, 0, 0, 0.55) inset,
+      0 0 28px color-mix(in srgb, var(--theme-accent) 18%, transparent);
+  }
+
+  .combat-top {
+    border: 1px solid color-mix(in srgb, var(--theme-accent) 30%, transparent);
+    background: linear-gradient(180deg, rgba(18, 13, 27, 0.72), rgba(10, 7, 16, 0.9));
+    backdrop-filter: blur(2px);
+  }
+}
+
+.theme-desert { --theme-accent: #e8a84f; }
+.theme-winter { --theme-accent: #7ed8ff; }
+.theme-crystal { --theme-accent: #b86dff; }
+.theme-sky { --theme-accent: #e7d89b; }
+.theme-void { --theme-accent: #d257ff; }
+
+.screen {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(140, 110, 60, 0.35);
+  border-radius: 12px;
+  background:
+    radial-gradient(ellipse at top, rgba(80, 60, 140, 0.18), transparent 60%),
+    linear-gradient(180deg, #14101d 0%, #0d0a14 100%);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.6) inset;
+}
+
+h1, h2 {
+  font-family: 'Cinzel', 'Georgia', serif;
+  letter-spacing: 0.08em;
+  color: #e8dcc0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  margin: 0;
+}
+
+.hint {
+  color: #b8a888;
+  margin: 0;
+}
+
+// ---------- Audio ----------
+
+.audio-controls {
+  position: fixed;
+  top: 1.35rem;
+  right: max(1.35rem, calc((100vw - 1100px) / 2 + 1.35rem));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  border: 1px solid rgba(140, 120, 170, 0.38);
+  border-radius: 999px;
+  background: rgba(15, 11, 23, 0.9);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+}
+
+.now-playing {
+  max-width: 155px;
+  padding-left: 0.45rem;
+  overflow: hidden;
+  color: #a99bc3;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audio-btn {
+  position: relative;
+  width: 34px;
+
+
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(140, 120, 170, 0.35);
+  border-radius: 50%;
+  background: #1b1527;
+  color: #d6cce8;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: #c9a84c;
+    outline: none;
+    transform: translateY(-1px);
+  }
+
+  &.audio-active {
+    border-color: rgba(201, 168, 76, 0.65);
+    background: #2a2117;
+  }
+
+  &.audio-muted {
+    border-color: rgba(255, 80, 90, 0.72);
+    background: rgba(74, 19, 28, 0.92);
+    color: #ff737d;
+    box-shadow: 0 0 10px rgba(255, 70, 80, 0.22);
+  }
+}
+
+.audio-symbol { line-height: 1; }
+
+.audio-group {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.volume-slider {
+  width: 64px;
+  height: 4px;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 999px;
+  background: rgba(140, 120, 170, 0.4);
+  outline: none;
+  cursor: pointer;
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 13px;
+    height: 13px;
+    border: 1px solid rgba(201, 168, 76, 0.8);
+    border-radius: 50%;
+    background: #d6cce8;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  }
+
+  &::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: 1px solid rgba(201, 168, 76, 0.8);
+    border-radius: 50%;
+    background: #d6cce8;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  }
+
+  &:hover::-webkit-slider-thumb,
+  &:focus-visible::-webkit-slider-thumb {
+    background: #f0e6ff;
+  }
+}
+
+.mute-slash {
+  position: absolute;
+  width: 23px;
+  height: 3px;
+  border-radius: 999px;
+  background: #ff4f5e;
+  box-shadow: 0 0 2px #25050a;
+  transform: rotate(-45deg);
+  pointer-events: none;
+}
+
+
+

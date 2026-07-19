@@ -1,0 +1,173 @@
+<div class="screen deck-screen">
+        @if (game.deckEditorMode() === 'menu') {
+          <button class="btn btn-small screen-back" (click)="game.backToTitle()">← Zurück</button>
+        }
+        <h2>{{ game.deckEditorMode() === 'menu' ? 'Ausrüstung' : 'Ausrüstung vervollständigen' }}</h2>
+        <p class="hint">
+          Jedes Layout speichert Deck, Artefakt und Resonanz gemeinsam. Änderungen werden automatisch gespeichert.
+        </p>
+        <div class="deck-layouts" aria-label="Deck-Layouts">
+          @for (layout of game.deckLayouts(); track layout.id) {
+            <button
+              class="deck-layout-tab"
+              [class.active]="game.activeDeckLayoutId() === layout.id"
+              (click)="game.selectDeckLayout(layout.id)"
+            >
+              <span>{{ layout.name }}</span>
+              <small>
+                {{ game.layoutCardCount(layout) }}
+                {{ game.layoutCardCount(layout) === 1 ? 'Karte' : 'Karten' }}
+                · {{ game.layoutArtifact(layout)?.icon ?? '◇' }}
+                · {{ game.layoutResonance(layout)?.icon ?? '◇' }}
+              </small>
+            </button>
+          }
+        </div>
+
+        <div class="layout-rename">
+          <label for="active-layout-name">Layoutname</label>
+          <input
+            id="active-layout-name"
+            #layoutNameInput
+            class="layout-name-input"
+            maxlength="24"
+            [value]="game.activeDeckLayout()?.name ?? ''"
+            (keydown.enter)="game.renameDeckLayout(game.activeDeckLayoutId(), layoutNameInput.value)"
+          />
+          <button class="btn btn-small"
+                  (click)="game.renameDeckLayout(game.activeDeckLayoutId(), layoutNameInput.value)">
+            Umbenennen
+          </button>
+        </div>
+
+        <section class="loadout-section">
+          <h3>Artefakt</h3>
+          <div class="loadout-options">
+            <button class="loadout-choice"
+                    [class.selected]="!game.activeDeckLayout()?.artifactId"
+                    (click)="game.selectLayoutArtifact(null)">
+              <span class="loadout-icon">◇</span>
+              <span>Kein Artefakt</span>
+            </button>
+            @for (a of game.ownedArtifacts(); track a.id) {
+              <button class="loadout-choice"
+                      [class.selected]="game.activeDeckLayout()?.artifactId === a.id"
+                      [attr.title]="a.text"
+                      (click)="game.selectLayoutArtifact(a.id)">
+                <span class="loadout-icon">{{ a.icon }}</span>
+                <span>{{ a.name }}</span>
+              </button>
+            }
+          </div>
+        </section>
+
+        <section class="loadout-section">
+          <h3>Resonanz</h3>
+          <div class="loadout-options">
+            <button class="loadout-choice"
+                    [class.selected]="!game.activeDeckLayout()?.resonanceId"
+                    (click)="game.selectLayoutResonance(null)">
+
+              <span class="loadout-icon">◇</span>
+              <span>Keine Resonanz</span>
+            </button>
+            @for (r of game.ownedResonances(); track r.id) {
+              <button class="loadout-choice"
+                      [class.selected]="game.activeDeckLayout()?.resonanceId === r.id"
+                      [attr.title]="r.text"
+                      (click)="game.selectLayoutResonance(r.id)">
+                <span class="loadout-icon">{{ r.icon }}</span>
+                <span>{{ r.name }}</span>
+              </button>
+            }
+          </div>
+          @if (game.ownedResonances().length === 0) {
+            <p class="loadout-note">Noch keine Resonanz freigeschaltet – erhältlich im Resonanzshop.</p>
+          }
+        </section>
+
+        <h3 class="equipment-deck-heading">Deck</h3>
+        <div class="deck-counter" [class.deck-ok]="game.canConfirmDeck()">
+          {{ game.deckSelectionSize() }} / {{ game.deckMax }} Karten gewählt
+        </div>
+        <div class="card-tools" aria-label="Deckkarten filtern und sortieren">
+          <label class="search-field">
+            <span>Suche</span>
+            <input type="search" placeholder="Name oder Effekt"
+                   [value]="game.deckSearch()"
+                   (input)="game.deckSearch.set($any($event.target).value)" />
+          </label>
+          <label class="sort-field">
+
+            <span>Sortierung</span>
+            <select [value]="game.deckSort()" (change)="game.deckSort.set($any($event.target).value)">
+              @for (option of cardSortOptions; track option.value) {
+                <option [value]="option.value" [selected]="option.value === game.deckSort()">{{ option.label }}</option>
+              }
+            </select>
+          </label>
+          <div class="filter-bar">
+            <span class="filter-label">Farbe:</span>
+            <button class="btn btn-small filter-btn"
+                    [class.filter-active]="game.deckTypeFilter() === 'alle'"
+                    (click)="game.deckTypeFilter.set('alle')">alle</button>
+            @for (t of cardTypes; track t) {
+              <button class="btn btn-small filter-btn"
+                      [class.filter-active]="game.deckTypeFilter() === t"
+                      (click)="game.deckTypeFilter.set(t)">{{ t }}</button>
+            }
+          </div>
+          <div class="filter-bar">
+            <span class="filter-label">Kategorie:</span>
+            <button class="btn btn-small filter-btn"
+                    [class.filter-active]="game.deckCategoryFilter() === 'alle'"
+                    (click)="game.deckCategoryFilter.set('alle')">alle</button>
+            @for (category of cardCategories; track category) {
+              <button class="btn btn-small filter-btn"
+                      [class.filter-active]="game.deckCategoryFilter() === category"
+                      (click)="game.deckCategoryFilter.set(category)">{{ category }}</button>
+            }
+          </div>
+        </div>
+        <div class="collection-grid">
+          @for (def of game.collectionCards(); track def.id) {
+            <div class="collection-item">
+              <button
+                class="card card-detail"
+                [class]="typeClass(def.type)"
+                [class.selected]="game.selectionCount(def.id) > 0"
+                [attr.data-card-tip]="cardDetails(def)"
+                [attr.aria-description]="cardDetails(def) || null"
+                (click)="game.addToSelection(def.id)"
+              >
+                <span class="card-cost">{{ def.cost }}</span>
+                <span class="card-name">{{ def.name }}</span>
+                <span class="card-type">{{ def.type }} · {{ def.category }}</span>
+                <span class="card-text">{{ def.text }}</span>
+              </button>
+              <div class="sel-controls">
+                <button class="btn btn-small" (click)="game.removeFromSelection(def.id)"
+                        [disabled]="game.selectionCount(def.id) === 0">−</button>
+                <span class="sel-count">{{ game.selectionCount(def.id) }}/{{ game.cardCount(def.id) }}</span>
+                <button class="btn btn-small" (click)="game.addToSelection(def.id)"
+                        [disabled]="game.selectionCount(def.id) >= game.cardCount(def.id) || game.deckSelectionSize() >= game.deckMax">+</button>
+              </div>
+            </div>
+          }
+          @if (game.collectionCards().length === 0) {
+            <p class="hint">Keine Karten für diese Filter.</p>
+          }
+        </div>
+        <div class="title-buttons">
+          @if (game.deckEditorMode() === 'run') {
+            <button class="btn btn-primary" [disabled]="!game.canConfirmDeck()" (click)="game.confirmDeck()">
+              Run starten ({{ game.deckSelectionSize() }}
+              {{ game.deckSelectionSize() === 1 ? 'Karte' : 'Karten' }})
+            </button>
+            <button class="btn" (click)="game.backToTitle()">Abbrechen</button>
+          }
+        </div>
+      </div>
+
+
+

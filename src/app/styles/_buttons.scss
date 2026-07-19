@@ -1,0 +1,71 @@
+// ---------- Titelbildschirm ----------
+
+.title-screen {
+  justify-content: center;
+  min-height: 80vh;
+  text-align: center;
+}
+
+.logo {
+  font-size: clamp(3rem, 9vw, 5.5rem);
+  background: linear-gradient(180deg, #f0e6cc, #a89468);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 18px rgba(120, 90, 220, 0.45));
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #8a7db0;
+  margin: 0;
+}
+
+.intro {
+  color: #cabfa5;
+  line-height: 1.7;
+}
+
+.title-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.title-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+}
+
+.title-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.title-row-menu {
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(140, 130, 170, 0.22);
+}
+
+.screen-back {
+  align-self: flex-start;
+  margin-bottom: -0.25rem;
+}
+
+.meta-summary {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  color: #b8a888;
+  font-size: 1.05rem;
+}
+

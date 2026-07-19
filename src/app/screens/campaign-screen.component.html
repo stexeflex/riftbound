@@ -1,0 +1,33 @@
+<div class="screen campaign-screen">
+        <button class="btn btn-small screen-back" (click)="game.backToTitle()">← Zurück</button>
+        <h2>Kampagne</h2>
+        <p class="hint">Schließe Stages ab, um die nächste freizuschalten. Abgeschlossene Stages geben weniger Loot.</p>
+        <div class="stage-list">
+          @for (s of game.campaignStages; track s.id; let i = $index) {
+            <div class="stage-row"
+                 [class.locked]="!game.stageUnlocked(s)"
+                 [class.completed]="game.stageCompleted(s)">
+              <span class="stage-icon">
+                @if (!game.stageUnlocked(s)) { 🔒 }
+                @else if (game.stageCompleted(s)) { ✅ }
+                @else { ⚔️ }
+              </span>
+              <div class="stage-info">
+                <div class="stage-name">Stage {{ i + 1 }} – {{ s.name }}</div>
+                <div class="stage-desc">{{ s.desc }}</div>
+                <div class="stage-reward">
+                  {{ s.stations.length }} Stationen ·
+                  Belohnung: 🔮 {{ game.stageCompleted(s) ? s.reward * 0.25 : s.reward }}
+                  @if (s.kern && !game.stageCompleted(s)) { + 🟡 1 Kern }
+                </div>
+              </div>
+              <button class="btn btn-small" [disabled]="!game.stageUnlocked(s)" (click)="game.startStage(s)">
+                {{ game.stageCompleted(s) ? 'Erneut' : 'Start' }}
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+
+
+

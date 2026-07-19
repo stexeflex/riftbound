@@ -1,0 +1,235 @@
+import { computed, inject, signal } from '@angular/core';
+import { AudioService } from '../audio.service';
+import {
+  ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
+  DeckLayout, DungeonArea, EnemyDef, EnemyState, GameMode, MetaState, RunSave, Screen,
+  Station, StationKind, ResonanceDef,
+} from './models';
+import {
+  ARTIFACTS, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, DUNGEON_AREAS, ENEMIES,
+  MAX_CARD_COPIES, META_UPGRADES, REWARD_POOL, STARTER_COLLECTION, STARTER_DECK,
+  RESONANCES,
+} from './data';
+import { legacyLoad, secureLoad, secureRemove, secureSave } from './storage';
+import { BASE_HP, GameMetaService } from './game-meta.service';
+
+/** Kartensammlung und dauerhaft gespeicherte Ausrüstungs-Layouts. */
+export abstract class GameDeckService extends GameMetaService {
+  protected abstract makeCard(def: CardDef): CardInstance;
+  protected abstract saveRun(): void;
+
+  // ================= Deck-Auswahl =================
+
+  /** Karten der Sammlung, sortiert für die Deck-Auswahl. */
+  readonly collectionCards = computed(() => {
+    const owned = this.meta().cards;
+    return this.filterAndSortCards(
+      this.allCards.filter(c => (owned[c.id] ?? 0) > 0),
+      this.deckTypeFilter(),
+      this.deckCategoryFilter(),
+      this.deckSort(),
+      this.deckSearch(),
+    );
+  });
+
+  protected prefillDeckSelection(layoutId = this.meta().activeDeckLayoutId) {
+    const owned = this.meta().cards;
+    const sel: Record<string, number> = {};
+    const layout = this.meta().deckLayouts.find(item => item.id === layoutId);
+    const source = layout?.cardIds ?? [];
+    for (const id of source) {
+      const have = owned[id] ?? 0;
+      const cur = sel[id] ?? 0;
+      if (cur < have && this.sumSelection(sel) < DECK_MAX) sel[id] = cur + 1;
+    }
+    this.deckSelection.set(sel);
+  }
+
+  /** Öffnet die dauerhaft gespeicherten Ausrüstungs-Layouts direkt aus dem Hauptmenü. */
+  openEquipment() {
+    this.deckEditorMode.set('menu');
+    this.activeDeckLayoutId.set(this.meta().activeDeckLayoutId);
+    this.prefillDeckSelection();
+    this.screen.set('deck');
+  }
+
+  selectDeckLayout(id: string) {
+    if (!this.meta().deckLayouts.some(layout => layout.id === id)) return;
+    this.activeDeckLayoutId.set(id);
+    this.meta.set({ ...this.meta(), activeDeckLayoutId: id });
+    this.saveMeta();
+    this.prefillDeckSelection(id);
+  }
+
+  renameDeckLayout(id: string, name: string) {
+    const cleanName = name.trim().slice(0, 24);
+    if (!cleanName) return;
+    const m = this.meta();
+    this.meta.set({
+      ...m,
+      deckLayouts: m.deckLayouts.map(layout =>
+        layout.id === id ? { ...layout, name: cleanName } : layout,
+      ),
+    });
+    this.saveMeta();
+  }
+
+  selectLayoutArtifact(id: string | null) {
+    if (id && !this.ownsArtifact(id)) return;
+    this.updateActiveLayout({ artifactId: id });
+  }
+
+  selectLayoutResonance(id: string | null) {
+    if (id && !this.ownsResonance(id)) return;
+    this.updateActiveLayout({ resonanceId: id });
+
+  }
+
+  private updateActiveLayout(change: Partial<DeckLayout>) {
+    const activeId = this.activeDeckLayoutId();
+    const m = this.meta();
+    this.meta.set({
+      ...m,
+      deckLayouts: m.deckLayouts.map(layout =>
+        layout.id === activeId ? { ...layout, ...change } : layout,
+      ),
+    });
+    this.saveMeta();
+  }
+
+  layoutCardCount(layout: DeckLayout): number {
+
+    return layout.cardIds.length;
+  }
+
+  layoutArtifact(layout: DeckLayout | undefined = this.activeDeckLayout()): ArtifactDef | null {
+    return layout?.artifactId ? ARTIFACTS.find(a => a.id === layout.artifactId) ?? null : null;
+  }
+
+  layoutResonance(layout: DeckLayout | undefined = this.activeDeckLayout()): ResonanceDef | null {
+    return layout?.resonanceId ? RESONANCES.find(r => r.id === layout.resonanceId) ?? null : null;
+  }
+
+  private selectionIds(): string[] {
+    const ids: string[] = [];
+    for (const [id, count] of Object.entries(this.deckSelection())) {
+      for (let i = 0; i < count; i++) ids.push(id);
+    }
+    return ids;
+  }
+
+  /** Jede Änderung wird sofort im aktiven Layout gespeichert. */
+  private saveDeckLayout() {
+    const ids = this.selectionIds();
+    const activeId = this.activeDeckLayoutId();
+    const m = this.meta();
+    this.meta.set({
+      ...m,
+      lastDeck: ids,
+      activeDeckLayoutId: activeId,
+      deckLayouts: m.deckLayouts.map(layout =>
+        layout.id === activeId ? { ...layout, cardIds: ids } : layout,
+      ),
+    });
+    this.saveMeta();
+  }
+
+  ownsResonance(id: string): boolean {
+    return this.meta().resonances.includes(id);
+  }
+
+  canBuyResonance(r: ResonanceDef): boolean {
+    return !this.ownsResonance(r.id) && this.meta().splitter >= r.costSplitter;
+  }
+
+  buyResonance(r: ResonanceDef) {
+    if (!this.canBuyResonance(r)) return;
+    const m = this.meta();
+    this.meta.set({
+      ...m,
+      splitter: m.splitter - r.costSplitter,
+      resonances: [...m.resonances, r.id],
+    });
+    this.saveMeta();
+  }
+
+  private sumSelection(sel: Record<string, number>): number {
+    return Object.values(sel).reduce((a, b) => a + b, 0);
+  }
+
+  selectionCount(id: string): number {
+    return this.deckSelection()[id] ?? 0;
+  }
+
+  addToSelection(id: string) {
+    const sel = { ...this.deckSelection() };
+    const cur = sel[id] ?? 0;
+    if (cur >= this.cardCount(id)) return;
+    if (this.deckSelectionSize() >= DECK_MAX) return;
+    sel[id] = cur + 1;
+    this.deckSelection.set(sel);
+    this.saveDeckLayout();
+  }
+
+  removeFromSelection(id: string) {
+    const sel = { ...this.deckSelection() };
+    const cur = sel[id] ?? 0;
+    if (cur <= 0) return;
+    if (cur === 1) delete sel[id];
+    else sel[id] = cur - 1;
+    this.deckSelection.set(sel);
+    this.saveDeckLayout();
+  }
+
+  canConfirmDeck(): boolean {
+    const size = this.deckSelectionSize();
+    return size >= DECK_MIN && size <= DECK_MAX;
+
+  }
+
+  confirmDeck() {
+    if (!this.canConfirmDeck()) return;
+    const ids = this.selectionIds();
+    const layout = this.activeDeckLayout();
+    this.artifact.set(
+      layout?.artifactId && this.ownsArtifact(layout.artifactId)
+        ? ARTIFACTS.find(a => a.id === layout.artifactId) ?? null
+        : null,
+    );
+    this.resonance.set(
+      layout?.resonanceId && this.ownsResonance(layout.resonanceId)
+        ? RESONANCES.find(r => r.id === layout.resonanceId) ?? null
+
+        : null,
+    );
+
+    const m = this.meta();
+    this.meta.set({ ...m, runs: m.runs + 1, lastDeck: ids });
+    this.saveMeta();
+
+    // Upgrade-Stufen für diesen Run einfrieren
+    this.runUpgrades.set({ ...this.meta().upgrades });
+    this.maxEnergy.set(3 + this.runUpgradeLevel('energiekern'));
+
+    let maxHp = BASE_HP + this.runUpgradeLevel('leben') * 2;
+    if (this.artifact()?.id === 'glasherz') maxHp = Math.round(maxHp * 0.8);
+    this.playerMaxHp.set(maxHp);
+    this.playerHp.set(maxHp);
+
+    this.deck.set(ids.map(id => this.makeCard(CARDS[id])));
+
+    const kinds = this.mode() === 'campaign'
+      ? this.currentStage()!.stations
+      : (this.currentArea() ?? DUNGEON_AREAS[0]).stations;
+    this.stations.set(kinds.map(kind => ({ kind, done: false })));
+    this.stationIndex.set(0);
+    this.runSplitter.set(0);
+
+    this.saveRun();
+    this.screen.set('map');
+  }
+
+}
+
+
+

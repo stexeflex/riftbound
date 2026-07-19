@@ -1,0 +1,49 @@
+<div class="screen map-screen">
+        @if (game.mode() === 'campaign' && game.currentStage(); as stage) {
+          <h2>{{ stage.name }}</h2>
+        } @else if (game.currentArea(); as area) {
+          <h2>{{ area.icon }} {{ area.name }}</h2>
+          <p class="area-map-desc">{{ area.desc }}</p>
+          <div class="difficulty-run-badge">
+            Schwierigkeit {{ game.dungeonDifficulty() }} · {{ game.difficultyName() }} ·
+            🔮 +{{ game.difficultyRewardBonus() }} %
+          </div>
+        }
+        <div class="player-status">
+          <span>❤️ {{ game.playerHp() }}/{{ game.playerMaxHp() }}</span>
+          <span>🃏 {{ game.deck().length }} Karten</span>
+          <span>🔮 {{ game.runSplitter() }} Splitter</span>
+          @if (game.artifact(); as art) {
+            <span>{{ art.icon }} {{ art.name }}</span>
+          }
+
+          @if (game.resonance(); as resonance) {
+            <span>{{ resonance.icon }} {{ resonance.name }}</span>
+          } @else {
+            <span>◇ Keine Resonanz</span>
+          }
+        </div>
+        <div class="map-path">
+          @for (s of game.stations(); track $index) {
+            <div
+              class="map-node"
+              [class.done]="s.done"
+              [class.current]="$index === game.stationIndex()"
+              [class.boss-node]="s.kind === 'boss'"
+            >
+              <span class="node-icon">{{ stationIcon(s.kind) }}</span>
+              <span class="node-label">{{ stationLabel(s.kind) }}</span>
+            </div>
+            @if (!$last) { <div class="map-connector" [class.done]="s.done"></div> }
+          }
+        </div>
+        <div class="title-buttons">
+          <button class="btn btn-primary" (click)="game.enterStation()">
+            {{ stationLabel(game.currentStation().kind) }} betreten
+          </button>
+          <button class="btn" (click)="game.toMenu()">Zum Menü</button>
+        </div>
+      </div>
+
+
+

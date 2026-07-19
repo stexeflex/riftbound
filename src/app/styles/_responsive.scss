@@ -1,0 +1,19 @@
+// ---------- Responsive ----------
+
+@media (max-width: 700px) {
+  .game-shell { padding: 0.4rem; }
+  .screen { padding: 0.8rem; }
+  .audio-controls { top: 0.7rem; right: 0.7rem; }
+  .now-playing { display: none; }
+  .difficulty-heading { justify-content: center; text-align: center; }
+  .difficulty-levels { gap: 0.38rem; }
+  .difficulty-level { width: 32px; height: 32px; }
+  .stage-row { align-items: flex-start; flex-wrap: wrap; }
+
+  .stage-info { min-width: 0; }
+  .area-row > .btn { margin-left: auto; }
+  .card { width: 118px; height: 160px; }
+  .combat-bottom { flex-direction: column; }
+  .pile-info, .turn-controls { flex-direction: row; }
+}
+

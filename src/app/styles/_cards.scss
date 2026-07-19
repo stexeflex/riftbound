@@ -1,0 +1,19 @@
+// ---------- Belohnung / Rast / Ende ----------
+
+.reward-cards {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.reward-card { width: 160px; height: 200px; }
+
+.rest-screen, .end-screen, .reward-screen {
+  justify-content: center;
+  min-height: 70vh;
+  text-align: center;
+
+  p { color: #cabfa5; margin: 0; }
+}
+

@@ -1,0 +1,82 @@
+<div class="screen cards-screen">
+        <button class="btn btn-small screen-back" (click)="game.backToTitle()">← Zurück</button>
+        <h2>Kartenshop</h2>
+        <div class="meta-summary">
+          <span>🔮 {{ game.meta().splitter }} Splitter</span>
+          <span>Max. {{ game.maxCopies }} Kopien pro Karte</span>
+        </div>
+        <div class="card-tools" aria-label="Shopkarten filtern und sortieren">
+          <label class="search-field">
+            <span>Suche</span>
+            <input type="search" placeholder="Name oder Effekt"
+                   [value]="game.shopSearch()"
+                   (input)="game.shopSearch.set($any($event.target).value)" />
+          </label>
+          <label class="sort-field">
+            <span>Sortierung</span>
+            <select [value]="game.shopSort()" (change)="game.shopSort.set($any($event.target).value)">
+              @for (option of cardSortOptions; track option.value) {
+                <option [value]="option.value" [selected]="option.value === game.shopSort()">{{ option.label }}</option>
+              }
+            </select>
+          </label>
+          <div class="filter-bar">
+            <span class="filter-label">Besitz:</span>
+            @for (f of ['alle', 'besitzt', 'fehlt']; track f) {
+              <button class="btn btn-small filter-btn"
+                      [class.filter-active]="game.shopFilter() === f"
+                      (click)="game.shopFilter.set($any(f))">{{ f }}</button>
+            }
+          </div>
+          <div class="filter-bar">
+            <span class="filter-label">Farbe:</span>
+            <button class="btn btn-small filter-btn"
+                    [class.filter-active]="game.shopTypeFilter() === 'alle'"
+                    (click)="game.shopTypeFilter.set('alle')">alle</button>
+            @for (t of cardTypes; track t) {
+              <button class="btn btn-small filter-btn"
+                      [class.filter-active]="game.shopTypeFilter() === t"
+                      (click)="game.shopTypeFilter.set(t)">{{ t }}</button>
+            }
+          </div>
+          <div class="filter-bar">
+            <span class="filter-label">Kategorie:</span>
+            <button class="btn btn-small filter-btn"
+                    [class.filter-active]="game.shopCategoryFilter() === 'alle'"
+                    (click)="game.shopCategoryFilter.set('alle')">alle</button>
+            @for (category of cardCategories; track category) {
+              <button class="btn btn-small filter-btn"
+                      [class.filter-active]="game.shopCategoryFilter() === category"
+                      (click)="game.shopCategoryFilter.set(category)">{{ category }}</button>
+            }
+          </div>
+        </div>
+        <div class="collection-grid">
+          @for (def of game.filteredShopCards(); track def.id) {
+            <div class="collection-item">
+              <div class="card card-detail shop-card" [class]="typeClass(def.type)"
+                   [attr.data-card-tip]="cardDetails(def)"
+                   [attr.aria-description]="cardDetails(def) || null">
+                <span class="card-cost">{{ def.cost }}</span>
+                <span class="card-name">{{ def.name }}</span>
+                <span class="card-type">{{ def.type }} · {{ def.category }}</span>
+                <span class="card-text">{{ def.text }}</span>
+                @if (game.cardCount(def.id) > 0) {
+                  <span class="owned-count">{{ game.cardCount(def.id) }}×</span>
+                }
+              </div>
+              <button class="btn btn-small buy-btn"
+                      [disabled]="!game.canBuyCard(def)"
+                      (click)="game.buyCard(def)">
+                @if (game.cardCount(def.id) >= game.maxCopies) { Max } @else { 🔮 {{ def.price }} }
+              </button>
+            </div>
+          }
+          @if (game.filteredShopCards().length === 0) {
+            <p class="hint">Keine Karten für diesen Filter.</p>
+          }
+        </div>
+      </div>
+
+
+

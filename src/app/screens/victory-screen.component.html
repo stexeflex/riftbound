@@ -1,0 +1,29 @@
+<div class="screen end-screen">
+        @if (game.mode() === 'campaign') {
+          <h2>🏆 Stage abgeschlossen!</h2>
+          <p>{{ game.currentStage()?.name }} liegt hinter dir.</p>
+          @if (!game.endFirstClear()) {
+            <p class="hint">Bereits abgeschlossene Stage – reduzierter Loot.</p>
+          }
+        } @else {
+          <h2>🏆 Gebiet abgeschlossen!</h2>
+          <p>{{ game.currentArea()?.name }} liegt hinter dir.</p>
+          <p class="hint">Voller Gebietsbonus · Schwierigkeit {{ game.dungeonDifficulty() }} · {{ game.difficultyName() }}</p>
+        }
+        <p class="hint">
+          🔮 +{{ game.endSplitter() }} Splitter
+          @if (game.endKerne() > 0) { · 🟡 +{{ game.endKerne() }} Kern }
+        </p>
+        <div class="title-buttons">
+          @if (game.mode() === 'campaign') {
+            <button class="btn btn-primary" (click)="game.goTo('campaign')">Zur Kampagne</button>
+          } @else {
+            <button class="btn btn-primary" (click)="game.openDungeons()">Zu den Gebieten</button>
+          }
+          <button class="btn" (click)="game.goTo('meta')">Upgrades</button>
+          <button class="btn" (click)="game.backToTitle()">Zum Titel</button>
+        </div>
+      </div>
+
+
+

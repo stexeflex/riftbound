@@ -1,0 +1,105 @@
+// ---------- Kampagne ----------
+
+.difficulty-panel {
+  width: min(100%, 680px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(176, 143, 255, 0.36);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(40, 27, 61, 0.96), rgba(20, 15, 31, 0.96));
+}
+
+.difficulty-heading,
+.difficulty-stats,
+.difficulty-levels {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.difficulty-heading {
+  justify-content: space-between;
+  color: #bfb1d6;
+
+  strong { color: #f0dfad; }
+}
+
+.difficulty-level {
+  width: 38px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(160, 140, 195, 0.38);
+  border-radius: 7px;
+  background: #171221;
+  color: #b9accd;
+  cursor: pointer;
+
+  &.selected {
+    border-color: #c9a84c;
+    background: linear-gradient(180deg, #5a3b17, #2d1f10);
+    color: #ffe29a;
+    box-shadow: 0 0 12px rgba(201, 168, 76, 0.32);
+  }
+}
+
+.difficulty-stats {
+  color: #a99db8;
+  font-size: 0.78rem;
+
+  span {
+    padding: 0.2rem 0.48rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.045);
+  }
+}
+
+.difficulty-run-badge {
+  padding: 0.3rem 0.75rem;
+  border: 1px solid rgba(201, 168, 76, 0.45);
+  border-radius: 999px;
+  background: rgba(24, 17, 10, 0.76);
+
+  color: #ead59d;
+  font-size: 0.8rem;
+}
+
+.stage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  width: 100%;
+  max-width: 680px;
+}
+
+.stage-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(140, 110, 60, 0.3);
+  background: #171221;
+
+  &.locked { opacity: 0.45; }
+  &.completed { border-color: rgba(80, 180, 100, 0.4); }
+}
+
+.area-row {
+  min-height: 108px;
+  background-image:
+    linear-gradient(90deg, rgba(15, 11, 23, 0.97) 0%, rgba(15, 11, 23, 0.88) 52%, rgba(15, 11, 23, 0.68) 100%),
+    var(--area-thumb);
+  background-position: center;
+  background-size: cover;
+}
+
+.stage-icon { font-size: 1.6rem; }
+.stage-info { flex: 1; }
+.stage-name { color: #e8dcc0; font-weight: bold; }
+.stage-desc { font-size: 0.85rem; color: #b8ae96; }
+.stage-reward { font-size: 0.8rem; color: #9c92b5; margin-top: 0.2rem; }
+

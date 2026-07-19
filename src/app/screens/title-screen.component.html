@@ -1,0 +1,34 @@
+<div class="screen title-screen">
+        <h1 class="logo">RIFTBOUND</h1>
+        <p class="subtitle">Roguelite-Kartenspiel</p>
+        <p class="intro">
+          Stelle dein Deck zusammen. Wähle mächtige Artefakte.<br />
+          Überliste deine Gegner. Werde stärker – in jedem Run.
+        </p>
+        <div class="title-actions">
+          <div class="title-row title-row-primary">
+          @if (game.hasRunSave()) {
+            <button class="btn btn-primary" (click)="game.continueRun()">▶️ Weiter</button>
+          }
+          <button class="btn btn-primary" (click)="game.openDungeons()">Dungeon-Run</button>
+          <button class="btn btn-primary" (click)="game.goTo('campaign')">Kampagne</button>
+          </div>
+          <div class="title-row title-row-menu">
+            <button class="btn" (click)="game.goTo('meta')">Upgrades</button>
+            <button class="btn" (click)="game.goTo('artifacts')">Artefakte</button>
+            <button class="btn" (click)="game.goTo('resonances')">Resonanzshop</button>
+            <button class="btn" (click)="game.goTo('cards')">Kartenshop</button>
+            <button class="btn" (click)="game.openEquipment()">Ausrüstung</button>
+          </div>
+        </div>
+        <div class="meta-summary">
+          <span>🔮 {{ game.meta().splitter }} Splitter</span>
+          <span>🟡 {{ game.meta().kerne }} Kerne</span>
+          <span>🏆 {{ game.meta().wins }} Siege</span>
+        </div>
+      </div>
+
+
+
+
+

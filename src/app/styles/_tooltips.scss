@@ -1,0 +1,45 @@
+// ---------- Hover-Vorschau im Kampf ----------
+
+.chip-preview {
+  border-color: rgba(120, 220, 140, 0.6);
+  color: #a8f0b0;
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+
+.dmg-preview {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: 190px;
+  text-align: center;
+  pointer-events: none;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #ffd76b;
+  background: rgba(70, 45, 10, 0.75);
+  border: 1px solid rgba(240, 190, 80, 0.55);
+  border-radius: 6px;
+  padding: 0.25rem 0.7rem;
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+
+.dmg-after-block {
+  font-weight: normal;
+  color: #cab98a;
+  font-size: 0.8rem;
+}
+
+@keyframes pulse {
+  from { opacity: 0.75; }
+  to { opacity: 1; }
+}
+
+.intent-real {
+  display: block;
+  font-size: 0.75rem;
+  color: #ff8d7a;
+}
+

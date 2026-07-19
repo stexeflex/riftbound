@@ -1,0 +1,271 @@
+// ---------- Deck-Auswahl & Kartenshop ----------
+
+.deck-layouts {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.deck-layout-tab {
+  min-width: 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid rgba(140, 130, 170, 0.35);
+  background: #171221;
+  color: #c8bdd8;
+  cursor: pointer;
+  font-family: inherit;
+
+  small { color: #817794; }
+
+  &.active {
+    color: #ffd76b;
+    border-color: #c9a84c;
+    box-shadow: 0 0 12px rgba(201, 168, 76, 0.3);
+
+    small { color: #cab98a; }
+  }
+}
+
+
+.layout-rename {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  color: #9c92b5;
+}
+
+.layout-name-input {
+  width: min(260px, 65vw);
+  padding: 0.5rem 0.7rem;
+  border-radius: 7px;
+  border: 1px solid rgba(140, 130, 170, 0.45);
+  background: #110d19;
+  color: #e8dcc0;
+  font: inherit;
+
+  &:focus {
+    outline: 1px solid #c9a84c;
+    border-color: #c9a84c;
+  }
+}
+
+.loadout-section {
+  width: 100%;
+  max-width: 920px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+
+  h3 {
+    margin: 0;
+    color: #c9b88a;
+    font-family: 'Cinzel', 'Georgia', serif;
+  }
+}
+
+.loadout-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+.loadout-choice {
+  min-width: 145px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(140, 130, 170, 0.35);
+  background: #171221;
+  color: #c8bdd8;
+  cursor: pointer;
+  font: inherit;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: rgba(201, 168, 76, 0.7);
+  }
+
+  &.selected {
+    color: #fff0bd;
+    border-color: #c9a84c;
+    background: linear-gradient(180deg, #33251a, #20170f);
+    box-shadow: 0 0 12px rgba(201, 168, 76, 0.25);
+  }
+}
+
+.loadout-icon { font-size: 1.35rem; }
+
+.loadout-note {
+  margin: 0;
+  color: #817794;
+  font-size: 0.82rem;
+}
+
+.equipment-deck-heading {
+  margin: 0.4rem 0 -0.3rem;
+  color: #c9b88a;
+  font-family: 'Cinzel', 'Georgia', serif;
+}
+
+.card-detail:not([data-card-tip='']):hover::after,
+.card-detail:not([data-card-tip='']):focus-visible::after {
+  content: attr(data-card-tip);
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  max-width: min(280px, 82vw);
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(188, 153, 85, 0.7);
+  background: rgba(20, 15, 30, 0.98);
+
+  color: #eee3c8;
+  font-size: 0.75rem;
+  font-weight: normal;
+  line-height: 1.45;
+  text-align: left;
+  text-transform: none;
+  white-space: pre-line;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
+}
+
+.deck-counter {
+  font-size: 1.05rem;
+  color: #d0aa6a;
+  padding: 0.3rem 1rem;
+  border: 1px solid rgba(200, 160, 80, 0.4);
+  border-radius: 20px;
+
+  &.deck-ok {
+    color: #a8f0b0;
+    border-color: rgba(120, 220, 140, 0.5);
+  }
+}
+
+.collection-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  max-width: 1000px;
+}
+
+.collection-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+
+  .card { cursor: pointer; }
+  .card.selected {
+    outline: 2px solid #c9a84c;
+    box-shadow: 0 0 14px rgba(201, 168, 76, 0.45);
+  }
+}
+
+.sel-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sel-count {
+  min-width: 2.6rem;
+  text-align: center;
+  color: #cabfa5;
+  font-size: 0.9rem;
+}
+
+.owned-count {
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  background: radial-gradient(circle at 35% 30%, #58c06a, #1f6b2d 70%);
+  border: 2px solid rgba(140, 240, 160, 0.7);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.buy-btn { min-width: 5.5rem; }
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.card-tools {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.7rem 1rem;
+  width: min(100%, 980px);
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(120, 110, 140, 0.3);
+  border-radius: 10px;
+  background: rgba(23, 18, 33, 0.72);
+}
+
+.search-field,
+
+.sort-field {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #9c92b5;
+  font-size: 0.82rem;
+
+  input,
+  select {
+    min-height: 34px;
+    padding: 0.35rem 0.55rem;
+    border: 1px solid rgba(140, 120, 170, 0.45);
+    border-radius: 6px;
+    background: #110d1a;
+    color: #e8dcc0;
+    font: inherit;
+  }
+
+  input { width: 185px; }
+  select { width: 190px; }
+
+  input:focus,
+  select:focus {
+    outline: 1px solid #c9a84c;
+    border-color: #c9a84c;
+  }
+}
+
+.filter-label { color: #9c92b5; font-size: 0.85rem; margin-left: 0.6rem; }
+
+.filter-btn.filter-active {
+  border-color: #c9a84c;
+  box-shadow: 0 0 10px rgba(201, 168, 76, 0.35);
+  color: #ffd76b;
+}
+

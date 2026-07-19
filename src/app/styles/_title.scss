@@ -1,0 +1,48 @@
+// ---------- Artefakte ----------
+
+.artifact-list {
+  display: flex;
+  gap: 1.2rem;
+
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.artifact-card {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.4rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(160, 130, 70, 0.5);
+  background: linear-gradient(180deg, #201a2e, #130f1d);
+  color: #e8dcc0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: #c9a84c;
+    box-shadow: 0 0 18px rgba(201, 168, 76, 0.3);
+    transform: translateY(-3px);
+  }
+}
+
+.artifact-icon { font-size: 2.6rem; }
+.artifact-name { font-weight: bold; font-size: 1.15rem; color: #ffb86b; }
+.artifact-text { font-size: 0.88rem; color: #b8ae96; line-height: 1.5; }
+
+.empty-resonance {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: 460px;
+  padding: 1.3rem 1.6rem;
+  border: 1px dashed rgba(150, 130, 190, 0.4);
+  border-radius: 10px;
+  color: #a99db8;
+  text-align: center;
+}
+

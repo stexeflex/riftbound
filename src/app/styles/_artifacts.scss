@@ -1,0 +1,53 @@
+// ---------- Map ----------
+
+.player-status {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  color: #cabfa5;
+}
+
+.map-path {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 1.5rem 0;
+}
+
+.map-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: 74px;
+  padding: 0.6rem 0.2rem;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 110, 140, 0.35);
+  background: #171221;
+  opacity: 0.85;
+
+  &.done { opacity: 0.35; }
+
+  &.current {
+    border-color: #c9a84c;
+    box-shadow: 0 0 14px rgba(201, 168, 76, 0.45);
+    opacity: 1;
+    transform: scale(1.08);
+  }
+
+  &.boss-node { border-color: rgba(200, 60, 60, 0.6); }
+}
+
+.node-icon { font-size: 1.5rem; }
+.node-label { font-size: 0.7rem; color: #9c92b5; }
+
+.map-connector {
+  width: 22px;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, #5a4f78 0 4px, transparent 4px 8px);
+  &.done { opacity: 0.3; }
+}
+

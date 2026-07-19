@@ -1,0 +1,21 @@
+<div class="screen reward-screen">
+        <h2>Sieg!</h2>
+        <p class="hint">🔮 +{{ game.rewardSplitter() }} Splitter · Wähle eine Karte oder überspringe.</p>
+        <div class="reward-cards">
+          @for (def of game.rewardCards(); track def.id) {
+            <button class="card card-detail reward-card" [class]="typeClass(def.type)"
+                    [attr.data-card-tip]="cardDetails(def)"
+                    [attr.aria-description]="cardDetails(def) || null"
+                    (click)="game.takeReward(def)">
+              <span class="card-cost">{{ def.cost }}</span>
+              <span class="card-name">{{ def.name }}</span>
+              <span class="card-type">{{ def.type }} · {{ def.category }}</span>
+              <span class="card-text">{{ def.text }}</span>
+            </button>
+          }
+        </div>
+        <button class="btn" (click)="game.takeReward(null)">Überspringen</button>
+      </div>
+
+
+

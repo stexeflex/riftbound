@@ -1,0 +1,38 @@
+// ---------- Buttons ----------
+
+.btn {
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.6rem 1.4rem;
+  border-radius: 8px;
+  border: 1px solid rgba(160, 130, 70, 0.5);
+  background: linear-gradient(180deg, #2a2138, #1a1526);
+  color: #e8dcc0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+
+  &:hover:not(:disabled) {
+    border-color: #c9a84c;
+    box-shadow: 0 0 12px rgba(201, 168, 76, 0.35);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #4a3218, #2e1f0e);
+  border-color: #c9a84c;
+  font-weight: bold;
+}
+
+.btn-small {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+

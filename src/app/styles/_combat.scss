@@ -1,0 +1,86 @@
+// ---------- Karten ----------
+
+.hand {
+  flex: 1;
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  min-height: 175px;
+}
+
+.empty-hand {
+  align-self: center;
+  color: #6c6488;
+  font-style: italic;
+}
+
+
+.card {
+  width: 138px;
+  height: 175px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  position: relative;
+  padding: 1.4rem 0.5rem 0.5rem;
+  border-radius: 10px;
+  border: 2px solid;
+  color: #eee;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+
+  &:hover:not(.unplayable) {
+    transform: translateY(-8px) scale(1.04);
+    z-index: 2;
+  }
+
+  &.unplayable {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  // Shop-Karten sind reine Anzeige – gekauft wird nur über den Preis-Button.
+  &.shop-card {
+    cursor: default;
+  }
+}
+
+.card-cost {
+  position: absolute;
+  top: -10px;
+  left: -8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #fff;
+  background: radial-gradient(circle at 35% 30%, #5aa8f0, #1a4a8a 70%);
+  border: 2px solid rgba(140, 190, 255, 0.7);
+}
+
+.card-name { font-weight: bold; font-size: 0.92rem; text-align: center; }
+.card-type { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.75; }
+
+.card-text {
+  font-size: 0.78rem;
+  text-align: center;
+  line-height: 1.4;
+  margin-top: auto;
+  margin-bottom: auto;
+  padding: 0 0.2rem;
+}
+
+.card-angriff      { background: linear-gradient(180deg, #3d1420, #24090f); border-color: #a03040; }
+.card-verteidigung { background: linear-gradient(180deg, #14283d, #091524); border-color: #3060a0; }
+.card-technik      { background: linear-gradient(180deg, #143d2a, #092416); border-color: #30a060; }
+.card-macht        { background: linear-gradient(180deg, #3d2e14, #241a09); border-color: #a08030; }
+.card-fluch        { background: linear-gradient(180deg, #2a143d, #160924); border-color: #7030a0; }
+
+
+

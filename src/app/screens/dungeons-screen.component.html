@@ -1,0 +1,55 @@
+<div class="screen campaign-screen">
+        <button class="btn btn-small screen-back" (click)="game.backToTitle()">← Zurück</button>
+        <h2>Dungeon-Gebiete</h2>
+        <p class="hint">
+          Jedes Gebiet hat eigene Gegner und Spielmuster – die Gebiete sind nicht schwerer als andere,
+          sondern einzigartig. Wähle einfach das Setting, das dich reizt. Jeder erfolgreiche Run gibt den vollen Gebietsbonus.
+        </p>
+
+        <section class="difficulty-panel" aria-label="Dungeon-Schwierigkeit">
+          <div class="difficulty-heading">
+            <span>Dungeon-Schwierigkeit</span>
+            <strong>{{ game.dungeonDifficulty() }} · {{ game.difficultyName() }}</strong>
+          </div>
+          <div class="difficulty-levels">
+            @for (level of game.difficultyLevels; track level) {
+              <button type="button" class="difficulty-level"
+                      [class.selected]="game.dungeonDifficulty() === level"
+                      [attr.aria-pressed]="game.dungeonDifficulty() === level"
+                      [attr.aria-label]="'Schwierigkeit ' + level"
+                      (click)="game.setDungeonDifficulty(level)">
+                {{ level }}
+              </button>
+            }
+          </div>
+          <div class="difficulty-stats">
+            <span>❤️ Gegner +{{ game.difficultyHpBonus() }} %</span>
+            <span>⚔️ Stärke +{{ game.difficultyPowerBonus() }} %</span>
+            <span>🔮 Belohnungen +{{ game.difficultyRewardBonus() }} %</span>
+          </div>
+        </section>
+        <div class="stage-list area-list">
+          @for (area of game.dungeonAreas; track area.id) {
+            <div class="stage-row area-row"
+                 [style.--area-thumb]="'url(' + area.background + ')'"
+                 [class.locked]="!game.areaUnlocked(area)"
+                 [class.completed]="game.areaCompleted(area)">
+              <span class="stage-icon">{{ game.areaUnlocked(area) ? area.icon : '🔒' }}</span>
+              <div class="stage-info">
+                <div class="stage-name">{{ area.name }}</div>
+                <div class="stage-desc">{{ area.desc }}</div>
+                <div class="stage-reward">
+                  {{ area.stations.length }} Stationen · Jeder Run: 🔮 {{ game.scaledAreaReward(area) }}
+                  @if (area.kern && !game.areaCompleted(area)) { · Erster Sieg: 🟡 1 Kern }
+                </div>
+              </div>
+              <button class="btn btn-small" [disabled]="!game.areaUnlocked(area)" (click)="game.startArea(area)">
+                {{ game.areaCompleted(area) ? 'Erneut' : 'Start' }}
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+
+
+

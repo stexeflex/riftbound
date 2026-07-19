@@ -1,0 +1,182 @@
+<div class="screen combat-screen">
+        <div class="combat-top">
+          <div class="fighter player">
+            <div class="fighter-emoji">🧙‍♂️</div>
+            <div class="fighter-name">Du</div>
+            <div class="hp-bar">
+              <div class="hp-fill" [style.width.%]="barPercent(game.playerHp(), playerHpBarMax())"></div>
+              @if (game.block() > 0) {
+                <div class="hp-shield"
+                     [style.left.%]="barPercent(game.playerHp(), playerHpBarMax())"
+                     [style.width.%]="barPercent(game.block(), playerHpBarMax())"></div>
+              }
+              @if (blockPreview() > 0) {
+                <div class="hp-shield hp-shield-preview"
+                     [style.left.%]="barPercent(game.playerHp() + game.block(), playerHpBarMax())"
+                     [style.width.%]="barPercent(blockPreview(), playerHpBarMax())"></div>
+              }
+              @if (totalIncomingDamage() > 0) {
+                <div class="hp-loss-preview player-loss-preview"
+                     [style.left.%]="projectedPlayerHpPercent()"
+                     [style.width.%]="playerIncomingPercent()"></div>
+              }
+              <span class="hp-text">
+                {{ game.playerHp() }}/{{ game.playerMaxHp() }}
+                @if (totalIncomingDamage() > 0) { → {{ projectedPlayerHp() }} }
+              </span>
+            </div>
+            <div class="status-row">
+              @if (game.block() > 0) {
+                <span class="chip chip-block tip" [attr.data-tip]="tips.schild">🛡️ {{ game.block() }}</span>
+              }
+              @if (game.strength() > 0) {
+                <span class="chip chip-str tip" [attr.data-tip]="tips.staerke">💪 +{{ game.strength() }}</span>
+              }
+              @if (game.playerWeak() > 0) {
+                <span class="chip chip-weak tip" [attr.data-tip]="tips.schwaeche">😵 {{ game.playerWeak() }}</span>
+              }
+              @if (game.artifact(); as art) {
+                <span class="chip tip" [attr.data-tip]="art.name + ': ' + art.text">{{ art.icon }}</span>
+              }
+              @if (blockPreview() > 0) {
+                <span class="chip chip-preview">🛡️ +{{ blockPreview() }}</span>
+              }
+            </div>
+          </div>
+
+          <div class="vs">⚡</div>
+
+          @for (e of game.enemies(); track e.uid) {
+            <button type="button" class="fighter enemy"
+                    [class.dead]="e.hp <= 0"
+
+                    [class.targeted]="game.currentTarget()?.uid === e.uid"
+                    [disabled]="e.hp <= 0"
+                    [attr.aria-pressed]="game.currentTarget()?.uid === e.uid"
+                    [attr.aria-label]="e.def.name + ' als Ziel wählen'"
+                    (click)="game.selectEnemy(e)">
+              @if (game.currentTarget()?.uid === e.uid && e.hp > 0) {
+                <span class="target-badge">🎯 Ziel</span>
+              }
+              <div class="intent tip" [attr.data-tip]="enemyIntentDetails(e)">
+                {{ intentText(e) }}
+                @if (incomingDamage(e) > 0 && e.hp > 0) {
+                  <span class="intent-real">→ du verlierst {{ incomingDamage(e) }} ❤️</span>
+                }
+              </div>
+              @if (damagePreview(e); as prev) {
+                <div class="dmg-preview">
+                  ⚔️ {{ prev.total }} Schaden
+                  @if (prev.afterBlock < prev.total) {
+                    <span class="dmg-after-block">({{ prev.afterBlock }} nach Schild)</span>
+                  }
+                </div>
+              }
+              <div class="fighter-emoji">{{ e.def.emoji }}</div>
+              <div class="fighter-name">{{ e.def.name }}</div>
+              <div class="hp-bar">
+                <div class="hp-fill enemy-fill" [style.width.%]="barPercent(e.hp, enemyHpBarMax(e))"></div>
+                @if (e.block > 0) {
+                  <div class="hp-shield enemy-shield"
+                       [style.left.%]="barPercent(e.hp, enemyHpBarMax(e))"
+                       [style.width.%]="barPercent(e.block, enemyHpBarMax(e))"></div>
+                }
+                @if (damagePreview(e); as hpPreview) {
+                  @if (hpPreview.afterBlock > 0) {
+                    <div class="hp-loss-preview enemy-loss-preview"
+                         [style.left.%]="projectedEnemyHpPercent(e)"
+                         [style.width.%]="enemyIncomingPercent(e)"></div>
+                  }
+                  <span class="hp-text">{{ e.hp }}/{{ e.maxHp }} → {{ projectedEnemyHp(e) }}</span>
+                } @else {
+                  <span class="hp-text">{{ e.hp }}/{{ e.maxHp }}</span>
+                }
+              </div>
+              <div class="status-row">
+                @if (e.block > 0) {
+                  <span class="chip chip-block tip" [attr.data-tip]="tips.schild">🛡️ {{ e.block }}</span>
+                }
+                @if (e.strength > 0) {
+                  <span class="chip chip-str tip" [attr.data-tip]="tips.staerke">💪 +{{ e.strength }}</span>
+
+                }
+                @if (e.weak > 0) {
+                  <span class="chip chip-weak tip" [attr.data-tip]="tips.schwaeche">😵 {{ e.weak }}</span>
+                }
+                @if (e.vulnerable > 0) {
+                  <span class="chip chip-vuln tip" [attr.data-tip]="tips.verwundbar">💔 {{ e.vulnerable }}</span>
+                }
+              </div>
+              @if (e.def.passive) { <div class="passive">{{ e.def.passive }}</div> }
+            </button>
+          }
+        </div>
+
+        <div class="combat-log">
+          @for (entry of game.log(); track $index) {
+            <div class="log-entry">{{ entry }}</div>
+          }
+        </div>
+
+        <div class="resonance-bar">
+          @if (game.resonance(); as resonance) {
+            <span class="resonance-label tip" [attr.data-tip]="resonance.text">
+              {{ resonance.icon }} {{ resonance.name }} ℹ️
+            </span>
+            <span class="resonance-effect">{{ resonance.text }}</span>
+            @for (cat of ['Kraft', 'Schutz', 'Kontrolle', 'Chaos']; track cat) {
+              <span class="resonance-dot" [class.active]="game.playedCategories().includes($any(cat))">
+                {{ cat }}
+              </span>
+            }
+            @if (game.resonanceCount() > 0) {
+              <span class="resonance-active">✨ {{ game.resonanceCount() }}× ausgelöst!</span>
+            }
+          } @else {
+            <span class="resonance-label resonance-disabled">◇ Keine Resonanz gewählt</span>
+          }
+        </div>
+
+        <div class="combat-bottom">
+          <div class="pile-info">
+            <div class="energy-orb tip" [attr.data-tip]="tips.energie">{{ game.energy() }}/{{ game.maxEnergy() }}</div>
+            <div class="pile tip" [attr.data-tip]="tips.zieh">🂠 {{ game.drawPile().length }}</div>
+          </div>
+
+          <div class="hand">
+            @for (card of game.hand(); track card.uid) {
+              <button
+                class="card card-detail"
+                data-card-play
+                [class]="typeClass(card.def.type)"
+                [class.unplayable]="!game.canPlay(card)"
+                [attr.data-card-tip]="cardDetails(card.def)"
+
+                [attr.aria-description]="cardDetails(card.def) || null"
+                (click)="play(card)"
+                (mouseenter)="hoverCard(card)"
+                (mouseleave)="hoverCard(null)"
+                (focus)="hoverCard(card)"
+                (blur)="hoverCard(null)"
+              >
+                <span class="card-cost">{{ game.costOf(card) }}</span>
+                <span class="card-name">{{ card.def.name }}</span>
+                <span class="card-type">{{ card.def.type }} · {{ card.def.category }}</span>
+                <span class="card-text">{{ card.def.text }}</span>
+              </button>
+            }
+            @if (game.hand().length === 0) {
+              <div class="empty-hand">Keine Karten auf der Hand</div>
+            }
+          </div>
+
+          <div class="turn-controls">
+            <div class="pile tip" [attr.data-tip]="tips.ablage">🗑️ {{ game.discardPile().length }}</div>
+            <button class="btn btn-primary" (click)="game.endTurn()">Zug beenden</button>
+            <button class="btn btn-small" (click)="game.toMenu()">Menü</button>
+          </div>
+        </div>
+      </div>
+
+
+
