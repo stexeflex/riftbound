@@ -3,6 +3,12 @@ import { CardType, Screen } from './game/models';
 
 const MUSIC_KEY = 'riftbound-music-enabled';
 const SFX_KEY = 'riftbound-sfx-enabled';
+const MUSIC_VOLUME_KEY = 'riftbound-music-volume';
+const SFX_VOLUME_KEY = 'riftbound-sfx-volume';
+
+// Bei Standard-Lautstärke (60 %) entspricht die Musik dem bisherigen Pegel von 0.26.
+const DEFAULT_VOLUME = 0.6;
+const MUSIC_VOLUME_SCALE = 0.26 / DEFAULT_VOLUME;
 
 const MENU_TRACKS = [
   { label: 'Menu Theme 1', src: 'audio/menu/menu-01-theme-1.mp3' },
@@ -32,10 +38,34 @@ function saveSetting(key: string, enabled: boolean) {
   }
 }
 
+function loadVolume(key: string): number {
+  if (typeof localStorage === 'undefined') return DEFAULT_VOLUME;
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored === null) return DEFAULT_VOLUME;
+    const value = Number(stored);
+    if (!Number.isFinite(value)) return DEFAULT_VOLUME;
+    return Math.min(1, Math.max(0, value));
+  } catch {
+    return DEFAULT_VOLUME;
+  }
+}
+
+function saveVolume(key: string, volume: number) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(key, String(volume));
+  } catch {
+    // Audio bleibt auch ohne localStorage nutzbar.
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class AudioService {
   readonly musicEnabled = signal(loadSetting(MUSIC_KEY));
   readonly sfxEnabled = signal(loadSetting(SFX_KEY));
+  readonly musicVolume = signal(loadVolume(MUSIC_VOLUME_KEY));
+  readonly sfxVolume = signal(loadVolume(SFX_VOLUME_KEY));
   readonly menuActive = signal(false);
   readonly musicPlaying = signal(false);
   readonly currentTrackIndex = signal(0);
@@ -49,7 +79,7 @@ export class AudioService {
     if (typeof Audio === 'undefined') return;
     this.musicPlayer = new Audio();
     this.musicPlayer.preload = 'metadata';
-    this.musicPlayer.volume = 0.26;
+    this.musicPlayer.volume = this.musicVolume() * MUSIC_VOLUME_SCALE;
     this.musicPlayer.addEventListener('playing', () => this.musicPlaying.set(true));
     this.musicPlayer.addEventListener('pause', () => this.musicPlaying.set(false));
     this.musicPlayer.addEventListener('ended', () => this.advanceTrack());
@@ -92,6 +122,33 @@ export class AudioService {
     if (enabled) this.unlock();
   }
 
+  setMusicVolume(volume: number) {
+    const clamped = Math.min(1, Math.max(0, Number.isFinite(volume) ? volume : DEFAULT_VOLUME));
+    this.musicVolume.set(clamped);
+    saveVolume(MUSIC_VOLUME_KEY, clamped);
+    if (this.musicPlayer) this.musicPlayer.volume = clamped * MUSIC_VOLUME_SCALE;
+    this.unlock();
+  }
+
+  setSfxVolume(volume: number) {
+    const clamped = Math.min(1, Math.max(0, Number.isFinite(volume) ? volume : DEFAULT_VOLUME));
+    this.sfxVolume.set(clamped);
+    saveVolume(SFX_VOLUME_KEY, clamped);
+    this.unlock();
+  }
+
+  /** Faktor für alle Soundeffekte relativ zur Standard-Lautstärke. */
+  private sfxGainFactor(): number {
+    return this.sfxVolume() / DEFAULT_VOLUME;
+  }
+
+  /** Wechselt manuell zum nächsten Menü-Theme. */
+  nextTrack() {
+    this.loadTrack((this.currentTrackIndex() + 1) % MENU_TRACKS.length);
+    this.unlock();
+    if (this.menuActive() && this.musicEnabled()) void this.playMenuMusic();
+  }
+
   playEnemyHit(damage: number, blocked: boolean) {
     this.playImpact('enemy', damage, blocked);
   }
@@ -105,7 +162,8 @@ export class AudioService {
     if (!context) return;
     const now = context.currentTime;
     const gain = context.createGain();
-    gain.gain.setValueAtTime(0.035, now);
+    // 1,5-fache Grundlautstärke gegenüber der ursprünglichen Version (0.035).
+    gain.gain.setValueAtTime(0.0525 * this.sfxGainFactor(), now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
     gain.connect(context.destination);
 
@@ -193,7 +251,7 @@ export class AudioService {
     volume: number,
   ) {
     const gain = context.createGain();
-    gain.gain.setValueAtTime(volume, start);
+    gain.gain.setValueAtTime(volume * this.sfxGainFactor(), start);
     gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
     gain.connect(context.destination);
     const oscillator = context.createOscillator();
@@ -223,7 +281,7 @@ export class AudioService {
     filter.type = filterType;
     filter.frequency.setValueAtTime(frequency, start);
     const gain = context.createGain();
-    gain.gain.setValueAtTime(volume, start);
+    gain.gain.setValueAtTime(volume * this.sfxGainFactor(), start);
     gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
     source.connect(filter);
     filter.connect(gain);
@@ -239,7 +297,7 @@ export class AudioService {
     const now = context.currentTime;
     const weight = Math.min(1, Math.max(0.25, damage / 24));
     const master = context.createGain();
-    master.gain.setValueAtTime((blocked ? 0.055 : 0.075) + weight * 0.05, now);
+    master.gain.setValueAtTime(((blocked ? 0.055 : 0.075) + weight * 0.05) * this.sfxGainFactor(), now);
     master.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
     master.connect(context.destination);
 

@@ -13,26 +13,46 @@
       <span class="now-playing" aria-live="polite">
         {{ audio.musicPlaying() ? '♪ ' + audio.currentTrackLabel() : 'Tippen für Musik' }}
       </span>
+      <button type="button" class="audio-btn"
+              aria-label="Nächstes Menü-Theme"
+              title="Nächstes Menü-Theme"
+              (click)="audio.nextTrack()">
+        <span class="audio-symbol" aria-hidden="true">⏭️</span>
+      </button>
     }
-    <button type="button" class="audio-btn"
-            [class.audio-active]="audio.musicEnabled()"
-            [class.audio-muted]="!audio.musicEnabled()"
-            [attr.aria-pressed]="audio.musicEnabled()"
-            [attr.aria-label]="audio.musicEnabled() ? 'Menümusik ausschalten' : 'Menümusik einschalten'"
-            [attr.title]="audio.musicEnabled() ? 'Menümusik ausschalten' : 'Menümusik einschalten'"
-            (click)="audio.toggleMusic()">
-      <span class="audio-symbol" aria-hidden="true">🎵</span>
-      @if (!audio.musicEnabled()) { <span class="mute-slash" aria-hidden="true"></span> }
-    </button>
-    <button type="button" class="audio-btn"
-            [class.audio-active]="audio.sfxEnabled()"
-            [class.audio-muted]="!audio.sfxEnabled()"
-            [attr.aria-pressed]="audio.sfxEnabled()"
-            [attr.aria-label]="audio.sfxEnabled() ? 'Kampfsounds ausschalten' : 'Kampfsounds einschalten'"
-            [attr.title]="audio.sfxEnabled() ? 'Kampfsounds ausschalten' : 'Kampfsounds einschalten'"
-            (click)="audio.toggleSfx()">
-      {{ audio.sfxEnabled() ? '🔊' : '🔇' }}
-    </button>
+    <div class="audio-group">
+      <button type="button" class="audio-btn"
+              [class.audio-active]="audio.musicEnabled()"
+              [class.audio-muted]="!audio.musicEnabled()"
+              [attr.aria-pressed]="audio.musicEnabled()"
+              [attr.aria-label]="audio.musicEnabled() ? 'Menümusik ausschalten' : 'Menümusik einschalten'"
+              [attr.title]="audio.musicEnabled() ? 'Menümusik ausschalten' : 'Menümusik einschalten'"
+              (click)="audio.toggleMusic()">
+        <span class="audio-symbol" aria-hidden="true">🎵</span>
+        @if (!audio.musicEnabled()) { <span class="mute-slash" aria-hidden="true"></span> }
+      </button>
+      <input type="range" class="volume-slider" min="0" max="100" step="5"
+             aria-label="Musik-Lautstärke"
+             title="Musik-Lautstärke"
+             [value]="audio.musicVolume() * 100"
+             (input)="audio.setMusicVolume($any($event.target).valueAsNumber / 100)" />
+    </div>
+    <div class="audio-group">
+      <button type="button" class="audio-btn"
+              [class.audio-active]="audio.sfxEnabled()"
+              [class.audio-muted]="!audio.sfxEnabled()"
+              [attr.aria-pressed]="audio.sfxEnabled()"
+              [attr.aria-label]="audio.sfxEnabled() ? 'Kampfsounds ausschalten' : 'Kampfsounds einschalten'"
+              [attr.title]="audio.sfxEnabled() ? 'Kampfsounds ausschalten' : 'Kampfsounds einschalten'"
+              (click)="audio.toggleSfx()">
+        {{ audio.sfxEnabled() ? '🔊' : '🔇' }}
+      </button>
+      <input type="range" class="volume-slider" min="0" max="100" step="5"
+             aria-label="Sound-Lautstärke"
+             title="Sound-Lautstärke"
+             [value]="audio.sfxVolume() * 100"
+             (input)="audio.setSfxVolume($any($event.target).valueAsNumber / 100)" />
+    </div>
   </div>
   @switch (game.screen()) {
 
@@ -74,7 +94,10 @@
       <div class="screen campaign-screen">
         <button class="btn btn-small screen-back" (click)="game.backToTitle()">← Zurück</button>
         <h2>Dungeon-Gebiete</h2>
-        <p class="hint">Jedes Gebiet hat eigene Gegner und Spielmuster. Jeder erfolgreiche Run gibt den vollen Gebietsbonus.</p>
+        <p class="hint">
+          Jedes Gebiet hat eigene Gegner und Spielmuster – die Gebiete sind nicht schwerer als andere,
+          sondern einzigartig. Wähle einfach das Setting, das dich reizt. Jeder erfolgreiche Run gibt den vollen Gebietsbonus.
+        </p>
         <section class="difficulty-panel" aria-label="Dungeon-Schwierigkeit">
           <div class="difficulty-heading">
             <span>Dungeon-Schwierigkeit</span>
@@ -98,14 +121,14 @@
           </div>
         </section>
         <div class="stage-list area-list">
-          @for (area of game.dungeonAreas; track area.id; let i = $index) {
+          @for (area of game.dungeonAreas; track area.id) {
             <div class="stage-row area-row"
                  [style.--area-thumb]="'url(' + area.background + ')'"
                  [class.locked]="!game.areaUnlocked(area)"
                  [class.completed]="game.areaCompleted(area)">
               <span class="stage-icon">{{ game.areaUnlocked(area) ? area.icon : '🔒' }}</span>
               <div class="stage-info">
-                <div class="stage-name">Gebiet {{ i + 1 }} – {{ area.name }}</div>
+                <div class="stage-name">{{ area.name }}</div>
                 <div class="stage-desc">{{ area.desc }}</div>
                 <div class="stage-reward">
                   {{ area.stations.length }} Stationen · Jeder Run: 🔮 {{ game.scaledAreaReward(area) }}
@@ -500,7 +523,7 @@
           <span>🔮 {{ game.meta().splitter }} Splitter</span>
         </div>
         <p class="hint">
-          Kaufe Resonanzen dauerhaft und wähle vor jedem Run eine davon aus. Zu Beginn besitzt du keine Resonanz.
+          Kaufe Resonanzen dauerhaft und wähle vor jedem Run eine davon aus.
         </p>
         <div class="upgrade-list">
           @for (r of game.allResonances; track r.id) {

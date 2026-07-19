@@ -170,6 +170,7 @@ export interface CombatSave {
   firstAttackDone: boolean;
   attackPlayedThisTurn: boolean;
   cardsPlayedThisTurn: number;
+  sanduhrUsed?: boolean;
   targetIndex?: number;
 }
 

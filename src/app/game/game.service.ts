@@ -135,6 +135,7 @@ export class GameService {
   readonly playedCategories = signal<Category[]>([]);
   readonly resonanceCount = signal(0);
   readonly firstAttackDone = signal(false);
+  readonly sanduhrUsedThisTurn = signal(false);
   readonly cardsPlayedThisTurn = signal(0);
   readonly attackPlayedThisTurn = signal(false);
   readonly log = signal<string[]>([]);
@@ -568,6 +569,7 @@ export class GameService {
       firstAttackDone: this.firstAttackDone(),
       attackPlayedThisTurn: this.attackPlayedThisTurn(),
       cardsPlayedThisTurn: this.cardsPlayedThisTurn(),
+      sanduhrUsed: this.sanduhrUsedThisTurn(),
       targetIndex: Math.max(0, this.enemies().findIndex(e => e.uid === this.currentTarget()?.uid)),
     };
   }
@@ -676,6 +678,7 @@ export class GameService {
     this.firstAttackDone.set(c.firstAttackDone);
     this.attackPlayedThisTurn.set(c.attackPlayedThisTurn);
     this.cardsPlayedThisTurn.set(c.cardsPlayedThisTurn);
+    this.sanduhrUsedThisTurn.set(c.sanduhrUsed ?? false);
     this.log.set([]);
     this.screen.set('combat');
   }
@@ -717,15 +720,15 @@ export class GameService {
   }
 
   difficultyHpMultiplier(level = this.dungeonDifficulty()): number {
-    return 1 + (clampDifficulty(level) - 1) * 0.1;
+    return 1 + (clampDifficulty(level) - 1) * 0.45;
   }
 
   difficultyPowerMultiplier(level = this.dungeonDifficulty()): number {
-    return 1 + (clampDifficulty(level) - 1) * 0.07;
+    return 1 + (clampDifficulty(level) - 1) * 0.3;
   }
 
   difficultyRewardMultiplier(level = this.dungeonDifficulty()): number {
-    return 1 + (clampDifficulty(level) - 1) * 0.1;
+    return 1 + (clampDifficulty(level) - 1) * 0.45;
   }
 
   difficultyHpBonus(level = this.dungeonDifficulty()): number {
@@ -744,10 +747,9 @@ export class GameService {
     return Math.round(area.reward * this.difficultyRewardMultiplier());
   }
 
-  areaUnlocked(area: DungeonArea): boolean {
-    const idx = DUNGEON_AREAS.indexOf(area);
-    if (idx <= 0) return true;
-    return this.meta().completedAreas.includes(DUNGEON_AREAS[idx - 1].id);
+  // Alle Gebiete sind von Anfang an frei wählbar.
+  areaUnlocked(_area: DungeonArea): boolean {
+    return true;
   }
 
   areaCompleted(area: DungeonArea): boolean {
@@ -899,7 +901,7 @@ export class GameService {
     const move = enemy.intent;
     if (this.mode() !== 'dungeon') return move.value;
     if (move.kind === 'buff') {
-      return move.value + Math.floor((this.dungeonDifficulty() - 1) / 3);
+      return move.value + Math.floor((this.dungeonDifficulty() - 1) * 1.5);
     }
     return Math.max(1, Math.round(move.value * this.difficultyPowerMultiplier()));
   }
@@ -977,6 +979,7 @@ export class GameService {
     this.playedCategories.set([]);
     this.resonanceCount.set(0);
     this.cardsPlayedThisTurn.set(0);
+    this.sanduhrUsedThisTurn.set(false);
     this.attackPlayedThisTurn.set(false);
     let draw = 5;
     if (first) {
@@ -1012,8 +1015,8 @@ export class GameService {
     let cost = card.def.cost;
     if (
       this.artifact()?.id === 'sanduhr' &&
-      this.cardsPlayedThisTurn() === 0 &&
-      cost > 0
+      !this.sanduhrUsedThisTurn() &&
+      cost >= 3
     ) {
       cost -= 1;
     }
@@ -1061,7 +1064,7 @@ export class GameService {
       let dmg = def.damage + this.strength();
       if (!firstDone) {
         dmg += this.runUpgradeLevel('klingenmeisterschaft') * 2;
-        if (this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) dmg += 6;
+        if (this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) dmg *= 2;
         firstDone = true;
       }
       if (this.artifact()?.id === 'glasherz') dmg = Math.round(dmg * 1.2);
@@ -1083,6 +1086,10 @@ export class GameService {
     const def = card.def;
     this.audio.playCard(def.type);
     this.energy.set(this.energy() - this.costOf(card));
+    if (this.artifact()?.id === 'sanduhr' && !this.sanduhrUsedThisTurn() && def.cost >= 3) {
+      this.sanduhrUsedThisTurn.set(true);
+      this.addLog('Gebrochene Sanduhr: 1 Energie gespart.');
+    }
     this.cardsPlayedThisTurn.set(this.cardsPlayedThisTurn() + 1);
     this.hand.set(this.hand().filter(c => c.uid !== card.uid));
     this.discardPile.set([...this.discardPile(), card]);
@@ -1169,8 +1176,8 @@ export class GameService {
         this.drawCards(1);
         this.addLog(`✨ ${resonance.name}: Du ziehst 1 Karte.`);
       } else if (resonance.effect === 'block') {
-        this.gainBlock(5 + echoBonus);
-        this.addLog(`✨ ${resonance.name}: Du erhältst ${5 + echoBonus} Schild.`);
+        this.gainBlock(7 + echoBonus);
+        this.addLog(`✨ ${resonance.name}: Du erhältst ${7 + echoBonus} Schild.`);
       } else if (resonance.effect === 'damage') {
         for (const e of this.aliveEnemies()) this.dealDamage(e, 6 + echoBonus, true);
         this.addLog(`✨ ${resonance.name}: ${6 + echoBonus} Schaden an allen Gegnern.`);
@@ -1182,9 +1189,13 @@ export class GameService {
         this.energy.set(this.energy() + 1);
         this.addLog(`✨ ${resonance.name}: +1 Energie.`);
       } else if (resonance.effect === 'echo') {
-        this.drawCards(1);
         this.gainBlock(3 + echoBonus);
-        this.addLog(`✨ ${resonance.name}: 1 Karte und ${3 + echoBonus} Schild.`);
+        if (this.aliveEnemies().length >= 2) {
+          this.drawCards(1);
+          this.addLog(`✨ ${resonance.name}: ${3 + echoBonus} Schild und 1 Karte (2+ Gegner).`);
+        } else {
+          this.addLog(`✨ ${resonance.name}: ${3 + echoBonus} Schild.`);
+        }
       } else if (resonance.effect === 'storm') {
         for (let hit = 0; hit < 3 && this.aliveEnemies().length > 0; hit++) {
           this.dealDamage(pick(this.aliveEnemies()), 3 + echoBonus, true);
@@ -1213,8 +1224,8 @@ export class GameService {
           this.addLog(`Klingenmeisterschaft: +${bonus} Schaden.`);
         }
         if (this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) {
-          dmg += 6;
-          this.addLog('Jägerauge: +6 Schaden gegen ein unverletztes Ziel.');
+          dmg *= 2;
+          this.addLog('Jägerauge: Doppelter Schaden gegen ein unverletztes Ziel.');
         }
         this.firstAttackDone.set(true);
       }
@@ -1332,8 +1343,8 @@ export class GameService {
     this.rewardSplitter.set(splitter);
 
     if (this.artifact()?.id === 'risskelch') {
-      this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + 4));
-      this.addLog('Risskelch: Du heilst 4 Leben.');
+      this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + 8));
+      this.addLog('Risskelch: Du heilst 8 Leben.');
     }
 
     // Zufällige, unterschiedliche Belohnungskarten

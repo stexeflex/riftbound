@@ -632,7 +632,7 @@ export const ARTIFACTS: ArtifactDef[] = [
   },
   {
     id: 'sanduhr', name: 'Gebrochene Sanduhr', icon: '⏳', costSplitter: 150,
-    text: 'Die erste Karte jedes Zuges kostet 1 Energie weniger.',
+    text: 'Die erste Karte jedes Zuges mit Kosten von 3 oder mehr kostet 1 Energie weniger.',
   },
   {
     id: 'vampirfang', name: 'Vampirfang', icon: '🦇', costSplitter: 150,
@@ -668,11 +668,11 @@ export const ARTIFACTS: ArtifactDef[] = [
   },
   {
     id: 'jaegerauge', name: 'Jägerauge', icon: '🎯', costSplitter: 220,
-    text: 'Der erste Angriff jedes Kampfes verursacht gegen ein Ziel mit vollen Leben +6 Schaden.',
+    text: 'Der erste Angriff jedes Kampfes verursacht gegen ein Ziel mit vollen Leben doppelten Schaden.',
   },
   {
     id: 'risskelch', name: 'Risskelch', icon: '🏺', costKerne: 1,
-    text: 'Heile nach jedem gewonnenen Kampf 4 Leben.',
+    text: 'Heile nach jedem gewonnenen Kampf 8 Leben.',
   },
   {
     id: 'beutesack', name: 'Dimensionsbeutel', icon: '🎒', costSplitter: 240,
@@ -689,7 +689,7 @@ export const RESONANCES: ResonanceDef[] = [
   },
   {
     id: 'aegis-klang', name: 'Aegis-Klang', icon: '🛡️', costSplitter: 100,
-    text: 'Nach 3 verschiedenen Kategorien: Erhalte 5 Schild.', effect: 'block',
+    text: 'Nach 3 verschiedenen Kategorien: Erhalte 7 Schild.', effect: 'block',
   },
   {
     id: 'rissblitz', name: 'Rissblitz', icon: '⚡', costSplitter: 120,
@@ -706,7 +706,7 @@ export const RESONANCES: ResonanceDef[] = [
   },
   {
     id: 'aegis-echo', name: 'Aegis-Echo', icon: '🫧', costSplitter: 170,
-    text: 'Nach 3 verschiedenen Kategorien: Ziehe 1 Karte und erhalte 3 Schild.', effect: 'echo',
+    text: 'Nach 3 verschiedenen Kategorien: Erhalte 3 Schild. Bei 2 oder mehr Gegnern ziehst du zusätzlich 1 Karte.', effect: 'echo',
   },
   {
     id: 'sturmchor', name: 'Sturmchor', icon: '🌩️', costSplitter: 190,
