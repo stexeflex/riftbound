@@ -47,8 +47,8 @@ export class App {
     { value: 'energy-desc', label: 'Energie absteigend' },
     { value: 'price-asc', label: 'Preis aufsteigend' },
     { value: 'price-desc', label: 'Preis absteigend' },
-    { value: 'type', label: 'Kartentyp' },
-    { value: 'category', label: 'Farbe / Kategorie' },
+    { value: 'type', label: 'Farbe' },
+    { value: 'category', label: 'Kategorie' },
   ];
 
   // ---------- Tooltip-Texte ----------

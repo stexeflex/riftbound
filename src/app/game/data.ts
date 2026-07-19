@@ -702,7 +702,7 @@ export const RESONANCES: ResonanceDef[] = [
   },
   {
     id: 'zeitbruch', name: 'Zeitbruch', icon: '⏱️', costSplitter: 160,
-    text: 'Nach 3 verschiedenen Kategorien: Erhalte 1 Energie.', effect: 'energy',
+    text: 'Nach 3 verschiedenen Kategorien: Erhalte 1 Energie, doch die nächste gespielte Karte beendet deinen Zug sofort.', effect: 'energy',
   },
   {
     id: 'aegis-echo', name: 'Aegis-Echo', icon: '🫧', costSplitter: 170,

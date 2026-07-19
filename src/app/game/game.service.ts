@@ -96,7 +96,7 @@ export class GameService {
   readonly shopFilter = signal<'alle' | 'besitzt' | 'fehlt'>('alle');
   readonly shopTypeFilter = signal<string>('alle');
   readonly shopCategoryFilter = signal<string>('alle');
-  readonly shopSort = signal<CardSort>('name-asc');
+  readonly shopSort = signal<CardSort>('type');
   readonly shopSearch = signal('');
   readonly deckTypeFilter = signal<string>('alle');
   readonly deckCategoryFilter = signal<string>('alle');
@@ -136,6 +136,7 @@ export class GameService {
   readonly resonanceCount = signal(0);
   readonly firstAttackDone = signal(false);
   readonly sanduhrUsedThisTurn = signal(false);
+  readonly zeitbruchArmed = signal(false);
   readonly cardsPlayedThisTurn = signal(0);
   readonly attackPlayedThisTurn = signal(false);
   readonly log = signal<string[]>([]);
@@ -570,6 +571,7 @@ export class GameService {
       attackPlayedThisTurn: this.attackPlayedThisTurn(),
       cardsPlayedThisTurn: this.cardsPlayedThisTurn(),
       sanduhrUsed: this.sanduhrUsedThisTurn(),
+      zeitbruchArmed: this.zeitbruchArmed(),
       targetIndex: Math.max(0, this.enemies().findIndex(e => e.uid === this.currentTarget()?.uid)),
     };
   }
@@ -679,6 +681,7 @@ export class GameService {
     this.attackPlayedThisTurn.set(c.attackPlayedThisTurn);
     this.cardsPlayedThisTurn.set(c.cardsPlayedThisTurn);
     this.sanduhrUsedThisTurn.set(c.sanduhrUsed ?? false);
+    this.zeitbruchArmed.set(c.zeitbruchArmed ?? false);
     this.log.set([]);
     this.screen.set('combat');
   }
@@ -980,6 +983,7 @@ export class GameService {
     this.resonanceCount.set(0);
     this.cardsPlayedThisTurn.set(0);
     this.sanduhrUsedThisTurn.set(false);
+    this.zeitbruchArmed.set(false);
     this.attackPlayedThisTurn.set(false);
     let draw = 5;
     if (first) {
@@ -1083,6 +1087,8 @@ export class GameService {
   playCard(card: CardInstance) {
     if (!this.canPlay(card)) return;
     this.hoveredCard.set(null);
+    // Wurde Zeitbruch vor dieser Karte ausgelöst, beendet diese Karte den Zug.
+    const zeitbruchEndsTurn = this.zeitbruchArmed();
     const def = card.def;
     this.audio.playCard(def.type);
     this.energy.set(this.energy() - this.costOf(card));
@@ -1139,6 +1145,12 @@ export class GameService {
     this.checkCombatEnd();
     if (this.screen() === 'combat') {
       this.ensureTarget();
+      if (zeitbruchEndsTurn) {
+        this.zeitbruchArmed.set(false);
+        this.addLog('⏱️ Zeitbruch: Dein Zug endet sofort.');
+        this.endTurn();
+        return;
+      }
       this.saveRun();
     }
   }
@@ -1187,7 +1199,8 @@ export class GameService {
         this.addLog(`✨ ${resonance.name}: ${3 + echoBonus} Schaden an allen Gegnern und ${3 + echoBonus} Schild.`);
       } else if (resonance.effect === 'energy') {
         this.energy.set(this.energy() + 1);
-        this.addLog(`✨ ${resonance.name}: +1 Energie.`);
+        this.zeitbruchArmed.set(true);
+        this.addLog(`✨ ${resonance.name}: +1 Energie – die nächste Karte beendet deinen Zug!`);
       } else if (resonance.effect === 'echo') {
         this.gainBlock(3 + echoBonus);
         if (this.aliveEnemies().length >= 2) {

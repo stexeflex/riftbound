@@ -6,9 +6,11 @@ const SFX_KEY = 'riftbound-sfx-enabled';
 const MUSIC_VOLUME_KEY = 'riftbound-music-volume';
 const SFX_VOLUME_KEY = 'riftbound-sfx-volume';
 
-// Bei Standard-Lautstärke (60 %) entspricht die Musik dem bisherigen Pegel von 0.26.
-const DEFAULT_VOLUME = 0.6;
-const MUSIC_VOLUME_SCALE = 0.26 / DEFAULT_VOLUME;
+// Musik startet leise (1/4 der Leiste), Sounds starten auf voller Leiste.
+const DEFAULT_MUSIC_VOLUME = 0.25;
+const DEFAULT_SFX_VOLUME = 1;
+// Regler auf 100 % entspricht Player-Volume ~0.43 (alter Standard: 60 % ≈ 0.26).
+const MUSIC_VOLUME_SCALE = 0.26 / 0.6;
 
 const MENU_TRACKS = [
   { label: 'Menu Theme 1', src: 'audio/menu/menu-01-theme-1.mp3' },
@@ -38,16 +40,16 @@ function saveSetting(key: string, enabled: boolean) {
   }
 }
 
-function loadVolume(key: string): number {
-  if (typeof localStorage === 'undefined') return DEFAULT_VOLUME;
+function loadVolume(key: string, fallback: number): number {
+  if (typeof localStorage === 'undefined') return fallback;
   try {
     const stored = localStorage.getItem(key);
-    if (stored === null) return DEFAULT_VOLUME;
+    if (stored === null) return fallback;
     const value = Number(stored);
-    if (!Number.isFinite(value)) return DEFAULT_VOLUME;
+    if (!Number.isFinite(value)) return fallback;
     return Math.min(1, Math.max(0, value));
   } catch {
-    return DEFAULT_VOLUME;
+    return fallback;
   }
 }
 
@@ -64,8 +66,8 @@ function saveVolume(key: string, volume: number) {
 export class AudioService {
   readonly musicEnabled = signal(loadSetting(MUSIC_KEY));
   readonly sfxEnabled = signal(loadSetting(SFX_KEY));
-  readonly musicVolume = signal(loadVolume(MUSIC_VOLUME_KEY));
-  readonly sfxVolume = signal(loadVolume(SFX_VOLUME_KEY));
+  readonly musicVolume = signal(loadVolume(MUSIC_VOLUME_KEY, DEFAULT_MUSIC_VOLUME));
+  readonly sfxVolume = signal(loadVolume(SFX_VOLUME_KEY, DEFAULT_SFX_VOLUME));
   readonly menuActive = signal(false);
   readonly musicPlaying = signal(false);
   readonly currentTrackIndex = signal(0);
@@ -123,23 +125,40 @@ export class AudioService {
   }
 
   setMusicVolume(volume: number) {
-    const clamped = Math.min(1, Math.max(0, Number.isFinite(volume) ? volume : DEFAULT_VOLUME));
+    const clamped = Math.min(1, Math.max(0, Number.isFinite(volume) ? volume : DEFAULT_MUSIC_VOLUME));
     this.musicVolume.set(clamped);
     saveVolume(MUSIC_VOLUME_KEY, clamped);
     if (this.musicPlayer) this.musicPlayer.volume = clamped * MUSIC_VOLUME_SCALE;
+    // Regler auf 0 mutet automatisch, Hochschieben hebt den Mute wieder auf.
+    if (clamped === 0 && this.musicEnabled()) {
+      this.musicEnabled.set(false);
+      saveSetting(MUSIC_KEY, false);
+      this.musicPlayer?.pause();
+    } else if (clamped > 0 && !this.musicEnabled()) {
+      this.musicEnabled.set(true);
+      saveSetting(MUSIC_KEY, true);
+    }
     this.unlock();
   }
 
   setSfxVolume(volume: number) {
-    const clamped = Math.min(1, Math.max(0, Number.isFinite(volume) ? volume : DEFAULT_VOLUME));
+    const clamped = Math.min(1, Math.max(0, Number.isFinite(volume) ? volume : DEFAULT_SFX_VOLUME));
     this.sfxVolume.set(clamped);
     saveVolume(SFX_VOLUME_KEY, clamped);
+    // Regler auf 0 mutet automatisch, Hochschieben hebt den Mute wieder auf.
+    if (clamped === 0 && this.sfxEnabled()) {
+      this.sfxEnabled.set(false);
+      saveSetting(SFX_KEY, false);
+    } else if (clamped > 0 && !this.sfxEnabled()) {
+      this.sfxEnabled.set(true);
+      saveSetting(SFX_KEY, true);
+    }
     this.unlock();
   }
 
-  /** Faktor für alle Soundeffekte relativ zur Standard-Lautstärke. */
+  /** Faktor für alle Soundeffekte: Regler auf Maximum entspricht der Grundlautstärke. */
   private sfxGainFactor(): number {
-    return this.sfxVolume() / DEFAULT_VOLUME;
+    return this.sfxVolume();
   }
 
   /** Wechselt manuell zum nächsten Menü-Theme. */

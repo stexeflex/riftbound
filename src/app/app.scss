@@ -724,6 +724,11 @@ h1, h2 {
     opacity: 0.45;
     cursor: not-allowed;
   }
+
+  // Shop-Karten sind reine Anzeige – gekauft wird nur über den Preis-Button.
+  &.shop-card {
+    cursor: default;
+  }
 }
 
 .card-cost {

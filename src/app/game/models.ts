@@ -171,6 +171,7 @@ export interface CombatSave {
   attackPlayedThisTurn: boolean;
   cardsPlayedThisTurn: number;
   sanduhrUsed?: boolean;
+  zeitbruchArmed?: boolean;
   targetIndex?: number;
 }
 
