@@ -123,6 +123,8 @@ export interface DungeonArea {
   name: string;
   desc: string;
   icon: string;
+  theme: 'desert' | 'winter' | 'crystal' | 'sky' | 'void';
+  background: string;
   stations: StationKind[];
   normalEncounters: string[][];
   eliteEncounters: string[][];
@@ -174,6 +176,7 @@ export interface CombatSave {
 // Gespeicherter Run (Fortsetzen-Funktion)
 export interface RunSave {
   mode: GameMode;
+  difficulty?: number;
   stageId: string | null;
   areaId?: string | null;
   artifactId: string | null;

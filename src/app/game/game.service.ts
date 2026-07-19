@@ -15,6 +15,7 @@ import { legacyLoad, secureLoad, secureRemove, secureSave } from './storage';
 const META_KEY = 'riftbound-meta-v2';
 const LEGACY_META_KEY = 'riftbound-meta-v1';
 const RUN_KEY = 'riftbound-run-v1';
+const DIFFICULTY_KEY = 'riftbound-dungeon-difficulty-v1';
 const BASE_HP = 80;
 const DECK_LAYOUT_IDS = ['layout-1', 'layout-2', 'layout-3', 'layout-4', 'layout-5'];
 
@@ -29,6 +30,10 @@ function shuffle<T>(arr: T[]): T[] {
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function clampDifficulty(value: number): number {
+  return Math.min(10, Math.max(1, Math.round(Number.isFinite(value) ? value : 1)));
 }
 
 @Injectable({ providedIn: 'root' })
@@ -54,7 +59,14 @@ export class GameService {
   readonly mode = signal<GameMode>('dungeon');
   readonly currentStage = signal<CampaignStage | null>(null);
   readonly currentArea = signal<DungeonArea | null>(null);
+  readonly dungeonDifficulty = signal(clampDifficulty(secureLoad<number>(DIFFICULTY_KEY) ?? 1));
+  readonly difficultyLevels = Array.from({ length: 10 }, (_, index) => index + 1);
   readonly hasRunSave = signal<boolean>(secureLoad<RunSave>(RUN_KEY) !== null);
+  readonly dungeonBackground = computed(() => this.currentArea()?.background ?? '');
+  readonly themedRunActive = computed(() =>
+    Boolean(this.currentArea())
+      && ['map', 'combat', 'reward', 'rest'].includes(this.screen()),
+  );
 
   // ---------- Run ----------
   readonly artifact = signal<ArtifactDef | null>(null);
@@ -563,6 +575,7 @@ export class GameService {
   private saveRun() {
     const save: RunSave = {
       mode: this.mode(),
+      difficulty: this.mode() === 'dungeon' ? this.dungeonDifficulty() : 1,
       stageId: this.currentStage()?.id ?? null,
       areaId: this.currentArea()?.id ?? null,
       artifactId: this.artifact()?.id ?? null,
@@ -595,6 +608,7 @@ export class GameService {
       return;
     }
     this.mode.set(save.mode);
+    this.dungeonDifficulty.set(clampDifficulty(save.difficulty ?? 1));
     this.currentStage.set(
       save.stageId ? CAMPAIGN_STAGES.find(s => s.id === save.stageId) ?? null : null,
     );
@@ -687,6 +701,47 @@ export class GameService {
 
   openDungeons() {
     this.screen.set('dungeons');
+  }
+
+  setDungeonDifficulty(level: number) {
+    const next = clampDifficulty(level);
+    this.dungeonDifficulty.set(next);
+    secureSave(DIFFICULTY_KEY, next);
+  }
+
+  difficultyName(level = this.dungeonDifficulty()): string {
+    return [
+      'Pfadfinder', 'Unruhig', 'Bedrohlich', 'Verderbt', 'Rissgehärtet',
+      'Unerbittlich', 'Albtraum', 'Kataklysmisch', 'Leerengeboren', 'Riftbound',
+    ][clampDifficulty(level) - 1];
+  }
+
+  difficultyHpMultiplier(level = this.dungeonDifficulty()): number {
+    return 1 + (clampDifficulty(level) - 1) * 0.1;
+  }
+
+  difficultyPowerMultiplier(level = this.dungeonDifficulty()): number {
+    return 1 + (clampDifficulty(level) - 1) * 0.07;
+  }
+
+  difficultyRewardMultiplier(level = this.dungeonDifficulty()): number {
+    return 1 + (clampDifficulty(level) - 1) * 0.1;
+  }
+
+  difficultyHpBonus(level = this.dungeonDifficulty()): number {
+    return Math.round((this.difficultyHpMultiplier(level) - 1) * 100);
+  }
+
+  difficultyPowerBonus(level = this.dungeonDifficulty()): number {
+    return Math.round((this.difficultyPowerMultiplier(level) - 1) * 100);
+  }
+
+  difficultyRewardBonus(level = this.dungeonDifficulty()): number {
+    return Math.round((this.difficultyRewardMultiplier(level) - 1) * 100);
+  }
+
+  scaledAreaReward(area: DungeonArea): number {
+    return Math.round(area.reward * this.difficultyRewardMultiplier());
   }
 
   areaUnlocked(area: DungeonArea): boolean {
@@ -783,7 +838,8 @@ export class GameService {
       if (this.mode() === 'dungeon') {
         const area = this.currentArea() ?? DUNGEON_AREAS[0];
         firstClear = !completedAreas.includes(area.id);
-        earned += firstClear ? area.reward : Math.round(area.reward * 0.35);
+        // Dungeon-Belohnungen bleiben bei Wiederholungen vollständig erhalten.
+        earned += this.scaledAreaReward(area);
         if (firstClear) {
           if (area.kern) kerne = 1;
           completedAreas = [...completedAreas, area.id];
@@ -823,11 +879,13 @@ export class GameService {
   }
 
   private makeEnemy(def: EnemyDef): EnemyState {
+    const hpMultiplier = this.mode() === 'dungeon' ? this.difficultyHpMultiplier() : 1;
+    const maxHp = Math.round(def.maxHp * hpMultiplier);
     return {
       uid: this.nextEnemyUid++,
       def,
-      hp: def.maxHp,
-      maxHp: def.maxHp,
+      hp: maxHp,
+      maxHp,
       block: 0,
       strength: 0,
       weak: 0,
@@ -835,6 +893,21 @@ export class GameService {
       moveIndex: 0,
       intent: def.moves[0],
     };
+  }
+
+  enemyIntentValue(enemy: EnemyState): number {
+    const move = enemy.intent;
+    if (this.mode() !== 'dungeon') return move.value;
+    if (move.kind === 'buff') {
+      return move.value + Math.floor((this.dungeonDifficulty() - 1) / 3);
+    }
+    return Math.max(1, Math.round(move.value * this.difficultyPowerMultiplier()));
+  }
+
+  enemyAttackPerHit(enemy: EnemyState): number {
+    let damage = this.enemyIntentValue(enemy) + enemy.strength;
+    if (enemy.weak > 0) damage = Math.round(damage * 0.75);
+    return damage;
   }
 
   private startCombat(kind: 'kampf' | 'elite' | 'boss') {
@@ -1008,6 +1081,7 @@ export class GameService {
     if (!this.canPlay(card)) return;
     this.hoveredCard.set(null);
     const def = card.def;
+    this.audio.playCard(def.type);
     this.energy.set(this.energy() - this.costOf(card));
     this.cardsPlayedThisTurn.set(this.cardsPlayedThisTurn() + 1);
     this.hand.set(this.hand().filter(c => c.uid !== card.uid));
@@ -1203,12 +1277,12 @@ export class GameService {
 
   private executeEnemyMove(enemy: EnemyState) {
     const move = enemy.intent;
+    const moveValue = this.enemyIntentValue(enemy);
     enemy.block = 0;
     if (move.kind === 'attack' || move.kind === 'attack_debuff') {
       const hits = move.hits ?? 1;
       for (let h = 0; h < hits; h++) {
-        let dmg = move.value + enemy.strength;
-        if (enemy.weak > 0) dmg = Math.round(dmg * 0.75);
+        const dmg = this.enemyAttackPerHit(enemy);
         this.damagePlayer(dmg, enemy);
         if (this.playerHp() <= 0) return;
       }
@@ -1217,10 +1291,10 @@ export class GameService {
         this.addLog(`${enemy.def.name} schwächt dich (${move.weak} Schwäche).`);
       }
     } else if (move.kind === 'block') {
-      enemy.block += move.value;
+      enemy.block += moveValue;
     } else if (move.kind === 'buff') {
-      enemy.strength += move.value;
-      this.addLog(`${enemy.def.name} verstärkt sich (+${move.value} Stärke).`);
+      enemy.strength += moveValue;
+      this.addLog(`${enemy.def.name} verstärkt sich (+${moveValue} Stärke).`);
     }
     this.enemies.set([...this.enemies()]);
   }
@@ -1243,6 +1317,9 @@ export class GameService {
   private onCombatWon() {
     const station = this.currentStation();
     let splitter = station.kind === 'boss' ? 60 : station.kind === 'elite' ? 30 : 15;
+    if (this.mode() === 'dungeon') {
+      splitter = Math.round(splitter * this.difficultyRewardMultiplier());
+    }
     splitter = Math.round(splitter * (1 + this.runUpgradeLevel('pluenderer') * 0.1));
 
     // Bereits abgeschlossene Kampagnen-Stages geben nur halben Loot

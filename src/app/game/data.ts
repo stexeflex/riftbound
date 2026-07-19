@@ -364,6 +364,187 @@ export const ENEMIES: Record<string, EnemyDef> = {
       { name: 'Stille des Alls', kind: 'attack_debuff', value: 12, weak: 2 },
     ],
   },
+  duenenskarabaeus: {
+    id: 'duenenskarabaeus', name: 'Dünenskarabäus', maxHp: 34, emoji: '🪲',
+    moves: [
+      { name: 'Sandbiss', kind: 'attack', value: 7 },
+      { name: 'Chitinpanzer', kind: 'block', value: 8 },
+      { name: 'Scherenschlag', kind: 'attack', value: 4, hits: 2 },
+    ],
+  },
+  sandlaeufer: {
+    id: 'sandlaeufer', name: 'Sandläufer', maxHp: 42, emoji: '🥷',
+    moves: [
+      { name: 'Sichelschnitt', kind: 'attack', value: 9 },
+      { name: 'Fata Morgana', kind: 'block', value: 7 },
+      { name: 'Blendstaub', kind: 'attack_debuff', value: 5, weak: 1 },
+    ],
+  },
+  glutfalke: {
+    id: 'glutfalke', name: 'Glutfalke', maxHp: 30, emoji: '🦅',
+    moves: [
+      { name: 'Sturzflug', kind: 'attack', value: 8 },
+      { name: 'Thermik', kind: 'buff', value: 2 },
+      { name: 'Krallenhagel', kind: 'attack', value: 3, hits: 3 },
+    ],
+  },
+  obsidiandjinn: {
+    id: 'obsidiandjinn', name: 'Obsidian-Dschinn', maxHp: 82, emoji: '🧞',
+    passive: 'Elite: Wechselt zwischen Hitzedruck, Schutz und schweren Schlägen.',
+    moves: [
+      { name: 'Glutfaust', kind: 'attack', value: 14 },
+      { name: 'Schwarzer Sand', kind: 'attack_debuff', value: 7, weak: 2 },
+      { name: 'Obsidianhaut', kind: 'block', value: 16 },
+    ],
+  },
+  sahrazar: {
+    id: 'sahrazar', name: 'Sahrazar, der Dünenwurm', maxHp: 178, emoji: '🐉', boss: true,
+    passive: 'Boss: Erhält nach jedem 3. Zug +2 Stärke.',
+    moves: [
+      { name: 'Verschlingen', kind: 'attack', value: 18 },
+      { name: 'Untertauchen', kind: 'block', value: 17 },
+      { name: 'Sandsturm', kind: 'attack_debuff', value: 8, weak: 2 },
+      { name: 'Glutschuppen', kind: 'attack', value: 6, hits: 3 },
+    ],
+  },
+  frostwolf: {
+    id: 'frostwolf', name: 'Frostwolf', maxHp: 37, emoji: '🐺',
+    moves: [
+      { name: 'Eisbiss', kind: 'attack', value: 8 },
+      { name: 'Rudelruf', kind: 'buff', value: 2 },
+      { name: 'Doppelklaue', kind: 'attack', value: 4, hits: 2 },
+    ],
+  },
+  schneekobold: {
+    id: 'schneekobold', name: 'Schneekobold', maxHp: 28, emoji: '☃️',
+    moves: [
+      { name: 'Schneeblende', kind: 'attack_debuff', value: 4, weak: 1 },
+      { name: 'Eisscholle', kind: 'block', value: 7 },
+      { name: 'Eiszapfen', kind: 'attack', value: 7 },
+    ],
+  },
+  eisrufer: {
+    id: 'eisrufer', name: 'Eisrufer', maxHp: 44, emoji: '🧙‍♂️',
+    moves: [
+      { name: 'Froststrahl', kind: 'attack', value: 9 },
+      { name: 'Permafrost', kind: 'block', value: 11 },
+      { name: 'Nordwind', kind: 'attack_debuff', value: 6, weak: 1 },
+    ],
+  },
+  aurorawaechter: {
+    id: 'aurorawaechter', name: 'Aurorawächter', maxHp: 84, emoji: '🧊',
+    passive: 'Elite: Baut starke Eiswälle auf und greift in Serien an.',
+    moves: [
+      { name: 'Polarhieb', kind: 'attack', value: 7, hits: 2 },
+      { name: 'Aurorawall', kind: 'block', value: 18 },
+      { name: 'Weißer Sturm', kind: 'attack_debuff', value: 8, weak: 2 },
+    ],
+  },
+  frostkoenigin: {
+    id: 'frostkoenigin', name: 'Ysra, Königin des Frosts', maxHp: 176, emoji: '👸', boss: true,
+    passive: 'Boss: Erhält nach jedem 3. Zug +2 Stärke.',
+    moves: [
+      { name: 'Frostzepter', kind: 'attack', value: 17 },
+      { name: 'Eisthron', kind: 'block', value: 20 },
+      { name: 'Winteratem', kind: 'attack_debuff', value: 9, weak: 2 },
+      { name: 'Hagelkrone', kind: 'attack', value: 6, hits: 3 },
+    ],
+  },
+  prismamotte: {
+    id: 'prismamotte', name: 'Prismamotte', maxHp: 30, emoji: '🦋',
+    moves: [
+      { name: 'Lichtstaub', kind: 'attack_debuff', value: 4, weak: 1 },
+      { name: 'Flügelschimmer', kind: 'block', value: 7 },
+      { name: 'Spektralflug', kind: 'attack', value: 4, hits: 2 },
+    ],
+  },
+  tiefenorakel: {
+    id: 'tiefenorakel', name: 'Tiefenorakel', maxHp: 43, emoji: '🔮',
+    moves: [
+      { name: 'Rubinstrahl', kind: 'attack', value: 10 },
+      { name: 'Vorhersehung', kind: 'block', value: 10 },
+      { name: 'Resonanz', kind: 'buff', value: 2 },
+    ],
+  },
+  facettenchimaere: {
+    id: 'facettenchimaere', name: 'Facettenchimäre', maxHp: 86, emoji: '🦁',
+    passive: 'Elite: Bricht Angriffe in wechselnde Mehrfachtreffer.',
+    moves: [
+      { name: 'Prismenklaue', kind: 'attack', value: 7, hits: 2 },
+      { name: 'Kristallfell', kind: 'block', value: 17 },
+      { name: 'Farbsplitter', kind: 'attack', value: 5, hits: 3 },
+    ],
+  },
+  wolkenrochen: {
+    id: 'wolkenrochen', name: 'Wolkenrochen', maxHp: 35, emoji: '🪽',
+    moves: [
+      { name: 'Windstoß', kind: 'attack', value: 8 },
+      { name: 'Wolkenhaut', kind: 'block', value: 7 },
+      { name: 'Böenfolge', kind: 'attack', value: 4, hits: 2 },
+    ],
+  },
+  himmelskorsar: {
+    id: 'himmelskorsar', name: 'Himmelskorsar', maxHp: 44, emoji: '🏴‍☠️',
+    moves: [
+      { name: 'Hakenklinge', kind: 'attack', value: 10 },
+      { name: 'Rückenwind', kind: 'buff', value: 2 },
+      { name: 'Blendblitz', kind: 'attack_debuff', value: 5, weak: 1 },
+    ],
+  },
+  blitzdrache: {
+    id: 'blitzdrache', name: 'Blitzdrache', maxHp: 88, emoji: '🐲',
+    passive: 'Elite: Lädt Kettenblitze auf und schützt sich im Sturm.',
+    moves: [
+      { name: 'Gewitterbiss', kind: 'attack', value: 14 },
+      { name: 'Sturmhaut', kind: 'block', value: 16 },
+      { name: 'Kettenblitz', kind: 'attack', value: 6, hits: 3 },
+    ],
+  },
+  aeralis: {
+    id: 'aeralis', name: 'Aeralis, Herrin der Stürme', maxHp: 180, emoji: '🌩️', boss: true,
+    passive: 'Boss: Erhält nach jedem 3. Zug +2 Stärke.',
+    moves: [
+      { name: 'Himmelslanze', kind: 'attack', value: 18 },
+      { name: 'Wolkenpalast', kind: 'block', value: 19 },
+      { name: 'Drucksturz', kind: 'attack_debuff', value: 8, weak: 2 },
+      { name: 'Gewitterkrone', kind: 'attack', value: 6, hits: 3 },
+    ],
+  },
+  echogeist: {
+    id: 'echogeist', name: 'Echogeist', maxHp: 32, emoji: '👻',
+    moves: [
+      { name: 'Nachhall', kind: 'attack', value: 4, hits: 2 },
+      { name: 'Entgleiten', kind: 'block', value: 8 },
+      { name: 'Stille', kind: 'attack_debuff', value: 5, weak: 1 },
+    ],
+  },
+  sternenfresser: {
+    id: 'sternenfresser', name: 'Sternenfresser', maxHp: 47, emoji: '🕷️',
+    moves: [
+      { name: 'Nullbiss', kind: 'attack', value: 11 },
+      { name: 'Schwerkraftpanzer', kind: 'block', value: 11 },
+      { name: 'Dunkle Häutung', kind: 'buff', value: 2 },
+    ],
+  },
+  gravitationsritter: {
+    id: 'gravitationsritter', name: 'Gravitationsritter', maxHp: 90, emoji: '🛡️',
+    passive: 'Elite: Verbindet schwere Einzelhiebe mit lähmender Leerenmagie.',
+    moves: [
+      { name: 'Masseschlag', kind: 'attack', value: 16 },
+      { name: 'Singularität', kind: 'block', value: 18 },
+      { name: 'Zeitbruch', kind: 'attack_debuff', value: 8, weak: 2 },
+    ],
+  },
+  veyla: {
+    id: 'veyla', name: 'Veyla, Weberin des Nichts', maxHp: 182, emoji: '🌌', boss: true,
+    passive: 'Boss: Erhält nach jedem 3. Zug +2 Stärke.',
+    moves: [
+      { name: 'Horizontschnitt', kind: 'attack', value: 18 },
+      { name: 'Dunkle Linse', kind: 'block', value: 20 },
+      { name: 'Raumfaltung', kind: 'attack_debuff', value: 9, weak: 2 },
+      { name: 'Sternenecho', kind: 'attack', value: 6, hits: 3 },
+    ],
+  },
 };
 
 export const NORMAL_POOL = ['riftling', 'schattenwolf', 'leerenmagier', 'steingolem'];
@@ -373,59 +554,64 @@ export const ELITE_POOL = ['klingenwaechter', 'riftbestie'];
 
 export const DUNGEON_AREAS: DungeonArea[] = [
   {
-    id: 'gebiet1', name: 'Die zerrissene Ebene', icon: '🪨',
-    desc: 'Riftlinge und erste Rissbestien streifen durch die zerbrochene Landschaft.',
-    stations: ['kampf', 'kampf', 'elite', 'rast', 'kampf', 'kampf', 'elite', 'rast', 'boss'],
+    id: 'gebiet1', name: 'Die Glutdünen', icon: '🏜️', theme: 'desert',
+    background: 'images/dungeons/ember-dunes.png',
+    desc: 'Hitzeflimmern, Sandstürme und versunkene Ruinen prägen diesen Wüsten-Run.',
+    stations: ['kampf', 'kampf', 'rast', 'elite', 'kampf', 'kampf', 'rast', 'elite', 'kampf', 'boss'],
     normalEncounters: [
-      ['riftling'], ['riftling', 'riftling'], ['schattenwolf'],
-      ['leerenmagier', 'riftling'], ['steingolem'],
+      ['duenenskarabaeus', 'duenenskarabaeus'], ['sandlaeufer'], ['glutfalke', 'duenenskarabaeus'],
+      ['sandlaeufer', 'glutfalke'], ['duenenskarabaeus', 'duenenskarabaeus', 'glutfalke'],
     ],
-    eliteEncounters: [['klingenwaechter'], ['riftbestie'], ['klingenwaechter', 'riftling']],
-    bossEncounter: ['vorax'], reward: 100, kern: true,
+    eliteEncounters: [['obsidiandjinn'], ['obsidiandjinn', 'duenenskarabaeus']],
+    bossEncounter: ['sahrazar'], reward: 140, kern: true,
   },
   {
-    id: 'gebiet2', name: 'Der flüsternde Nebelwald', icon: '🌲',
-    desc: 'Giftige Sporen und lebende Wurzeln machen jeden Schritt zum Risiko.',
+    id: 'gebiet2', name: 'Der frostgebundene Hain', icon: '❄️', theme: 'winter',
+    background: 'images/dungeons/frostbound-grove.png',
+    desc: 'Eiswälle, Schwächeeffekte und Rudel machen den Winter-Run kontrolliert und taktisch.',
     stations: ['kampf', 'kampf', 'rast', 'elite', 'kampf', 'kampf', 'elite', 'rast', 'kampf', 'boss'],
     normalEncounters: [
-      ['sporenkobold', 'sporenkobold'], ['nebelhexe'],
-      ['sporenkobold', 'nebelhexe'], ['schattenwolf', 'sporenkobold'],
+      ['schneekobold', 'schneekobold'], ['frostwolf'], ['eisrufer'],
+      ['frostwolf', 'schneekobold'], ['eisrufer', 'schneekobold'], ['frostwolf', 'frostwolf'],
     ],
-    eliteEncounters: [['dornenhueter'], ['dornenhueter', 'sporenkobold']],
-    bossEncounter: ['waldkoloss'], reward: 140, kern: true,
+    eliteEncounters: [['aurorawaechter'], ['aurorawaechter', 'schneekobold']],
+    bossEncounter: ['frostkoenigin'], reward: 140, kern: true,
   },
   {
-    id: 'gebiet3', name: 'Die prismatischen Tiefen', icon: '💎',
+    id: 'gebiet3', name: 'Die prismatischen Tiefen', icon: '💎', theme: 'crystal',
+    background: 'images/dungeons/prism-depths.png',
     desc: 'Kristallwesen brechen Licht, Raum und unvorsichtige Angriffe.',
     stations: ['kampf', 'elite', 'kampf', 'rast', 'kampf', 'kampf', 'elite', 'rast', 'kampf', 'boss'],
     normalEncounters: [
-      ['kristallkaefer', 'kristallkaefer'], ['geodenpriester'],
-      ['kristallkaefer', 'geodenpriester'], ['kristallkaefer', 'kristallkaefer', 'kristallkaefer'],
+      ['kristallkaefer', 'prismamotte'], ['geodenpriester'], ['tiefenorakel'],
+      ['kristallkaefer', 'geodenpriester'], ['prismamotte', 'prismamotte', 'kristallkaefer'],
     ],
-    eliteEncounters: [['splittergolem'], ['splittergolem', 'kristallkaefer']],
-    bossEncounter: ['prismatyrann'], reward: 180, kern: true,
+    eliteEncounters: [['splittergolem'], ['facettenchimaere'], ['facettenchimaere', 'prismamotte']],
+    bossEncounter: ['prismatyrann'], reward: 145, kern: true,
   },
   {
-    id: 'gebiet4', name: 'Die Sturmzitadelle', icon: '🌩️',
+    id: 'gebiet4', name: 'Die Sturmzitadelle', icon: '🌩️', theme: 'sky',
+    background: 'images/dungeons/storm-citadel.png',
     desc: 'Über den Wolken bewachen geladene Konstrukte den Weg zum Sturmarchon.',
-    stations: ['kampf', 'kampf', 'elite', 'rast', 'kampf', 'elite', 'kampf', 'rast', 'kampf', 'elite', 'boss'],
+    stations: ['kampf', 'kampf', 'elite', 'rast', 'kampf', 'kampf', 'rast', 'elite', 'kampf', 'boss'],
     normalEncounters: [
-      ['sturmspaeher', 'sturmspaeher'], ['funkenkonstrukt'],
-      ['sturmspaeher', 'funkenkonstrukt'], ['sturmspaeher', 'sturmspaeher', 'sturmspaeher'],
+      ['sturmspaeher', 'wolkenrochen'], ['funkenkonstrukt'], ['himmelskorsar'],
+      ['wolkenrochen', 'wolkenrochen'], ['sturmspaeher', 'himmelskorsar'],
     ],
-    eliteEncounters: [['donnerwaechter'], ['donnerwaechter', 'sturmspaeher']],
-    bossEncounter: ['tempestarchon'], reward: 220, kern: true,
+    eliteEncounters: [['donnerwaechter'], ['blitzdrache'], ['blitzdrache', 'wolkenrochen']],
+    bossEncounter: ['aeralis'], reward: 145, kern: true,
   },
   {
-    id: 'gebiet5', name: 'Der Nullhorizont', icon: '🌌',
+    id: 'gebiet5', name: 'Der Nullhorizont', icon: '🌌', theme: 'void',
+    background: 'images/dungeons/null-horizon.png',
     desc: 'Jenseits des Risses wartet Nyxara mit ihren Herolden auf den letzten Run.',
-    stations: ['kampf', 'elite', 'kampf', 'rast', 'kampf', 'kampf', 'elite', 'rast', 'kampf', 'elite', 'kampf', 'boss'],
+    stations: ['kampf', 'elite', 'kampf', 'rast', 'kampf', 'kampf', 'rast', 'elite', 'kampf', 'boss'],
     normalEncounters: [
-      ['leerenauge', 'leerenauge'], ['rissassassine'],
-      ['leerenauge', 'rissassassine'], ['leerenauge', 'leerenauge', 'rissassassine'],
+      ['leerenauge', 'echogeist'], ['rissassassine'], ['sternenfresser'],
+      ['echogeist', 'echogeist', 'leerenauge'], ['sternenfresser', 'rissassassine'],
     ],
-    eliteEncounters: [['nullherold'], ['nullherold', 'leerenauge']],
-    bossEncounter: ['nyxara'], reward: 300, kern: true,
+    eliteEncounters: [['nullherold'], ['gravitationsritter'], ['gravitationsritter', 'echogeist']],
+    bossEncounter: ['veyla'], reward: 150, kern: true,
   },
 ];
 

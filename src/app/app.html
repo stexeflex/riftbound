@@ -1,4 +1,11 @@
-<div class="game-shell">
+<div class="game-shell"
+     [class.run-themed]="game.themedRunActive()"
+     [class.theme-desert]="game.currentArea()?.theme === 'desert'"
+     [class.theme-winter]="game.currentArea()?.theme === 'winter'"
+     [class.theme-crystal]="game.currentArea()?.theme === 'crystal'"
+     [class.theme-sky]="game.currentArea()?.theme === 'sky'"
+     [class.theme-void]="game.currentArea()?.theme === 'void'"
+     [style.--dungeon-bg]="'url(' + game.dungeonBackground() + ')'">
   <div class="audio-controls" aria-label="Audioeinstellungen"
        [attr.data-music-playing]="audio.musicPlaying()"
        [attr.data-track-index]="audio.currentTrackIndex()">
@@ -9,14 +16,17 @@
     }
     <button type="button" class="audio-btn"
             [class.audio-active]="audio.musicEnabled()"
+            [class.audio-muted]="!audio.musicEnabled()"
             [attr.aria-pressed]="audio.musicEnabled()"
             [attr.aria-label]="audio.musicEnabled() ? 'Menümusik ausschalten' : 'Menümusik einschalten'"
             [attr.title]="audio.musicEnabled() ? 'Menümusik ausschalten' : 'Menümusik einschalten'"
             (click)="audio.toggleMusic()">
-      {{ audio.musicEnabled() ? '🎵' : '🎵̸' }}
+      <span class="audio-symbol" aria-hidden="true">🎵</span>
+      @if (!audio.musicEnabled()) { <span class="mute-slash" aria-hidden="true"></span> }
     </button>
     <button type="button" class="audio-btn"
             [class.audio-active]="audio.sfxEnabled()"
+            [class.audio-muted]="!audio.sfxEnabled()"
             [attr.aria-pressed]="audio.sfxEnabled()"
             [attr.aria-label]="audio.sfxEnabled() ? 'Kampfsounds ausschalten' : 'Kampfsounds einschalten'"
             [attr.title]="audio.sfxEnabled() ? 'Kampfsounds ausschalten' : 'Kampfsounds einschalten'"
@@ -64,10 +74,33 @@
       <div class="screen campaign-screen">
         <button class="btn btn-small screen-back" (click)="game.backToTitle()">← Zurück</button>
         <h2>Dungeon-Gebiete</h2>
-        <p class="hint">Bezwinge ein Gebiet, um das nächste freizuschalten. Wiederholte Runs geben einen kleineren Gebietsbonus.</p>
+        <p class="hint">Jedes Gebiet hat eigene Gegner und Spielmuster. Jeder erfolgreiche Run gibt den vollen Gebietsbonus.</p>
+        <section class="difficulty-panel" aria-label="Dungeon-Schwierigkeit">
+          <div class="difficulty-heading">
+            <span>Dungeon-Schwierigkeit</span>
+            <strong>{{ game.dungeonDifficulty() }} · {{ game.difficultyName() }}</strong>
+          </div>
+          <div class="difficulty-levels">
+            @for (level of game.difficultyLevels; track level) {
+              <button type="button" class="difficulty-level"
+                      [class.selected]="game.dungeonDifficulty() === level"
+                      [attr.aria-pressed]="game.dungeonDifficulty() === level"
+                      [attr.aria-label]="'Schwierigkeit ' + level"
+                      (click)="game.setDungeonDifficulty(level)">
+                {{ level }}
+              </button>
+            }
+          </div>
+          <div class="difficulty-stats">
+            <span>❤️ Gegner +{{ game.difficultyHpBonus() }} %</span>
+            <span>⚔️ Stärke +{{ game.difficultyPowerBonus() }} %</span>
+            <span>🔮 Belohnungen +{{ game.difficultyRewardBonus() }} %</span>
+          </div>
+        </section>
         <div class="stage-list area-list">
           @for (area of game.dungeonAreas; track area.id; let i = $index) {
             <div class="stage-row area-row"
+                 [style.--area-thumb]="'url(' + area.background + ')'"
                  [class.locked]="!game.areaUnlocked(area)"
                  [class.completed]="game.areaCompleted(area)">
               <span class="stage-icon">{{ game.areaUnlocked(area) ? area.icon : '🔒' }}</span>
@@ -75,9 +108,8 @@
                 <div class="stage-name">Gebiet {{ i + 1 }} – {{ area.name }}</div>
                 <div class="stage-desc">{{ area.desc }}</div>
                 <div class="stage-reward">
-                  {{ area.stations.length }} Stationen · Gebietsbonus: 🔮
-                  {{ game.areaCompleted(area) ? area.reward * 0.35 : area.reward }}
-                  @if (area.kern && !game.areaCompleted(area)) { + 🟡 1 Kern }
+                  {{ area.stations.length }} Stationen · Jeder Run: 🔮 {{ game.scaledAreaReward(area) }}
+                  @if (area.kern && !game.areaCompleted(area)) { · Erster Sieg: 🟡 1 Kern }
                 </div>
               </div>
               <button class="btn btn-small" [disabled]="!game.areaUnlocked(area)" (click)="game.startArea(area)">
@@ -131,6 +163,10 @@
         } @else if (game.currentArea(); as area) {
           <h2>{{ area.icon }} {{ area.name }}</h2>
           <p class="area-map-desc">{{ area.desc }}</p>
+          <div class="difficulty-run-badge">
+            Schwierigkeit {{ game.dungeonDifficulty() }} · {{ game.difficultyName() }} ·
+            🔮 +{{ game.difficultyRewardBonus() }} %
+          </div>
         }
         <div class="player-status">
           <span>❤️ {{ game.playerHp() }}/{{ game.playerMaxHp() }}</span>
@@ -636,6 +672,7 @@
             @for (card of game.hand(); track card.uid) {
               <button
                 class="card card-detail"
+                data-card-play
                 [class]="typeClass(card.def.type)"
                 [class.unplayable]="!game.canPlay(card)"
                 [attr.data-card-tip]="cardDetails(card.def)"
@@ -710,9 +747,7 @@
         } @else {
           <h2>🏆 Gebiet abgeschlossen!</h2>
           <p>{{ game.currentArea()?.name }} liegt hinter dir.</p>
-          @if (!game.endFirstClear()) {
-            <p class="hint">Bereits abgeschlossenes Gebiet – reduzierter Gebietsbonus.</p>
-          }
+          <p class="hint">Voller Gebietsbonus · Schwierigkeit {{ game.dungeonDifficulty() }} · {{ game.difficultyName() }}</p>
         }
         <p class="hint">
           🔮 +{{ game.endSplitter() }} Splitter

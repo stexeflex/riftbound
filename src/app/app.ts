@@ -29,6 +29,15 @@ export class App {
     this.audio.unlock();
   }
 
+  @HostListener('document:click', ['$event'])
+  playButtonSound(event: MouseEvent) {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest('button');
+    if (!button || button.hasAttribute('disabled') || button.hasAttribute('data-card-play')) return;
+    this.audio.playButtonClick();
+  }
+
   readonly cardTypes: CardType[] = ['Angriff', 'Verteidigung', 'Technik', 'Macht'];
   readonly cardCategories: Category[] = ['Kraft', 'Schutz', 'Kontrolle', 'Chaos'];
   readonly cardSortOptions: { value: CardSort; label: string }[] = [
@@ -166,16 +175,17 @@ export class App {
 
   intentText(e: EnemyState): string {
     const i = e.intent;
-    const dmg = i.value + e.strength;
+    const value = this.game.enemyIntentValue(e);
+    const dmg = this.game.enemyAttackPerHit(e);
     switch (i.kind) {
       case 'attack':
         return i.hits ? `⚔️ ${dmg} × ${i.hits} Schaden` : `⚔️ ${dmg} Schaden`;
       case 'attack_debuff':
         return `⚔️ ${dmg} Schaden + 😵 ${i.weak ?? 1} Schwäche`;
       case 'block':
-        return `🛡️ ${i.value} Schild`;
+        return `🛡️ ${value} Schild`;
       case 'buff':
-        return `💪 +${i.value} Stärke`;
+        return `💪 +${value} Stärke`;
       default:
         return '❓';
     }
@@ -201,8 +211,7 @@ export class App {
     for (const e of enemies) {
       const i = e.intent;
       if (i.kind !== 'attack' && i.kind !== 'attack_debuff') continue;
-      let per = i.value + e.strength;
-      if (e.weak > 0) per = Math.round(per * 0.75);
+      const per = this.game.enemyAttackPerHit(e);
       for (let h = 0; h < (i.hits ?? 1); h++) {
         const blocked = Math.min(remainingBlock, per);
         remainingBlock -= blocked;
@@ -218,14 +227,13 @@ export class App {
   enemyIntentDetails(e: EnemyState): string {
     const i = e.intent;
     if (i.kind === 'block') {
-      return `${i.name}: Der Gegner erhält ${i.value} Schild. Schild blockt deine Angriffe bis zum nächsten Gegnerzug.`;
+      return `${i.name}: Der Gegner erhält ${this.game.enemyIntentValue(e)} Schild. Schild blockt deine Angriffe bis zum nächsten Gegnerzug.`;
     }
     if (i.kind === 'buff') {
-      return `${i.name}: Der Gegner erhält +${i.value} Stärke. Jeder folgende Angriffstreffer verursacht in diesem Kampf entsprechend mehr Schaden.`;
+      return `${i.name}: Der Gegner erhält +${this.game.enemyIntentValue(e)} Stärke. Jeder folgende Angriffstreffer verursacht in diesem Kampf entsprechend mehr Schaden.`;
     }
 
-    let per = i.value + e.strength;
-    if (e.weak > 0) per = Math.round(per * 0.75);
+    const per = this.game.enemyAttackPerHit(e);
     const hits = i.hits ?? 1;
     const lines = [
       `${i.name}: ${hits > 1 ? `${hits} Treffer mit je ${per}` : `${per}`} Schaden vor deinem Schild.`,

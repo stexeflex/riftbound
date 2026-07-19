@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { Screen } from './game/models';
+import { CardType, Screen } from './game/models';
 
 const MUSIC_KEY = 'riftbound-music-enabled';
 const SFX_KEY = 'riftbound-sfx-enabled';
@@ -100,6 +100,47 @@ export class AudioService {
     this.playImpact('player', damage, false);
   }
 
+  playButtonClick() {
+    const context = this.readySfxContext();
+    if (!context) return;
+    const now = context.currentTime;
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(0.035, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+    gain.connect(context.destination);
+
+    const oscillator = context.createOscillator();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(560, now);
+    oscillator.frequency.exponentialRampToValueAtTime(320, now + 0.05);
+    oscillator.connect(gain);
+    oscillator.start(now);
+    oscillator.stop(now + 0.055);
+  }
+
+  playCard(type: CardType) {
+    const context = this.readySfxContext();
+    if (!context) return;
+    const now = context.currentTime;
+
+    if (type === 'Angriff') {
+      this.playTone(context, now, 'sawtooth', 310, 95, 0.1, 0.035);
+      this.playNoise(context, now, 0.075, 'highpass', 1200, 0.022);
+    } else if (type === 'Verteidigung') {
+      this.playTone(context, now, 'sine', 390, 620, 0.18, 0.04);
+      this.playTone(context, now + 0.025, 'sine', 680, 920, 0.16, 0.025);
+    } else if (type === 'Technik') {
+      this.playTone(context, now, 'triangle', 720, 980, 0.095, 0.034);
+      this.playTone(context, now + 0.055, 'sine', 980, 1320, 0.085, 0.022);
+    } else if (type === 'Macht') {
+      this.playTone(context, now, 'triangle', 120, 330, 0.26, 0.05);
+      this.playTone(context, now + 0.05, 'sine', 240, 520, 0.24, 0.026);
+    } else {
+      this.playTone(context, now, 'sawtooth', 190, 58, 0.24, 0.03);
+      this.playNoise(context, now, 0.2, 'lowpass', 620, 0.025);
+    }
+  }
+
   private async playMenuMusic() {
     if (!this.unlocked || !this.menuActive() || !this.musicEnabled() || !this.musicPlayer) return;
     try {
@@ -135,11 +176,65 @@ export class AudioService {
     return this.audioContext;
   }
 
-  private playImpact(target: 'enemy' | 'player', damage: number, blocked: boolean) {
-    if (!this.sfxEnabled() || !this.unlocked) return;
+  private readySfxContext(): AudioContext | null {
+    if (!this.sfxEnabled() || !this.unlocked) return null;
     const context = this.getAudioContext();
+    if (context?.state === 'suspended') void context.resume();
+    return context;
+  }
+
+  private playTone(
+    context: AudioContext,
+    start: number,
+    type: OscillatorType,
+    from: number,
+    to: number,
+    duration: number,
+    volume: number,
+  ) {
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+    gain.connect(context.destination);
+    const oscillator = context.createOscillator();
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(from, start);
+    oscillator.frequency.exponentialRampToValueAtTime(to, start + duration);
+    oscillator.connect(gain);
+    oscillator.start(start);
+    oscillator.stop(start + duration);
+  }
+
+  private playNoise(
+    context: AudioContext,
+    start: number,
+    duration: number,
+    filterType: BiquadFilterType,
+    frequency: number,
+    volume: number,
+  ) {
+    const length = Math.floor(context.sampleRate * duration);
+    const buffer = context.createBuffer(1, length, context.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    const filter = context.createBiquadFilter();
+    filter.type = filterType;
+    filter.frequency.setValueAtTime(frequency, start);
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(context.destination);
+    source.start(start);
+    source.stop(start + duration);
+  }
+
+  private playImpact(target: 'enemy' | 'player', damage: number, blocked: boolean) {
+    const context = this.readySfxContext();
     if (!context) return;
-    if (context.state === 'suspended') void context.resume();
 
     const now = context.currentTime;
     const weight = Math.min(1, Math.max(0.25, damage / 24));
