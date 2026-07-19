@@ -1,0 +1,4 @@
+interface:
+  display_name: "Riftbound"
+  short_description: "Unterstützung für das Riftbound Karten-Roguelite"
+  default_prompt: "Hilf mir, Riftbound weiterzuentwickeln."
