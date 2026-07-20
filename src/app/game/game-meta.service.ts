@@ -32,6 +32,7 @@ export abstract class GameMetaService {
   protected readonly audio = inject(AudioService);
   protected nextUid = 1;
   protected nextEnemyUid = 1;
+  protected combatRngState = 0;
 
   // ---------- Meta (bleibt über Runs erhalten) ----------
   readonly meta = signal<MetaState>(this.loadMeta());

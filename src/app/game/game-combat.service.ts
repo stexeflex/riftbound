@@ -12,7 +12,7 @@ import {
 } from './data';
 import { legacyLoad, secureLoad, secureRemove, secureSave } from './storage';
 import { GameRunService } from './game-run.service';
-import { pick, shuffle } from './game.utils';
+import { createRandomSeed, nextSeededRandom, pick, shuffle } from './game.utils';
 
 /** Vollständige Kampfauflösung einschließlich Karten-, Gegner- und Belohnungslogik. */
 export abstract class GameCombatService extends GameRunService {
@@ -46,6 +46,7 @@ export abstract class GameCombatService extends GameRunService {
       sanduhrUsed: this.sanduhrUsedThisTurn(),
       zeitbruchArmed: this.zeitbruchArmed(),
       targetIndex: Math.max(0, this.enemies().findIndex(e => e.uid === this.currentTarget()?.uid)),
+      rngState: this.combatRngState,
     };
   }
 
@@ -89,6 +90,9 @@ export abstract class GameCombatService extends GameRunService {
     this.cardsPlayedThisTurn.set(c.cardsPlayedThisTurn);
     this.sanduhrUsedThisTurn.set(c.sanduhrUsed ?? false);
     this.zeitbruchArmed.set(c.zeitbruchArmed ?? false);
+    this.combatRngState = typeof c.rngState === 'number' && Number.isFinite(c.rngState)
+      ? (c.rngState >>> 0)
+      : createRandomSeed();
     this.log.set([]);
     this.screen.set('combat');
     this.audio.startCombatMusic(
@@ -123,6 +127,20 @@ export abstract class GameCombatService extends GameRunService {
 
   }
 
+  private nextCombatRandom(): number {
+    const result = nextSeededRandom(this.combatRngState);
+    this.combatRngState = result.state;
+    return result.value;
+  }
+
+  private shuffleCombat<T>(values: T[]): T[] {
+    return shuffle(values, () => this.nextCombatRandom());
+  }
+
+  private pickCombat<T>(values: T[]): T {
+    return pick(values, () => this.nextCombatRandom());
+  }
+
   enemyIntentValue(enemy: EnemyState): number {
     const move = enemy.intent;
     const equivalentDifficulty = this.mode() === 'dungeon'
@@ -145,21 +163,22 @@ export abstract class GameCombatService extends GameRunService {
 
   protected override startCombat(kind: 'kampf' | 'elite' | 'boss') {
     const area = this.currentArea() ?? DUNGEON_AREAS[0];
+    this.combatRngState = createRandomSeed();
     let encounterIds: string[];
     if (kind === 'boss') {
       encounterIds = this.mode() === 'campaign' && this.currentStage()?.bossEncounter
         ? this.currentStage()!.bossEncounter!
         : area.bossEncounter;
     } else if (kind === 'elite') {
-      encounterIds = pick(area.eliteEncounters);
+      encounterIds = this.pickCombat(area.eliteEncounters);
     } else {
-      encounterIds = pick(area.normalEncounters);
+      encounterIds = this.pickCombat(area.normalEncounters);
     }
     const enemyDefs = encounterIds.map(id => ENEMIES[id]).filter(Boolean);
     this.enemies.set(enemyDefs.map(d => this.makeEnemy(d)));
     this.selectedEnemyUid.set(this.enemies()[0]?.uid ?? null);
 
-    this.drawPile.set(shuffle(this.deck()));
+    this.drawPile.set(this.shuffleCombat(this.deck()));
     this.hand.set([]);
     this.discardPile.set([]);
     this.block.set(0);
@@ -234,7 +253,7 @@ export abstract class GameCombatService extends GameRunService {
     for (let i = 0; i < n; i++) {
       if (draw.length === 0) {
         if (discard.length === 0) break;
-        draw = shuffle(discard);
+        draw = this.shuffleCombat(discard);
         discard = [];
       }
       hand.push(draw.shift()!);
@@ -400,7 +419,7 @@ export abstract class GameCombatService extends GameRunService {
   }
 
   private applyRandomBonus() {
-    const roll = Math.floor(Math.random() * 3);
+    const roll = Math.floor(this.nextCombatRandom() * 3);
     if (roll === 0) {
       this.drawCards(1);
       this.addLog('Chaoswoge: Du ziehst 1 Karte.');
@@ -467,7 +486,7 @@ export abstract class GameCombatService extends GameRunService {
         const hits = resonance.hits ?? 3;
         const damage = (resonance.damage ?? 3) + echoBonus;
         for (let hit = 0; hit < hits && this.aliveEnemies().length > 0; hit++) {
-          this.dealDamage(pick(this.aliveEnemies()), damage, true);
+          this.dealDamage(this.pickCombat(this.aliveEnemies()), damage, true);
         }
         this.addLog(`✨ ${resonance.name}: ${hits} zufällige Treffer mit ${damage} Schaden.`);
       } else if (resonance.effect === 'heal') {
@@ -654,7 +673,7 @@ export abstract class GameCombatService extends GameRunService {
     }
 
     // Zufällige, unterschiedliche Belohnungskarten
-    const pool = shuffle(REWARD_POOL);
+    const pool = this.shuffleCombat(REWARD_POOL);
     const rewardCount = this.artifact()?.id === 'beutesack' ? 4 : 3;
     this.rewardCards.set(pool.slice(0, rewardCount).map(id => CARDS[id]));
     this.screen.set('reward');

@@ -181,6 +181,7 @@ export interface CombatSave {
   sanduhrUsed?: boolean;
   zeitbruchArmed?: boolean;
   targetIndex?: number;
+  rngState?: number;
 }
 
 // Gespeicherter Run (Fortsetzen-Funktion)
