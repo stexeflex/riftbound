@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { CardType, DungeonTheme, Screen, StationKind } from './game/models';
+import { CardType, DungeonTheme, Screen } from './game/models';
 
 const MUSIC_KEY = 'riftbound-music-enabled';
 const SFX_KEY = 'riftbound-sfx-enabled';
@@ -56,6 +56,8 @@ const COMBAT_THEME_LABELS: Record<DungeonTheme, string> = {
 const MENU_SCREENS = new Set<Screen>([
   'title', 'dungeons', 'campaign', 'artifacts', 'resonances', 'deck', 'meta', 'cards', 'converter',
 ]);
+
+const RUN_SCREENS = new Set<Screen>(['map', 'combat', 'reward', 'rest']);
 
 function loadSetting(key: string, fallback = true): boolean {
   if (typeof localStorage === 'undefined') return fallback;
@@ -139,7 +141,7 @@ export class AudioService {
     this.combatPlayer.addEventListener('ended', () => this.advanceCombatTrack());
   }
 
-  syncScreen(screen: Screen, theme?: DungeonTheme, kind?: StationKind) {
+  syncScreen(screen: Screen, theme?: DungeonTheme) {
     const active = MENU_SCREENS.has(screen);
     this.menuActive.set(active);
     if (active) {
@@ -147,16 +149,12 @@ export class AudioService {
       void this.playMenuMusic();
     } else {
       this.musicPlayer?.pause();
-      if (screen === 'map' && theme && kind) this.startCombatMusic(theme, kind);
-      else if (screen !== 'combat') this.stopCombatMusic();
+      if (RUN_SCREENS.has(screen) && theme) this.startCombatMusic(theme);
+      else this.stopCombatMusic();
     }
   }
 
-  startCombatMusic(theme: DungeonTheme, kind: StationKind) {
-    if (kind !== 'kampf') {
-      this.stopCombatMusic();
-      return;
-    }
+  startCombatMusic(theme: DungeonTheme) {
     const tracks = COMBAT_TRACKS[theme];
     if (tracks.length === 0 || !this.combatPlayer) return;
     if (this.combatMusicActive() && this.combatTheme === theme) {

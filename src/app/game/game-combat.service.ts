@@ -93,7 +93,6 @@ export abstract class GameCombatService extends GameRunService {
     this.screen.set('combat');
     this.audio.startCombatMusic(
       (this.currentArea() ?? DUNGEON_AREAS[0]).theme,
-      this.currentStation()?.kind ?? 'kampf',
     );
   }
 
@@ -177,7 +176,7 @@ export abstract class GameCombatService extends GameRunService {
       this.addLog('Blutvertrag: Leben geopfert, +3 Stärke für diesen Kampf.');
     }
     this.screen.set('combat');
-    this.audio.startCombatMusic(area.theme, kind);
+    this.audio.startCombatMusic(area.theme);
     this.startPlayerTurn(true);
     this.saveRun();
   }

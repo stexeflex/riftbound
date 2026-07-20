@@ -33,7 +33,6 @@ export class App {
     effect(() => this.audio.syncScreen(
       this.game.screen(),
       this.game.currentArea()?.theme,
-      this.game.currentStation()?.kind,
     ));
   }
 
