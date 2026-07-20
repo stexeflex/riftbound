@@ -76,6 +76,16 @@
   padding: 0 0.2rem;
 }
 
+// Kategorie-Farben (Resonanz): auf Karten und in der Resonanz-Leiste identisch.
+.card-category {
+  font-weight: bold;
+
+  &.cat-kraft { color: #ff8a5c; }
+  &.cat-schutz { color: #6db9ff; }
+  &.cat-kontrolle { color: #7ee0a0; }
+  &.cat-chaos { color: #d98aff; }
+}
+
 .card-angriff      { background: linear-gradient(180deg, #3d1420, #24090f); border-color: #a03040; }
 .card-verteidigung { background: linear-gradient(180deg, #14283d, #091524); border-color: #3060a0; }
 .card-technik      { background: linear-gradient(180deg, #143d2a, #092416); border-color: #30a060; }

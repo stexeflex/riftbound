@@ -145,10 +145,14 @@ export abstract class GameDeckService extends GameMetaService {
   buyResonance(r: ResonanceDef) {
     if (!this.canBuyResonance(r)) return;
     const m = this.meta();
+    // Neue Käufe werden direkt im aktiven Layout ausgerüstet.
     this.meta.set({
       ...m,
       splitter: m.splitter - r.costSplitter,
       resonances: [...m.resonances, r.id],
+      deckLayouts: m.deckLayouts.map(layout =>
+        layout.id === m.activeDeckLayoutId ? { ...layout, resonanceId: r.id } : layout,
+      ),
     });
     this.saveMeta();
   }

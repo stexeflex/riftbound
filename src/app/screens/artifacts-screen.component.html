@@ -5,7 +5,11 @@
           <span>🔮 {{ game.meta().splitter }} Splitter</span>
           <span>🟡 {{ game.meta().kerne }} Kerne</span>
         </div>
-        <p class="hint">Freigeschaltete Artefakte kannst du vor jedem Run auswählen. Fahre über ein Artefakt, um seine Regeln im Detail zu sehen.</p>
+        <p class="hint">
+          Freigeschaltete Artefakte kannst du vor jedem Run auswählen.
+          Neue Käufe werden direkt im aktiven Layout ausgerüstet.
+          Fahre über ein Artefakt, um seine Regeln im Detail zu sehen.
+        </p>
         <div class="upgrade-list">
           @for (a of game.allArtifacts; track a.id) {
             <div class="upgrade-row effect-detail" [class.owned-artifact]="game.ownsArtifact(a.id)"
@@ -19,7 +23,9 @@
                 <div class="upgrade-text">{{ a.text }}</div>
               </div>
               @if (game.ownsArtifact(a.id)) {
-                <span class="owned-badge">✔ Freigeschaltet</span>
+                <span class="owned-badge">
+                  {{ game.isEquippedArtifact(a.id) ? '★ Ausgerüstet' : '✔ Freigeschaltet' }}
+                </span>
               } @else {
                 <button class="btn btn-small" [disabled]="!game.canBuyArtifact(a)" (click)="game.buyArtifact(a)">
                   @if (a.costKerne) { 🟡 {{ a.costKerne }} } @else { 🔮 {{ a.costSplitter }} }

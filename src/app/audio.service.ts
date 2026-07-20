@@ -5,6 +5,7 @@ const MUSIC_KEY = 'riftbound-music-enabled';
 const SFX_KEY = 'riftbound-sfx-enabled';
 const MUSIC_VOLUME_KEY = 'riftbound-music-volume';
 const SFX_VOLUME_KEY = 'riftbound-sfx-volume';
+const CONTROLS_COLLAPSED_KEY = 'riftbound-audio-collapsed';
 
 // Musik startet leise (1/4 der Leiste), Sounds starten auf voller Leiste.
 const DEFAULT_MUSIC_VOLUME = 0.25;
@@ -56,12 +57,14 @@ const MENU_SCREENS = new Set<Screen>([
   'title', 'dungeons', 'campaign', 'artifacts', 'resonances', 'deck', 'meta', 'cards', 'converter',
 ]);
 
-function loadSetting(key: string): boolean {
-  if (typeof localStorage === 'undefined') return true;
+function loadSetting(key: string, fallback = true): boolean {
+  if (typeof localStorage === 'undefined') return fallback;
   try {
-    return localStorage.getItem(key) !== 'false';
+    const stored = localStorage.getItem(key);
+    if (stored === null) return fallback;
+    return stored !== 'false';
   } catch {
-    return true;
+    return fallback;
   }
 }
 
@@ -100,6 +103,7 @@ function saveVolume(key: string, volume: number) {
 export class AudioService {
   readonly musicEnabled = signal(loadSetting(MUSIC_KEY));
   readonly sfxEnabled = signal(loadSetting(SFX_KEY));
+  readonly controlsCollapsed = signal(loadSetting(CONTROLS_COLLAPSED_KEY, false));
   readonly musicVolume = signal(loadVolume(MUSIC_VOLUME_KEY, DEFAULT_MUSIC_VOLUME));
   readonly sfxVolume = signal(loadVolume(SFX_VOLUME_KEY, DEFAULT_SFX_VOLUME));
   readonly menuActive = signal(false);
@@ -182,6 +186,12 @@ export class AudioService {
     if (context?.state === 'suspended') void context.resume();
     if (this.menuActive() && this.musicEnabled()) void this.playMenuMusic();
     else if (this.combatMusicActive() && this.musicEnabled()) void this.playCombatMusic();
+  }
+
+  toggleControls() {
+    const collapsed = !this.controlsCollapsed();
+    this.controlsCollapsed.set(collapsed);
+    saveSetting(CONTROLS_COLLAPSED_KEY, collapsed);
   }
 
   toggleMusic() {
@@ -300,7 +310,9 @@ export class AudioService {
   }
 
   private async playMenuMusic() {
-    if (!this.unlocked || !this.menuActive() || !this.musicEnabled() || !this.musicPlayer) return;
+    // Musik startet direkt beim Laden; blockt der Browser Autoplay,
+    // versucht es die nächste Berührung oder Taste erneut.
+    if (!this.menuActive() || !this.musicEnabled() || !this.musicPlayer) return;
     try {
       await this.musicPlayer.play();
     } catch {

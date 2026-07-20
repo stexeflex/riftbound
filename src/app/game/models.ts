@@ -210,7 +210,8 @@ export interface MetaUpgradeDef {
   maxLevel: number;
   cost: number; // Grundpreis; steigt mit jeder gekauften Stufe
   currency?: 'splitter' | 'kerne';
-  describe: (level: number) => string;
+  describeCurrent: (level: number) => string; // aktueller Gesamtbonus
+  describeNext: (level: number) => string;    // Zugewinn der nächsten Stufe
 }
 
 export interface MetaState {

@@ -207,6 +207,17 @@ h1, h2 {
   backdrop-filter: blur(8px);
 }
 
+// Eingeklappt bleibt nur der runde Umschalt-Knopf sichtbar.
+.audio-controls.collapsed {
+  gap: 0;
+  padding: 0.25rem;
+  background: rgba(15, 11, 23, 0.72);
+}
+
+.audio-collapse-btn {
+  font-size: 0.85rem;
+}
+
 .now-playing {
   max-width: 155px;
   padding-left: 0.45rem;

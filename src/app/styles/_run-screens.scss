@@ -36,6 +36,13 @@
   white-space: pre-line;
 }
 
+// Mehrzeilige Tooltips (HP-Leiste, Gegner-Passiv)
+.tip.tip-pre:hover::after {
+  white-space: pre-line;
+  width: 280px;
+  max-width: min(280px, 82vw);
+}
+
 .effect-detail {
   position: relative;
 

@@ -5,37 +5,48 @@ import { MetaUpgradeDef } from '../models';
 export const META_UPGRADES: MetaUpgradeDef[] = [
   {
     id: 'leben', name: 'Zähigkeit', icon: '❤️', maxLevel: 5, cost: 40,
-    describe: l => `+${l * 2} maximales Leben (nächste Stufe: +${(l + 1) * 2})`,
+    describeCurrent: l => l > 0 ? `Aktueller Bonus: +${l * 2} maximales Leben` : 'Noch kein Bonus',
+    describeNext: l => `+2 maximales Leben (danach insgesamt +${(l + 1) * 2})`,
   },
   {
     id: 'klingenmeisterschaft', name: 'Klingenmeisterschaft', icon: '🗡️', maxLevel: 5, cost: 60,
-    describe: l => `Der erste Angriff jedes Kampfes verursacht +${l * 2} Schaden (nächste Stufe: +${(l + 1) * 2})`,
+    describeCurrent: l => l > 0
+      ? `Aktueller Bonus: Der erste Angriff jedes Kampfes verursacht +${l * 2} Schaden`
+      : 'Noch kein Bonus',
+    describeNext: l => `+2 Schaden (danach insgesamt +${(l + 1) * 2})`,
   },
   {
     id: 'heilung', name: 'Rastkunde', icon: '🔥', maxLevel: 4, cost: 50,
-    describe: l => `Heilung an Rastplätzen um ${l * 5} % erhöht (nächste Stufe: ${(l + 1) * 5} %)`,
+    describeCurrent: l => l > 0 ? `Aktueller Bonus: Heilung an Rastplätzen +${l * 5} %` : 'Noch kein Bonus',
+    describeNext: l => `+5 % Heilung (danach insgesamt +${(l + 1) * 5} %)`,
   },
   {
     id: 'energiekern', name: 'Energiekern', icon: '🔵', maxLevel: 2, cost: 2, currency: 'kerne',
-    describe: l => `+${l} maximale Energie pro Zug (nächste Stufe: +${l + 1})`,
+    describeCurrent: l => l > 0 ? `Aktueller Bonus: +${l} maximale Energie pro Zug` : 'Noch kein Bonus',
+    describeNext: l => `+1 maximale Energie (danach insgesamt +${l + 1})`,
   },
   {
     id: 'vorbereitung', name: 'Vorbereitung', icon: '🛡️', maxLevel: 4, cost: 60,
-    describe: l => `Beginne jeden Kampf mit ${l * 5} Schild (nächste Stufe: ${(l + 1) * 5})`,
+    describeCurrent: l => l > 0 ? `Aktueller Bonus: Beginne jeden Kampf mit ${l * 5} Schild` : 'Noch kein Bonus',
+    describeNext: l => `+5 Schild (danach insgesamt ${(l + 1) * 5})`,
   },
   {
     id: 'vorausahnung', name: 'Vorausahnung', icon: '👁️', maxLevel: 2, cost: 100,
-    describe: l => `Beginne jeden Kampf mit ${l} zusätzlichen Karten auf der Hand (nächste Stufe: ${l + 1})`,
+    describeCurrent: l => l > 0
+      ? `Aktueller Bonus: Beginne jeden Kampf mit ${l} zusätzlichen ${l === 1 ? 'Karte' : 'Karten'} auf der Hand`
+      : 'Noch kein Bonus',
+    describeNext: l => `+1 Karte auf der Starthand (danach insgesamt ${l + 1})`,
   },
   {
     id: 'schildfluss', name: 'Schildfluss', icon: '💠', maxLevel: 8, cost: 70,
-    describe: l => `Beginne jeden Zug mit ${l} zusätzlichem Schild (nächste Stufe: ${l + 1})`,
+    describeCurrent: l => l > 0
+      ? `Aktueller Bonus: Beginne jeden Zug mit ${l} zusätzlichem Schild`
+      : 'Noch kein Bonus',
+    describeNext: l => `+1 Schild pro Zug (danach insgesamt ${l + 1})`,
   },
   {
     id: 'nachhall', name: 'Resonanz-Nachhall', icon: '✨', maxLevel: 4, cost: 100,
-    describe: l => `Schaden und Schild von Resonanzen +${l} (nächste Stufe: +${l + 1})`,
+    describeCurrent: l => l > 0 ? `Aktueller Bonus: Schaden und Schild von Resonanzen +${l}` : 'Noch kein Bonus',
+    describeNext: l => `+1 Schaden und Schild (danach insgesamt +${l + 1})`,
   },
 ];
-
-
-

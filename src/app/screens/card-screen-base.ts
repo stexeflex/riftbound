@@ -25,7 +25,7 @@ export abstract class CardScreenBase extends GameScreen {
     energie: 'Energie: Wird zum Ausspielen von Karten benötigt und pro Zug erneuert.',
     zieh: 'Nachziehstapel: von hier ziehst du Karten.',
     ablage: 'Ablagestapel: Wird neu gemischt, wenn der Nachziehstapel leer ist.',
-    resonanz: 'Spiele 3 verschiedene Kategorien in einem Zug, um eine Resonanz auszulösen.',
+    resonanz: 'Spiele 3 verschiedene Kategorien in einem Zug, um eine Resonanz auszulösen. Standardmäßig löst sie höchstens 1× pro Zug aus.',
   };
 
   typeClass(type: CardType): string {
@@ -35,6 +35,15 @@ export abstract class CardScreenBase extends GameScreen {
       case 'Technik': return 'card-technik';
       case 'Macht': return 'card-macht';
       case 'Fluch': return 'card-fluch';
+    }
+  }
+
+  categoryClass(category: Category): string {
+    switch (category) {
+      case 'Kraft': return 'cat-kraft';
+      case 'Schutz': return 'cat-schutz';
+      case 'Kontrolle': return 'cat-kontrolle';
+      case 'Chaos': return 'cat-chaos';
     }
   }
 

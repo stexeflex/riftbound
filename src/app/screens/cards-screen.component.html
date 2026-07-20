@@ -59,7 +59,9 @@
                    [attr.aria-description]="cardDetails(def) || null">
                 <span class="card-cost">{{ def.cost }}</span>
                 <span class="card-name">{{ def.name }}</span>
-                <span class="card-type">{{ def.type }} · {{ def.category }}</span>
+                <span class="card-type">{{ def.type }} ·
+                  <span class="card-category {{ categoryClass(def.category) }}">{{ def.category }}</span>
+                </span>
                 <span class="card-text">{{ def.text }}</span>
                 @if (game.cardCount(def.id) > 0) {
                   <span class="owned-count">{{ game.cardCount(def.id) }}×</span>

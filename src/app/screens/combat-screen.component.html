@@ -3,27 +3,31 @@
           <div class="fighter player">
             <div class="fighter-emoji">🧙‍♂️</div>
             <div class="fighter-name">Du</div>
-            <div class="hp-bar">
-              <div class="hp-fill" [style.width.%]="barPercent(game.playerHp(), playerHpBarMax())"></div>
-              @if (game.block() > 0) {
-                <div class="hp-shield"
-                     [style.left.%]="barPercent(game.playerHp(), playerHpBarMax())"
-                     [style.width.%]="barPercent(game.block(), playerHpBarMax())"></div>
-              }
-              @if (blockPreview() > 0) {
-                <div class="hp-shield hp-shield-preview"
-                     [style.left.%]="barPercent(game.playerHp() + game.block(), playerHpBarMax())"
-                     [style.width.%]="barPercent(blockPreview(), playerHpBarMax())"></div>
-              }
-              @if (totalIncomingDamage() > 0) {
-                <div class="hp-loss-preview player-loss-preview"
-                     [style.left.%]="playerLossPreviewStartPercent()"
-                     [style.width.%]="playerIncomingPercent()"></div>
-              }
-              <span class="hp-text">
-                {{ game.playerHp() }}/{{ game.playerMaxHp() }}
-                @if (totalIncomingDamage() > 0) { → {{ projectedPlayerHp() }} }
-              </span>
+            <div class="hp-bar-wrap tip tip-pre"
+                 [class.doomed]="totalIncomingDamage() > 0 && projectedPlayerHp() <= 0"
+                 [attr.data-tip]="playerHpTip()">
+              <div class="hp-bar">
+                <div class="hp-fill" [style.width.%]="barPercent(game.playerHp(), playerHpBarMax())"></div>
+                @if (game.block() > 0) {
+                  <div class="hp-shield"
+                       [style.left.%]="barPercent(game.playerHp(), playerHpBarMax())"
+                       [style.width.%]="barPercent(game.block(), playerHpBarMax())"></div>
+                }
+                @if (blockPreview() > 0) {
+                  <div class="hp-shield hp-shield-preview"
+                       [style.left.%]="barPercent(game.playerHp() + game.block(), playerHpBarMax())"
+                       [style.width.%]="barPercent(blockPreview(), playerHpBarMax())"></div>
+                }
+                @if (totalIncomingDamage() > 0) {
+                  <div class="hp-loss-preview player-loss-preview"
+                       [style.left.%]="playerLossPreviewStartPercent()"
+                       [style.width.%]="playerIncomingPercent()"></div>
+                }
+                <span class="hp-text">
+                  {{ game.playerHp() }}/{{ game.playerMaxHp() }}
+                  @if (totalIncomingDamage() > 0) { → {{ projectedPlayerHp() }} }
+                </span>
+              </div>
             </div>
             <div class="status-row">
               @if (game.block() > 0) {
@@ -112,14 +116,10 @@
                   <span class="chip chip-vuln tip" [attr.data-tip]="tips.verwundbar">💔 {{ e.vulnerable }}</span>
                 }
               </div>
-              @if (e.def.passive) { <div class="passive">{{ e.def.passive }}</div> }
+              @if (e.def.passive) {
+                <div class="passive tip tip-pre" [attr.data-tip]="passiveDetails(e)">{{ e.def.passive }} ℹ️</div>
+              }
             </button>
-          }
-        </div>
-
-        <div class="combat-log">
-          @for (entry of game.log(); track $index) {
-            <div class="log-entry">{{ entry }}</div>
           }
         </div>
 
@@ -129,8 +129,10 @@
               {{ resonance.icon }} {{ resonance.name }} ℹ️
             </span>
             <span class="resonance-effect">{{ game.resonanceRunText(resonance) }}</span>
-            @for (cat of ['Kraft', 'Schutz', 'Kontrolle', 'Chaos']; track cat) {
-              <span class="resonance-dot" [class.active]="game.playedCategories().includes($any(cat))">
+            @for (cat of cardCategories; track cat) {
+              <span class="resonance-dot {{ categoryClass(cat) }}"
+                    [class.active]="game.playedCategories().includes(cat)">
+
                 {{ cat }}
               </span>
             }
@@ -166,7 +168,9 @@
               >
                 <span class="card-cost">{{ game.costOf(card) }}</span>
                 <span class="card-name">{{ card.def.name }}</span>
-                <span class="card-type">{{ card.def.type }} · {{ card.def.category }}</span>
+                <span class="card-type">{{ card.def.type }} ·
+                  <span class="card-category {{ categoryClass(card.def.category) }}">{{ card.def.category }}</span>
+                </span>
                 <span class="card-text">{{ card.def.text }}</span>
               </button>
             }
@@ -177,6 +181,10 @@
 
           <div class="turn-controls">
             <div class="pile tip" [attr.data-tip]="tips.ablage">🗑️ {{ game.discardPile().length }}</div>
+            <button class="btn btn-small"
+                    [disabled]="!game.canUndoCardPlay()"
+                    title="Macht die zuletzt gespielte Karte rückgängig (nur im aktuellen Zug)"
+                    (click)="game.undoCardPlay()">↩️ Rückgängig</button>
             <button class="btn btn-primary" (click)="game.endTurn()">Zug beenden</button>
             <button class="btn btn-small" (click)="game.toMenu()">Menü</button>
             <button class="btn btn-small btn-danger combat-give-up"
@@ -184,6 +192,12 @@
               Run aufgeben
             </button>
           </div>
+        </div>
+
+        <div class="combat-log">
+          @for (entry of game.log(); track $index) {
+            <div class="log-entry">{{ entry }}</div>
+          }
         </div>
       </div>
 

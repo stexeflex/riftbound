@@ -5,7 +5,7 @@ import { ArtifactDef } from '../models';
 export const ARTIFACTS: ArtifactDef[] = [
   {
     id: 'schildkern', name: 'Schildkern', icon: '🔷', costSplitter: 120,
-    text: 'Beginne jeden Zug mit 2 Schild.',
+    text: 'Beginne jeden Zug mit 3 Schild.',
   },
   {
     id: 'glasherz', name: 'Glasherz', icon: '❤️‍🔥', costSplitter: 100,
@@ -13,14 +13,14 @@ export const ARTIFACTS: ArtifactDef[] = [
   },
   {
     id: 'dornenkrone', name: 'Dornenkrone', icon: '👑', costSplitter: 100,
-    text: 'Bei direktem Schaden erhältst du 1 zusätzlichen Schaden, fügst dem Angreifer aber 4 Schaden zu.',
+    text: 'Bei direktem Schaden erhältst du 1 zusätzlichen Schaden, fügst dem Angreifer aber 4 Schaden (plus deine Stärke) zu.',
   },
   {
     id: 'sanduhr', name: 'Gebrochene Sanduhr', icon: '⏳', costSplitter: 150,
     text: 'Die erste Karte jedes Zuges mit Kosten von 3 oder mehr kostet 1 Energie weniger.',
   },
   {
-    id: 'vampirfang', name: 'Vampirfang', icon: '🦇', costSplitter: 150,
+    id: 'vampirfang', name: 'Vampirfang', icon: '🦇', costSplitter: 200,
     text: 'Die erste Angriffskarte jedes Zuges heilt dich um 2 Leben.',
   },
   {
@@ -32,38 +32,35 @@ export const ARTIFACTS: ArtifactDef[] = [
     text: 'Behalte zu Beginn deines Zuges die Hälfte deines übrigen Schilds.',
   },
   {
-    id: 'resonanzstein', name: 'Resonanzstein', icon: '💠', costSplitter: 200,
+    id: 'resonanzstein', name: 'Resonanzstein', icon: '💠', costSplitter: 180,
     text: 'Resonanz kann zweimal pro Zug ausgelöst werden.',
   },
   {
     id: 'blutvertrag', name: 'Blutvertrag', icon: '📜', costKerne: 1,
-    text: 'Opfere zu Beginn jedes Kampfes bis zu 6 Leben (mindestens 1 bleibt) und erhalte +2 Stärke.',
+    text: 'Opfere zu Beginn jedes Kampfes bis zu 6 Leben (mindestens 1 bleibt) und erhalte +3 Stärke.',
   },
   {
-    id: 'funkenreif', name: 'Funkenreif', icon: '⚡', costSplitter: 180,
+    id: 'funkenreif', name: 'Funkenreif', icon: '⚡', costSplitter: 120,
     text: 'Erhalte im ersten Zug jedes Kampfes 1 zusätzliche Energie.',
   },
   {
-    id: 'weise-feder', name: 'Feder der Voraussicht', icon: '🪶', costSplitter: 200,
+    id: 'weise-feder', name: 'Feder der Voraussicht', icon: '🪶', costSplitter: 140,
     text: 'Ziehe im ersten Zug jedes Kampfes 2 zusätzliche Karten.',
   },
   {
-    id: 'runenpanzer', name: 'Runenpanzer', icon: '🛡️', costSplitter: 180,
-    text: 'Beginne jeden Kampf mit 8 Schild.',
+    id: 'runenpanzer', name: 'Runenpanzer', icon: '🛡️', costSplitter: 100,
+    text: 'Beginne jeden Kampf mit 40 Schild.',
   },
   {
-    id: 'jaegerauge', name: 'Jägerauge', icon: '🎯', costSplitter: 220,
-    text: 'Der erste Angriff jedes Kampfes verursacht gegen ein Ziel mit vollen Leben doppelten Schaden.',
+    id: 'jaegerauge', name: 'Jägerauge', icon: '🎯', costSplitter: 160,
+    text: 'Der erste Angriff jedes Kampfes verursacht gegen Ziele mit vollen Leben doppelten Schaden – bei Gruppenangriffen gegen jedes volle Ziel.',
   },
   {
     id: 'risskelch', name: 'Risskelch', icon: '🏺', costKerne: 1,
-    text: 'Heile nach jedem gewonnenen Kampf 8 Leben.',
+    text: 'Heile nach jedem gewonnenen Kampf 20 Leben.',
   },
   {
-    id: 'beutesack', name: 'Dimensionsbeutel', icon: '🎒', costSplitter: 240,
+    id: 'beutesack', name: 'Dimensionsbeutel', icon: '🎒', costSplitter: 160,
     text: 'Nach Kämpfen erscheint eine zusätzliche Karte in der Belohnungsauswahl.',
   },
 ];
-
-
-

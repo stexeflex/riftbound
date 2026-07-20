@@ -14,8 +14,17 @@
          fetchpriority="high" />
   }
   <div class="audio-controls" aria-label="Audioeinstellungen"
+       [class.collapsed]="audio.controlsCollapsed()"
        [attr.data-music-playing]="audio.musicPlaying()"
        [attr.data-track-index]="audio.currentTrackIndex()">
+    <button type="button" class="audio-btn audio-collapse-btn"
+            [attr.aria-expanded]="!audio.controlsCollapsed()"
+            [attr.aria-label]="audio.controlsCollapsed() ? 'Audioleiste ausklappen' : 'Audioleiste einklappen'"
+            [attr.title]="audio.controlsCollapsed() ? 'Audioleiste ausklappen' : 'Audioleiste einklappen'"
+            (click)="audio.toggleControls()">
+      <span class="audio-symbol" aria-hidden="true">{{ audio.controlsCollapsed() ? '🎛️' : '✕' }}</span>
+    </button>
+    @if (!audio.controlsCollapsed()) {
     <button type="button" class="audio-btn utility-audio-btn"
             aria-label="Hilfe und Effektlexikon öffnen"
             title="Hilfe und Effektlexikon"
@@ -78,6 +87,7 @@
              [value]="audio.sfxVolume() * 100"
              (input)="audio.setSfxVolume($any($event.target).valueAsNumber / 100)" />
     </div>
+    }
   </div>
 
   @if (helpOpen()) {

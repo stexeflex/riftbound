@@ -5,8 +5,10 @@
           <span>🔮 {{ game.meta().splitter }} Splitter</span>
         </div>
         <p class="hint">
-          Resonanz wird ausgelöst, sobald du in einem Zug Karten aus 3 verschiedenen Kategorien spielst.
+          Resonanz wird ausgelöst, sobald du in einem Zug Karten aus 3 verschiedenen Kategorien spielst –
+          standardmäßig höchstens 1× pro Zug.
           Kaufe Resonanzen dauerhaft und wähle vor jedem Run eine davon aus.
+          Neue Käufe werden direkt im aktiven Layout ausgerüstet.
         </p>
         <div class="upgrade-list">
           @for (r of game.allResonances; track r.id) {
@@ -25,7 +27,9 @@
                 }
               </div>
               @if (game.ownsResonance(r.id)) {
-                <span class="owned-badge">✔ Freigeschaltet</span>
+                <span class="owned-badge">
+                  {{ game.isEquippedResonance(r.id) ? '★ Ausgerüstet' : '✔ Freigeschaltet' }}
+                </span>
               } @else {
                 <button class="btn btn-small" [disabled]="!game.canBuyResonance(r)" (click)="game.buyResonance(r)">
                   🔮 {{ r.costSplitter }}

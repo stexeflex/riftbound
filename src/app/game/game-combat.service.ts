@@ -170,10 +170,11 @@ export abstract class GameCombatService extends GameRunService {
     this.turn.set(1);
     this.firstAttackDone.set(false);
     this.log.set([]);
+    this.combatUndoStack.set([]);
     if (this.artifact()?.id === 'blutvertrag') {
       this.playerHp.set(Math.max(1, this.playerHp() - 6));
-      this.strength.set(2);
-      this.addLog('Blutvertrag: Leben geopfert, +2 Stärke für diesen Kampf.');
+      this.strength.set(3);
+      this.addLog('Blutvertrag: Leben geopfert, +3 Stärke für diesen Kampf.');
     }
     this.screen.set('combat');
     this.audio.startCombatMusic(area.theme, kind);
@@ -195,11 +196,11 @@ export abstract class GameCombatService extends GameRunService {
     this.energy.set(energy);
 
     let startBlock = 0;
-    if (this.artifact()?.id === 'schildkern') startBlock += 2;
+    if (this.artifact()?.id === 'schildkern') startBlock += 3;
     startBlock += this.runUpgradeLevel('schildfluss');
     if (first) {
       startBlock += this.runUpgradeLevel('vorbereitung') * 5;
-      if (this.artifact()?.id === 'runenpanzer') startBlock += 8;
+      if (this.artifact()?.id === 'runenpanzer') startBlock += 40;
     }
     if (this.artifact()?.id === 'seelenspiegel' && this.block() > 0) {
       const kept = Math.floor(this.block() / 2);
@@ -295,14 +296,15 @@ export abstract class GameCombatService extends GameRunService {
     if (!def.damage) return { total: 0, afterBlock: 0 };
     const hits = def.hits ?? 1;
     let total = 0;
-    let firstDone = this.firstAttackDone()
-      || (def.target === 'all' && this.aliveEnemies()[0]?.uid !== enemy.uid);
+    const firstAttackCard = !this.firstAttackDone();
+    // Klingenmeisterschaft trifft nur den ersten Treffer des ersten Ziels,
+    // Jägerauge verdoppelt beim ersten Angriff gegen jedes Ziel mit vollen Leben.
+    const klingenTarget = def.target !== 'all' || this.aliveEnemies()[0]?.uid === enemy.uid;
     for (let h = 0; h < hits; h++) {
       let dmg = def.damage + this.strength();
-      if (!firstDone) {
-        dmg += this.runUpgradeLevel('klingenmeisterschaft') * 2;
+      if (firstAttackCard && h === 0) {
+        if (klingenTarget) dmg += this.runUpgradeLevel('klingenmeisterschaft') * 2;
         if (this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) dmg *= 2;
-        firstDone = true;
       }
       if (this.artifact()?.id === 'glasherz') dmg = Math.round(dmg * 1.2);
       if (this.playerWeak() > 0) dmg = Math.round(dmg * 0.75);
@@ -320,6 +322,7 @@ export abstract class GameCombatService extends GameRunService {
 
   playCard(card: CardInstance) {
     if (!this.canPlay(card)) return;
+    this.pushUndoSnapshot();
     this.hoveredCard.set(null);
     // Wurde Zeitbruch vor dieser Karte ausgelöst, beendet diese Karte den Zug.
     const zeitbruchEndsTurn = this.zeitbruchArmed();
@@ -345,12 +348,19 @@ export abstract class GameCombatService extends GameRunService {
         this.addLog('Vampirfang: Du heilst 2 Leben.');
       }
       this.attackPlayedThisTurn.set(true);
+      const firstAttackCard = !this.firstAttackDone();
+      let klingenAvailable = firstAttackCard;
       for (const target of targets) {
         const hits = def.hits ?? 1;
         for (let h = 0; h < hits; h++) {
-          this.dealDamage(target, def.damage);
+          this.dealDamage(target, def.damage, false, {
+            klingen: klingenAvailable,
+            jaeger: firstAttackCard && h === 0,
+          });
+          klingenAvailable = false;
         }
       }
+      if (firstAttackCard) this.firstAttackDone.set(true);
     }
     if (def.block) this.gainBlock(def.block);
     if (def.blockPerEnemy) this.gainBlock(def.blockPerEnemy * this.aliveEnemies().length);
@@ -473,22 +483,26 @@ export abstract class GameCombatService extends GameRunService {
     this.block.set(this.block() + n);
   }
 
-  private dealDamage(enemy: EnemyState, base: number, pure = false) {
+  private dealDamage(
+    enemy: EnemyState,
+    base: number,
+    pure = false,
+    first?: { klingen: boolean; jaeger: boolean },
+  ) {
     const wasAlive = enemy.hp > 0;
     let dmg = base;
     if (!pure) {
       dmg += this.strength();
-      if (!this.firstAttackDone()) {
+      if (first?.klingen) {
         const bonus = this.runUpgradeLevel('klingenmeisterschaft') * 2;
         if (bonus > 0) {
           dmg += bonus;
           this.addLog(`Klingenmeisterschaft: +${bonus} Schaden.`);
         }
-        if (this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) {
-          dmg *= 2;
-          this.addLog('Jägerauge: Doppelter Schaden gegen ein unverletztes Ziel.');
-        }
-        this.firstAttackDone.set(true);
+      }
+      if (first?.jaeger && this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) {
+        dmg *= 2;
+        this.addLog('Jägerauge: Doppelter Schaden gegen ein unverletztes Ziel.');
       }
       if (this.artifact()?.id === 'glasherz') dmg = Math.round(dmg * 1.2);
       if (this.playerWeak() > 0) dmg = Math.round(dmg * 0.75);
@@ -509,8 +523,38 @@ export abstract class GameCombatService extends GameRunService {
     }
   }
 
+  // ---------- Rückgängig (nur innerhalb des eigenen Zuges) ----------
+
+  private pushUndoSnapshot() {
+    const combat = this.buildCombatSave();
+    if (!combat) return;
+    this.combatUndoStack.set([
+      ...this.combatUndoStack().slice(-19),
+      { combat, hp: this.playerHp(), log: this.log() },
+    ]);
+  }
+
+  canUndoCardPlay(): boolean {
+    return this.screen() === 'combat' && this.combatUndoStack().length > 0;
+  }
+
+  /** Macht die zuletzt gespielte Karte rückgängig. */
+  undoCardPlay() {
+    if (!this.canUndoCardPlay()) return;
+    const stack = this.combatUndoStack();
+    const snapshot = stack[stack.length - 1];
+    this.combatUndoStack.set(stack.slice(0, -1));
+    this.playerHp.set(snapshot.hp);
+    this.restoreCombat(snapshot.combat);
+    this.log.set(['↩️ Letzte Karte rückgängig gemacht.', ...snapshot.log].slice(0, 6));
+    this.hoveredCard.set(null);
+    this.saveRun();
+  }
+
   endTurn() {
     if (this.screen() !== 'combat') return;
+    // Mit dem Zugende verfallen alle Rückgängig-Schritte dieses Zuges.
+    this.combatUndoStack.set([]);
     if (this.endTurnBlock() > 0) this.gainBlock(this.endTurnBlock());
     // Hand ablegen
     this.discardPile.set([...this.discardPile(), ...this.hand()]);
@@ -579,8 +623,9 @@ export abstract class GameCombatService extends GameRunService {
     let hpDmg = dmg - blocked;
     if (hpDmg > 0 && this.artifact()?.id === 'dornenkrone') {
       hpDmg += 1;
-      this.dealDamage(attacker, 4, true);
-      this.addLog('Dornenkrone: 4 Gegenschaden!');
+      const thorns = 4 + this.strength();
+      this.dealDamage(attacker, thorns, true);
+      this.addLog(`Dornenkrone: ${thorns} Gegenschaden!`);
     }
     if (hpDmg > 0) {
       this.playerHp.set(Math.max(0, this.playerHp() - hpDmg));
@@ -589,6 +634,7 @@ export abstract class GameCombatService extends GameRunService {
   }
 
   private onCombatWon() {
+    this.combatUndoStack.set([]);
     const station = this.currentStation();
     let splitter = station.kind === 'boss' ? 60 : station.kind === 'elite' ? 30 : 15;
     if (this.mode() === 'dungeon') {
@@ -604,8 +650,8 @@ export abstract class GameCombatService extends GameRunService {
     this.rewardSplitter.set(splitter);
 
     if (this.artifact()?.id === 'risskelch') {
-      this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + 8));
-      this.addLog('Risskelch: Du heilst 8 Leben.');
+      this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + 20));
+      this.addLog('Risskelch: Du heilst 20 Leben.');
     }
 
     // Zufällige, unterschiedliche Belohnungskarten

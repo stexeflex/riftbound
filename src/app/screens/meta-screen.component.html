@@ -8,6 +8,7 @@
           <span>Siege: {{ game.meta().wins }}</span>
         </div>
         <h3 class="meta-section">Upgrades</h3>
+        <p class="hint upgrade-hint">Jede Stufe erhöht den Bonus um denselben Betrag.</p>
         <div class="upgrade-list">
           @for (u of game.metaUpgrades; track u.id) {
             <div class="upgrade-row">
@@ -17,11 +18,14 @@
                   {{ u.name }}
                   <span class="upgrade-level">Stufe {{ game.upgradeLevel(u.id) }}/{{ u.maxLevel }}</span>
                 </div>
-                <div class="upgrade-text">{{ u.describe(game.upgradeLevel(u.id)) }}</div>
+                <div class="upgrade-text upgrade-current">{{ u.describeCurrent(game.upgradeLevel(u.id)) }}</div>
                 @if (game.upgradeLevel(u.id) < u.maxLevel) {
+                  <div class="upgrade-text upgrade-next">Nächste Stufe: {{ u.describeNext(game.upgradeLevel(u.id)) }}</div>
                   <div class="upgrade-price-note">
-                    Grundpreis: {{ u.currency === 'kerne' ? '🟡' : '🔮' }} {{ u.cost }}
+                    Grundpreis: {{ u.currency === 'kerne' ? '🟡' : '🔮' }} {{ u.cost }} – der Preis steigt mit jeder Stufe
                   </div>
+                } @else {
+                  <div class="upgrade-text upgrade-next">Maximale Stufe erreicht.</div>
                 }
               </div>
               <button

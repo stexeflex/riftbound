@@ -9,7 +9,9 @@
                     (click)="game.takeReward(def)">
               <span class="card-cost">{{ def.cost }}</span>
               <span class="card-name">{{ def.name }}</span>
-              <span class="card-type">{{ def.type }} · {{ def.category }}</span>
+              <span class="card-type">{{ def.type }} ·
+                <span class="card-category {{ categoryClass(def.category) }}">{{ def.category }}</span>
+              </span>
               <span class="card-text">{{ def.text }}</span>
             </button>
           }

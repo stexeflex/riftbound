@@ -134,6 +134,9 @@ export abstract class GameMetaService {
   readonly attackPlayedThisTurn = signal(false);
   readonly log = signal<string[]>([]);
 
+  // Rückgängig-Schnappschüsse für den laufenden Zug (leert sich bei Zugende)
+  readonly combatUndoStack = signal<{ combat: CombatSave; hp: number; log: string[] }[]>([]);
+
   // ---------- Hover-Vorschau ----------
   readonly hoveredCard = signal<CardInstance | null>(null);
   readonly giveUpConfirmationOpen = signal(false);
@@ -326,20 +329,6 @@ export abstract class GameMetaService {
     return hasResonanceNachhallEffect(resonance);
   }
 
-  convertSplitterToKern() {
-    const m = this.meta();
-    if (m.splitter < 1000) return;
-    this.meta.set({ ...m, splitter: m.splitter - 1000, kerne: m.kerne + 1 });
-    this.saveMeta();
-  }
-
-  convertKernToSplitter() {
-    const m = this.meta();
-    if (m.kerne < 1) return;
-    this.meta.set({ ...m, splitter: m.splitter + 1000, kerne: m.kerne - 1 });
-    this.saveMeta();
-  }
-
   ownsArtifact(id: string): boolean {
     return this.meta().artifacts.includes(id);
   }
@@ -355,11 +344,47 @@ export abstract class GameMetaService {
   buyArtifact(a: ArtifactDef) {
     if (!this.canBuyArtifact(a)) return;
     const m = this.meta();
+    // Neue Käufe werden direkt im aktiven Layout ausgerüstet.
     this.meta.set({
       ...m,
       splitter: m.splitter - (a.costSplitter ?? 0),
       kerne: m.kerne - (a.costKerne ?? 0),
       artifacts: [...m.artifacts, a.id],
+      deckLayouts: m.deckLayouts.map(layout =>
+        layout.id === m.activeDeckLayoutId ? { ...layout, artifactId: a.id } : layout,
+      ),
+    });
+    this.saveMeta();
+  }
+
+  /** Ist dieses Artefakt im aktiven Layout ausgerüstet? */
+  isEquippedArtifact(id: string): boolean {
+    const m = this.meta();
+    return m.deckLayouts.find(l => l.id === m.activeDeckLayoutId)?.artifactId === id;
+  }
+
+  /** Ist diese Resonanz im aktiven Layout ausgerüstet? */
+  isEquippedResonance(id: string): boolean {
+    const m = this.meta();
+    return m.deckLayouts.find(l => l.id === m.activeDeckLayoutId)?.resonanceId === id;
+  }
+
+  // ================= Umwandler =================
+
+  readonly kernConversionCost = 1000; // Splitter pro Kern
+
+  canConvertSplitterToKern(): boolean {
+    return this.meta().splitter >= this.kernConversionCost;
+  }
+
+  /** Wandelt 1000 Splitter in 1 Kern um – die Gegenrichtung gibt es bewusst nicht. */
+  convertSplitterToKern() {
+    if (!this.canConvertSplitterToKern()) return;
+    const m = this.meta();
+    this.meta.set({
+      ...m,
+      splitter: m.splitter - this.kernConversionCost,
+      kerne: m.kerne + 1,
     });
     this.saveMeta();
   }

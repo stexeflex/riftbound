@@ -74,14 +74,11 @@ export abstract class CombatScreenBase extends CardScreenBase {
     return max > 0 ? (Math.max(0, value) / max) * 100 : 0;
   }
 
-  /** Skaliert Leben, Schild und Vorschauen gemeinsam, damit alle Segmente in die Leiste passen. */
+  /** Skaliert Leben und Schild gemeinsam, damit alle Segmente in die Leiste passen. */
   playerHpBarMax(): number {
     return Math.max(
       this.game.playerMaxHp(),
-      this.game.playerHp()
-        + this.game.block()
-        + this.blockPreview()
-        + Math.min(this.game.playerHp(), this.previewedIncomingDamage()),
+      this.game.playerHp() + this.game.block() + this.blockPreview(),
     );
   }
 
@@ -177,16 +174,69 @@ export abstract class CombatScreenBase extends CardScreenBase {
     return lines.join('\n');
   }
 
+  /** Angesagter Gesamtschaden aller Gegner vor Verrechnung mit dem Schild. */
+  totalIncomingRaw(): number {
+    let total = 0;
+    for (const e of this.game.aliveEnemies()) {
+      const i = e.intent;
+      if (i.kind !== 'attack' && i.kind !== 'attack_debuff') continue;
+      total += this.game.enemyAttackPerHit(e) * (i.hits ?? 1);
+    }
+    return total;
+  }
+
+  /** Tooltip für die Spieler-HP-Leiste: Leben, Schild und eingehender Schaden. */
+  playerHpTip(): string {
+    const lines = [
+      `❤️ Leben: ${this.game.playerHp()}/${this.game.playerMaxHp()}`,
+      `🛡️ Aktives Schild: ${this.game.block()}`,
+    ];
+    const raw = this.totalIncomingRaw();
+    if (raw > 0) {
+      const loss = this.totalIncomingDamage();
+      lines.push(`⚔️ Angesagter Gegnerschaden: ${raw}`);
+      lines.push(loss > 0
+        ? `→ Du verlierst ${loss} Leben (übrig: ${this.projectedPlayerHp()})`
+        : '→ Dein Schild blockt alles: 0 Lebensverlust');
+      if (this.projectedPlayerHp() <= 0) lines.push('☠️ Achtung: Dieser Zug wäre tödlich!');
+    } else {
+      lines.push('⚔️ Kein Angriff angesagt.');
+    }
+    return lines.join('\n');
+  }
+
+  /** Tooltip für den Passiv-Text unter einem Gegner. */
+  passiveDetails(e: EnemyState): string {
+    const text = e.def.passive ?? '';
+    const lines: string[] = [];
+    if (/stärke|stärker|Buff/i.test(text)) {
+      lines.push('Stärke: Jeder Angriffstreffer dieses Gegners verursacht so viel zusätzlichen Schaden.');
+    }
+    if (/schwäche|schwächt|Flüche|lähmend/i.test(text)) {
+      lines.push('Schwäche: Deine Angriffe verursachen 25 % weniger Schaden. Sinkt pro Zug um 1.');
+    }
+    if (/schützt|Deckung|Eiswälle|Schutz|Schild/i.test(text)) {
+      lines.push('Schild: Blockt deinen Schaden und verfällt vor dem nächsten Gegnerzug.');
+    }
+    if (/Mehrfachtreffer|Serien|Kettenblitze|Treffer auf/i.test(text)) {
+      lines.push('Mehrfachtreffer: Jeder Treffer wird einzeln gegen dein Schild gerechnet.');
+    }
+    if (e.strength > 0) lines.push(`Aktuelle Stärke: +${e.strength} Schaden pro Treffer.`);
+    if (lines.length === 0) return 'Passiver Effekt dieses Gegners.';
+    return lines.join('\n');
+  }
+
   projectedPlayerHp(): number {
     return Math.max(0, this.game.playerHp() - this.previewedIncomingDamage());
   }
 
-  /** Rot folgt visuell erst auf Leben, vorhandenen Schild und die blaue Schildvorschau. */
+  /**
+   * Rot überdeckt den Lebensanteil, der verloren geht: Es beginnt beim
+   * verbleibenden Leben und endet am aktuellen Leben. Wärst du tot, ist
+   * die komplette Lebensleiste rot gestreift – kein Grün bleibt sichtbar.
+   */
   playerLossPreviewStartPercent(): number {
-    return this.barPercent(
-      this.game.playerHp() + this.game.block() + this.blockPreview(),
-      this.playerHpBarMax(),
-    );
+    return this.barPercent(this.projectedPlayerHp(), this.playerHpBarMax());
   }
 
   playerIncomingPercent(): number {
