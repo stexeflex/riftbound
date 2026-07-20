@@ -1,4 +1,4 @@
 interface:
   display_name: "Riftbound"
-  short_description: "Unterstützung für das Riftbound Karten-Roguelite"
-  default_prompt: "Hilf mir, Riftbound weiterzuentwickeln."
+  short_description: "UnterstÃ¼tzung fÃ¼r das Riftbound Karten-Roguelite"
+  default_prompt: "Nutze $riftbound, um Riftbound weiterzuentwickeln und direkte main-Pushes anschlieÃŸend zu deployen."
