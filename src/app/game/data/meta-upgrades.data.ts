@@ -16,20 +16,20 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
     describe: l => `Heilung an Rastplätzen um ${l * 5} % erhöht (nächste Stufe: ${(l + 1) * 5} %)`,
   },
   {
-    id: 'energiekern', name: 'Energiekern', icon: '🔵', maxLevel: 2, cost: 180,
+    id: 'energiekern', name: 'Energiekern', icon: '🔵', maxLevel: 2, cost: 2, currency: 'kerne',
     describe: l => `+${l} maximale Energie pro Zug (nächste Stufe: +${l + 1})`,
   },
   {
-    id: 'vorbereitung', name: 'Vorbereitung', icon: '🛡️', maxLevel: 4, cost: 70,
-    describe: l => `Beginne jeden Kampf mit ${l * 3} Schild (nächste Stufe: ${(l + 1) * 3})`,
+    id: 'vorbereitung', name: 'Vorbereitung', icon: '🛡️', maxLevel: 4, cost: 60,
+    describe: l => `Beginne jeden Kampf mit ${l * 5} Schild (nächste Stufe: ${(l + 1) * 5})`,
   },
   {
-    id: 'vorausahnung', name: 'Vorausahnung', icon: '👁️', maxLevel: 2, cost: 120,
-    describe: l => `Ziehe im ersten Zug ${l} zusätzliche Karten (nächste Stufe: ${l + 1})`,
+    id: 'vorausahnung', name: 'Vorausahnung', icon: '👁️', maxLevel: 2, cost: 100,
+    describe: l => `Beginne jeden Kampf mit ${l} zusätzlichen Karten auf der Hand (nächste Stufe: ${l + 1})`,
   },
   {
-    id: 'pluenderer', name: 'Rissplünderer', icon: '💰', maxLevel: 5, cost: 80,
-    describe: l => `+${l * 10} % Splitter aus Kämpfen (nächste Stufe: ${(l + 1) * 10} %)`,
+    id: 'schildfluss', name: 'Schildfluss', icon: '💠', maxLevel: 8, cost: 70,
+    describe: l => `Beginne jeden Zug mit ${l} zusätzlichem Schild (nächste Stufe: ${l + 1})`,
   },
   {
     id: 'nachhall', name: 'Resonanz-Nachhall', icon: '✨', maxLevel: 4, cost: 100,

@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { CardType, Screen } from './game/models';
+import { CardType, DungeonTheme, Screen, StationKind } from './game/models';
 
 const MUSIC_KEY = 'riftbound-music-enabled';
 const SFX_KEY = 'riftbound-sfx-enabled';
@@ -14,12 +14,46 @@ const MUSIC_VOLUME_SCALE = 0.26 / 0.6;
 
 const MENU_TRACKS = [
   { label: 'Menu Theme 1', src: 'audio/menu/menu-01-theme-1.mp3' },
-  { label: 'Menu Theme 3', src: 'audio/menu/menu-02-theme-3.mp3' },
   { label: 'Menu Theme 2', src: 'audio/menu/menu-03-theme-2.mp3' },
+  { label: 'Menu Theme 3', src: 'audio/menu/menu-02-theme-3.mp3' },
 ] as const;
 
+const COMBAT_TRACKS: Record<DungeonTheme, readonly string[]> = {
+  desert: [
+    'audio/combat/desert/normal-01.mp3',
+    'audio/combat/desert/normal-02.mp3',
+  ],
+  winter: [
+    'audio/combat/winter/normal-01.mp3',
+    'audio/combat/winter/normal-02.mp3',
+  ],
+  crystal: [
+    'audio/combat/crystal/normal-01.mp3',
+    'audio/combat/crystal/normal-02.mp3',
+    'audio/combat/crystal/normal-03.mp3',
+  ],
+  sky: [
+    'audio/combat/sky/normal-01.mp3',
+    'audio/combat/sky/normal-02.mp3',
+    'audio/combat/sky/normal-03.mp3',
+    'audio/combat/sky/normal-04.mp3',
+  ],
+  void: [
+    'audio/combat/void/normal-01.mp3',
+    'audio/combat/void/normal-02.mp3',
+  ],
+};
+
+const COMBAT_THEME_LABELS: Record<DungeonTheme, string> = {
+  desert: 'Wüste',
+  winter: 'Winter',
+  crystal: 'Kristall',
+  sky: 'Himmel',
+  void: 'Leere',
+};
+
 const MENU_SCREENS = new Set<Screen>([
-  'title', 'dungeons', 'campaign', 'artifacts', 'resonances', 'deck', 'meta', 'cards',
+  'title', 'dungeons', 'campaign', 'artifacts', 'resonances', 'deck', 'meta', 'cards', 'converter',
 ]);
 
 function loadSetting(key: string): boolean {
@@ -69,11 +103,17 @@ export class AudioService {
   readonly musicVolume = signal(loadVolume(MUSIC_VOLUME_KEY, DEFAULT_MUSIC_VOLUME));
   readonly sfxVolume = signal(loadVolume(SFX_VOLUME_KEY, DEFAULT_SFX_VOLUME));
   readonly menuActive = signal(false);
+  readonly combatMusicActive = signal(false);
+  readonly currentCombatTrackLabel = signal('');
   readonly musicPlaying = signal(false);
   readonly currentTrackIndex = signal(0);
   readonly currentTrackLabel = computed(() => MENU_TRACKS[this.currentTrackIndex()].label);
 
   private musicPlayer: HTMLAudioElement | null = null;
+  private combatPlayer: HTMLAudioElement | null = null;
+  private combatTracks: readonly string[] = [];
+  private combatTrackIndex = 0;
+  private combatTheme: DungeonTheme | null = null;
   private audioContext: AudioContext | null = null;
   private unlocked = false;
 
@@ -86,16 +126,53 @@ export class AudioService {
     this.musicPlayer.addEventListener('pause', () => this.musicPlaying.set(false));
     this.musicPlayer.addEventListener('ended', () => this.advanceTrack());
     this.loadTrack(0);
+
+    this.combatPlayer = new Audio();
+    this.combatPlayer.preload = 'metadata';
+    this.combatPlayer.volume = this.musicVolume() * MUSIC_VOLUME_SCALE;
+    this.combatPlayer.addEventListener('playing', () => this.musicPlaying.set(true));
+    this.combatPlayer.addEventListener('pause', () => this.musicPlaying.set(false));
+    this.combatPlayer.addEventListener('ended', () => this.advanceCombatTrack());
   }
 
-  syncScreen(screen: Screen) {
+  syncScreen(screen: Screen, theme?: DungeonTheme, kind?: StationKind) {
     const active = MENU_SCREENS.has(screen);
     this.menuActive.set(active);
     if (active) {
+      this.stopCombatMusic();
       void this.playMenuMusic();
     } else {
       this.musicPlayer?.pause();
+      if (screen === 'map' && theme && kind) this.startCombatMusic(theme, kind);
+      else if (screen !== 'combat') this.stopCombatMusic();
     }
+  }
+
+  startCombatMusic(theme: DungeonTheme, kind: StationKind) {
+    if (kind !== 'kampf') {
+      this.stopCombatMusic();
+      return;
+    }
+    const tracks = COMBAT_TRACKS[theme];
+    if (tracks.length === 0 || !this.combatPlayer) return;
+    if (this.combatMusicActive() && this.combatTheme === theme) {
+      this.musicPlayer?.pause();
+      void this.playCombatMusic();
+      return;
+    }
+    this.combatTheme = theme;
+    this.combatTracks = tracks;
+    this.combatTrackIndex = Math.floor(Math.random() * tracks.length);
+    this.combatMusicActive.set(true);
+    this.musicPlayer?.pause();
+    this.loadCombatTrack();
+    void this.playCombatMusic();
+  }
+
+  stopCombatMusic() {
+    this.combatMusicActive.set(false);
+    this.currentCombatTrackLabel.set('');
+    this.combatPlayer?.pause();
   }
 
   /** Browser erlauben Audio erst nach der ersten Berührung oder Taste. */
@@ -104,6 +181,7 @@ export class AudioService {
     const context = this.getAudioContext();
     if (context?.state === 'suspended') void context.resume();
     if (this.menuActive() && this.musicEnabled()) void this.playMenuMusic();
+    else if (this.combatMusicActive() && this.musicEnabled()) void this.playCombatMusic();
   }
 
   toggleMusic() {
@@ -114,6 +192,7 @@ export class AudioService {
       this.unlock();
     } else {
       this.musicPlayer?.pause();
+      this.combatPlayer?.pause();
     }
   }
 
@@ -129,11 +208,13 @@ export class AudioService {
     this.musicVolume.set(clamped);
     saveVolume(MUSIC_VOLUME_KEY, clamped);
     if (this.musicPlayer) this.musicPlayer.volume = clamped * MUSIC_VOLUME_SCALE;
+    if (this.combatPlayer) this.combatPlayer.volume = clamped * MUSIC_VOLUME_SCALE;
     // Regler auf 0 mutet automatisch, Hochschieben hebt den Mute wieder auf.
     if (clamped === 0 && this.musicEnabled()) {
       this.musicEnabled.set(false);
       saveSetting(MUSIC_KEY, false);
       this.musicPlayer?.pause();
+      this.combatPlayer?.pause();
     } else if (clamped > 0 && !this.musicEnabled()) {
       this.musicEnabled.set(true);
       saveSetting(MUSIC_KEY, true);
@@ -156,9 +237,9 @@ export class AudioService {
     this.unlock();
   }
 
-  /** Faktor für alle Soundeffekte: Regler auf Maximum entspricht der Grundlautstärke. */
+  /** Soundeffekte wurden nochmals ungefähr verdoppelt; die Musiklautstärke bleibt unverändert. */
   private sfxGainFactor(): number {
-    return this.sfxVolume();
+    return this.sfxVolume() * 4;
   }
 
   /** Wechselt manuell zum nächsten Menü-Theme. */
@@ -181,7 +262,7 @@ export class AudioService {
     if (!context) return;
     const now = context.currentTime;
     const gain = context.createGain();
-    // 1,5-fache Grundlautstärke gegenüber der ursprünglichen Version (0.035).
+    // Der zentrale SFX-Faktor hebt alle Effekte, einschließlich Klicks, gleichmäßig an.
     gain.gain.setValueAtTime(0.0525 * this.sfxGainFactor(), now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
     gain.connect(context.destination);
@@ -227,10 +308,26 @@ export class AudioService {
     }
   }
 
+  private async playCombatMusic() {
+    if (!this.unlocked || !this.combatMusicActive() || !this.musicEnabled() || !this.combatPlayer) return;
+    try {
+      await this.combatPlayer.play();
+    } catch {
+      // Der nächste Tap versucht es erneut, falls der Browser Autoplay noch blockiert.
+    }
+  }
+
   private advanceTrack() {
     if (!this.menuActive() || !this.musicEnabled()) return;
     this.loadTrack((this.currentTrackIndex() + 1) % MENU_TRACKS.length);
     void this.playMenuMusic();
+  }
+
+  private advanceCombatTrack() {
+    if (!this.combatMusicActive() || !this.musicEnabled() || this.combatTracks.length === 0) return;
+    this.combatTrackIndex = (this.combatTrackIndex + 1) % this.combatTracks.length;
+    this.loadCombatTrack();
+    void this.playCombatMusic();
   }
 
   private loadTrack(index: number) {
@@ -241,6 +338,20 @@ export class AudioService {
       ? track.src
       : new URL(track.src, document.baseURI).toString();
     this.musicPlayer.load();
+  }
+
+  private loadCombatTrack() {
+    if (!this.combatPlayer || this.combatTracks.length === 0) return;
+    const src = this.combatTracks[this.combatTrackIndex];
+    if (this.combatTheme) {
+      this.currentCombatTrackLabel.set(
+        `${COMBAT_THEME_LABELS[this.combatTheme]} · Kampfmusik ${this.combatTrackIndex + 1}`,
+      );
+    }
+    this.combatPlayer.src = typeof document === 'undefined'
+      ? src
+      : new URL(src, document.baseURI).toString();
+    this.combatPlayer.load();
   }
 
   private getAudioContext(): AudioContext | null {

@@ -1,6 +1,11 @@
 <div class="screen end-screen">
-        <h2>💀 Niederlage</h2>
-        <p>Der Riss hat dich verschlungen … aber dein Fortschritt bleibt.</p>
+        @if (game.endSurrendered()) {
+          <h2>🏳️ Run aufgegeben</h2>
+          <p>Du kehrst mit deiner bisherigen Beute zurück.</p>
+        } @else {
+          <h2>💀 Niederlage</h2>
+          <p>Der Riss hat dich verschlungen … aber dein Fortschritt bleibt.</p>
+        }
         <p class="hint">🔮 +{{ game.endSplitter() }} Splitter gesammelt</p>
         <div class="title-buttons">
           @if (game.mode() === 'campaign') {

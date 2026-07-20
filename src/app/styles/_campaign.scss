@@ -47,3 +47,44 @@
 
 .upgrade-text { font-size: 0.85rem; color: #b8ae96; }
 
+.upgrade-price-note,
+.resonance-base-value {
+  margin-top: 0.25rem;
+  color: #8f82a4;
+  font-size: 0.74rem;
+}
+
+.converter-options {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.converter-card {
+  width: min(280px, 100%);
+  min-height: 215px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.2rem;
+  border: 1px solid rgba(160, 130, 70, 0.42);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #1c1628, #120e1b);
+  text-align: center;
+
+  h3,
+  p { margin: 0; }
+
+  h3 { color: #e8dcc0; }
+  p { color: #a99db8; }
+}
+
+.converter-icon { font-size: 2.4rem; }
+.converter-equals { color: #c9a84c; font-size: 2rem; }
+

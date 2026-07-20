@@ -1,6 +1,8 @@
 // ==================== Riftbound – Dark-Fantasy-Styling ====================
 
 .game-shell {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   display: flex;
   justify-content: center;
@@ -8,12 +10,132 @@
   padding: 1rem;
 }
 
+.dungeon-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+}
+
+.give-up-btn {
+  border-color: rgba(210, 103, 92, 0.5);
+  color: #efb1aa;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(5, 3, 9, 0.84);
+  backdrop-filter: blur(6px);
+}
+
+.help-dialog,
+.confirm-dialog {
+  width: min(920px, 96vw);
+  max-height: min(86vh, 820px);
+  border: 1px solid rgba(201, 168, 76, 0.6);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at top, rgba(91, 63, 145, 0.18), transparent 45%),
+    #110d19;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.72);
+  color: #e8dcc0;
+}
+
+.help-dialog { overflow: hidden; }
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(140, 120, 170, 0.28);
+
+  h2 { margin-top: 0.1rem; }
+}
+
+.modal-kicker {
+  color: #9c8bb8;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.modal-close {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(140, 120, 170, 0.4);
+  border-radius: 50%;
+  background: #1b1527;
+  color: #e8dcc0;
+  cursor: pointer;
+  font-size: 1.45rem;
+}
+
+.help-content {
+  max-height: calc(min(86vh, 820px) - 82px);
+  overflow-y: auto;
+  padding: 1.1rem 1.25rem 1.4rem;
+}
+
+.help-section + .help-section { margin-top: 1.2rem; }
+
+.help-section h3 {
+  margin: 0 0 0.65rem;
+  color: #d8c690;
+  font-family: 'Cinzel', 'Georgia', serif;
+}
+
+.glossary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0;
+
+  div {
+    padding: 0.75rem;
+    border: 1px solid rgba(140, 120, 170, 0.24);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  dt { color: #eee3c8; font-weight: bold; }
+  dd { margin: 0.28rem 0 0; color: #afa3c0; font-size: 0.82rem; line-height: 1.45; }
+}
+
+.confirm-dialog {
+  width: min(470px, 94vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1.4rem;
+  text-align: center;
+
+  p { margin: 0; color: #b9adc8; }
+}
+
+.confirm-icon { font-size: 2.2rem; }
+
+@media (max-width: 700px) {
+  .glossary-grid { grid-template-columns: 1fr; }
+}
+
 .game-shell.run-themed {
   --theme-accent: #b08fff;
   background:
     linear-gradient(rgba(7, 5, 12, 0.15), rgba(7, 5, 12, 0.45)),
     var(--dungeon-bg) center / cover no-repeat;
-  background-attachment: fixed;
 
   .screen {
     border-color: color-mix(in srgb, var(--theme-accent) 55%, transparent);

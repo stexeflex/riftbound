@@ -36,3 +36,35 @@
   white-space: pre-line;
 }
 
+.effect-detail {
+  position: relative;
+
+  &:focus-visible {
+    outline: 1px solid #c9a84c;
+    outline-offset: 2px;
+  }
+
+  &:hover::after,
+  &:focus-visible::after {
+    content: attr(data-effect-tip);
+    position: absolute;
+    right: 1rem;
+    bottom: calc(100% + 8px);
+    z-index: 100;
+    width: 360px;
+    max-width: min(360px, 82vw);
+    padding: 0.7rem 0.8rem;
+    border: 1px solid rgba(188, 153, 85, 0.7);
+    border-radius: 8px;
+    background: rgba(20, 15, 30, 0.98);
+    color: #eee3c8;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
+    font-size: 0.76rem;
+    font-weight: normal;
+    line-height: 1.5;
+    text-align: left;
+    white-space: pre-line;
+    pointer-events: none;
+  }
+}
+

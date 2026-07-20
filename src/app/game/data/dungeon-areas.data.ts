@@ -13,7 +13,7 @@ export const DUNGEON_AREAS: DungeonArea[] = [
       ['sandlaeufer', 'glutfalke'], ['duenenskarabaeus', 'duenenskarabaeus', 'glutfalke'],
     ],
     eliteEncounters: [['obsidiandjinn'], ['obsidiandjinn', 'duenenskarabaeus']],
-    bossEncounter: ['sahrazar'], reward: 140, kern: true,
+    bossEncounter: ['sahrazar'], reward: 150, kern: true,
   },
   {
     id: 'gebiet2', name: 'Der frostgebundene Hain', icon: '❄️', theme: 'winter',
@@ -25,7 +25,7 @@ export const DUNGEON_AREAS: DungeonArea[] = [
       ['frostwolf', 'schneekobold'], ['eisrufer', 'schneekobold'], ['frostwolf', 'frostwolf'],
     ],
     eliteEncounters: [['aurorawaechter'], ['aurorawaechter', 'schneekobold']],
-    bossEncounter: ['frostkoenigin'], reward: 140, kern: true,
+    bossEncounter: ['frostkoenigin'], reward: 150, kern: true,
   },
   {
     id: 'gebiet3', name: 'Die prismatischen Tiefen', icon: '💎', theme: 'crystal',
@@ -37,10 +37,10 @@ export const DUNGEON_AREAS: DungeonArea[] = [
       ['kristallkaefer', 'geodenpriester'], ['prismamotte', 'prismamotte', 'kristallkaefer'],
     ],
     eliteEncounters: [['splittergolem'], ['facettenchimaere'], ['facettenchimaere', 'prismamotte']],
-    bossEncounter: ['prismatyrann'], reward: 145, kern: true,
+    bossEncounter: ['prismatyrann'], reward: 150, kern: true,
   },
   {
-    id: 'gebiet4', name: 'Die Sturmzitadelle', icon: '🌩️', theme: 'sky',
+    id: 'gebiet4', name: 'Die Sturmzitadelle', icon: '☁️', theme: 'sky',
     background: 'images/dungeons/storm-citadel.png',
     desc: 'Über den Wolken bewachen geladene Konstrukte den Weg zum Sturmarchon.',
     stations: ['kampf', 'kampf', 'elite', 'rast', 'kampf', 'kampf', 'rast', 'elite', 'kampf', 'boss'],
@@ -49,7 +49,7 @@ export const DUNGEON_AREAS: DungeonArea[] = [
       ['wolkenrochen', 'wolkenrochen'], ['sturmspaeher', 'himmelskorsar'],
     ],
     eliteEncounters: [['donnerwaechter'], ['blitzdrache'], ['blitzdrache', 'wolkenrochen']],
-    bossEncounter: ['aeralis'], reward: 145, kern: true,
+    bossEncounter: ['aeralis'], reward: 150, kern: true,
   },
   {
     id: 'gebiet5', name: 'Der Nullhorizont', icon: '🌌', theme: 'void',

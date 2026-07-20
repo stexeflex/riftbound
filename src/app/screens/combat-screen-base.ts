@@ -74,11 +74,14 @@ export abstract class CombatScreenBase extends CardScreenBase {
     return max > 0 ? (Math.max(0, value) / max) * 100 : 0;
   }
 
-  /** Skaliert Leben und Schild gemeinsam, damit beides vollständig in die Leiste passt. */
+  /** Skaliert Leben, Schild und Vorschauen gemeinsam, damit alle Segmente in die Leiste passen. */
   playerHpBarMax(): number {
     return Math.max(
       this.game.playerMaxHp(),
-      this.game.playerHp() + this.game.block() + this.blockPreview(),
+      this.game.playerHp()
+        + this.game.block()
+        + this.blockPreview()
+        + Math.min(this.game.playerHp(), this.previewedIncomingDamage()),
     );
   }
 
@@ -116,10 +119,20 @@ export abstract class CombatScreenBase extends CardScreenBase {
     return this.simulateIncomingDamage(this.game.aliveEnemies()).total;
   }
 
+  /** Erwarteter Lebensverlust, nachdem der Schild der gehoverten Karte angerechnet wurde. */
+  previewedIncomingDamage(): number {
+    return this.simulateIncomingDamage(this.game.aliveEnemies(), this.blockPreview()).total;
+  }
+
+  preventedDamageByBlockPreview(): number {
+    return Math.max(0, this.totalIncomingDamage() - this.previewedIncomingDamage());
+  }
+
   private simulateIncomingDamage(
     enemies: EnemyState[],
+    additionalBlock = 0,
   ): { total: number; byEnemy: Record<number, number> } {
-    let remainingBlock = this.game.block();
+    let remainingBlock = this.game.block() + Math.max(0, additionalBlock);
     let hpDmg = 0;
     const byEnemy: Record<number, number> = {};
     const dornenkrone = this.game.artifact()?.id === 'dornenkrone';
@@ -165,16 +178,20 @@ export abstract class CombatScreenBase extends CardScreenBase {
   }
 
   projectedPlayerHp(): number {
-    return Math.max(0, this.game.playerHp() - this.totalIncomingDamage());
+    return Math.max(0, this.game.playerHp() - this.previewedIncomingDamage());
   }
 
-  projectedPlayerHpPercent(): number {
-    return this.barPercent(this.projectedPlayerHp(), this.playerHpBarMax());
+  /** Rot folgt visuell erst auf Leben, vorhandenen Schild und die blaue Schildvorschau. */
+  playerLossPreviewStartPercent(): number {
+    return this.barPercent(
+      this.game.playerHp() + this.game.block() + this.blockPreview(),
+      this.playerHpBarMax(),
+    );
   }
 
   playerIncomingPercent(): number {
     return this.barPercent(
-      Math.min(this.game.playerHp(), this.totalIncomingDamage()),
+      Math.min(this.game.playerHp(), this.previewedIncomingDamage()),
       this.playerHpBarMax(),
     );
   }

@@ -17,7 +17,7 @@
               }
               @if (totalIncomingDamage() > 0) {
                 <div class="hp-loss-preview player-loss-preview"
-                     [style.left.%]="projectedPlayerHpPercent()"
+                     [style.left.%]="playerLossPreviewStartPercent()"
                      [style.width.%]="playerIncomingPercent()"></div>
               }
               <span class="hp-text">
@@ -39,7 +39,12 @@
                 <span class="chip tip" [attr.data-tip]="art.name + ': ' + art.text">{{ art.icon }}</span>
               }
               @if (blockPreview() > 0) {
-                <span class="chip chip-preview">🛡️ +{{ blockPreview() }}</span>
+                <span class="chip chip-preview">
+                  🛡️ +{{ blockPreview() }}
+                  @if (preventedDamageByBlockPreview() > 0) {
+                    · verhindert {{ preventedDamageByBlockPreview() }} Schaden
+                  }
+                </span>
               }
             </div>
           </div>
@@ -120,10 +125,10 @@
 
         <div class="resonance-bar">
           @if (game.resonance(); as resonance) {
-            <span class="resonance-label tip" [attr.data-tip]="resonance.text">
+            <span class="resonance-label tip" [attr.data-tip]="game.resonanceRunDetails(resonance)">
               {{ resonance.icon }} {{ resonance.name }} ℹ️
             </span>
-            <span class="resonance-effect">{{ resonance.text }}</span>
+            <span class="resonance-effect">{{ game.resonanceRunText(resonance) }}</span>
             @for (cat of ['Kraft', 'Schutz', 'Kontrolle', 'Chaos']; track cat) {
               <span class="resonance-dot" [class.active]="game.playedCategories().includes($any(cat))">
                 {{ cat }}
@@ -174,6 +179,10 @@
             <div class="pile tip" [attr.data-tip]="tips.ablage">🗑️ {{ game.discardPile().length }}</div>
             <button class="btn btn-primary" (click)="game.endTurn()">Zug beenden</button>
             <button class="btn btn-small" (click)="game.toMenu()">Menü</button>
+            <button class="btn btn-small btn-danger combat-give-up"
+                    (click)="game.giveUpConfirmationOpen.set(true)">
+              Run aufgeben
+            </button>
           </div>
         </div>
       </div>

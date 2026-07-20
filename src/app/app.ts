@@ -1,4 +1,4 @@
-import { Component, HostListener, ViewEncapsulation, effect, inject } from '@angular/core';
+import { Component, HostListener, ViewEncapsulation, effect, inject, signal } from '@angular/core';
 import { AudioService } from './audio.service';
 import { GameService } from './game/game.service';
 import { TitleScreenComponent } from './screens/title-screen.component';
@@ -15,10 +15,11 @@ import { RestScreenComponent } from './screens/rest-screen.component';
 import { VictoryScreenComponent } from './screens/victory-screen.component';
 import { DefeatScreenComponent } from './screens/defeat-screen.component';
 import { MetaScreenComponent } from './screens/meta-screen.component';
+import { ConverterScreenComponent } from './screens/converter-screen.component';
 
 @Component({
   selector: 'app-root',
-  imports: [TitleScreenComponent, DungeonsScreenComponent, CampaignScreenComponent, MapScreenComponent, DeckScreenComponent, CardsScreenComponent, ArtifactsScreenComponent, ResonancesScreenComponent, CombatScreenComponent, RewardScreenComponent, RestScreenComponent, VictoryScreenComponent, DefeatScreenComponent, MetaScreenComponent],
+  imports: [TitleScreenComponent, DungeonsScreenComponent, CampaignScreenComponent, MapScreenComponent, DeckScreenComponent, CardsScreenComponent, ArtifactsScreenComponent, ResonancesScreenComponent, CombatScreenComponent, RewardScreenComponent, RestScreenComponent, VictoryScreenComponent, DefeatScreenComponent, MetaScreenComponent, ConverterScreenComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss',
   encapsulation: ViewEncapsulation.None,
@@ -26,9 +27,14 @@ import { MetaScreenComponent } from './screens/meta-screen.component';
 export class App {
   readonly game = inject(GameService);
   readonly audio = inject(AudioService);
+  readonly helpOpen = signal(false);
 
   constructor() {
-    effect(() => this.audio.syncScreen(this.game.screen()));
+    effect(() => this.audio.syncScreen(
+      this.game.screen(),
+      this.game.currentArea()?.theme,
+      this.game.currentStation()?.kind,
+    ));
   }
 
   @HostListener('document:pointerdown')
@@ -36,9 +42,17 @@ export class App {
     this.audio.unlock();
   }
 
-  @HostListener('document:keydown')
-  unlockAudioWithKeyboard() {
+  @HostListener('document:keydown', ['$event'])
+  unlockAudioWithKeyboard(event: KeyboardEvent) {
     this.audio.unlock();
+    if (event.key !== 'Escape') return;
+    if (this.game.giveUpConfirmationOpen()) this.game.giveUpConfirmationOpen.set(false);
+    else if (this.helpOpen()) this.helpOpen.set(false);
+  }
+
+  confirmGiveUp() {
+    this.game.giveUpRun();
+    this.game.giveUpConfirmationOpen.set(false);
   }
 
   @HostListener('document:click', ['$event'])

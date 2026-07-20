@@ -18,13 +18,22 @@
                   <span class="upgrade-level">Stufe {{ game.upgradeLevel(u.id) }}/{{ u.maxLevel }}</span>
                 </div>
                 <div class="upgrade-text">{{ u.describe(game.upgradeLevel(u.id)) }}</div>
+                @if (game.upgradeLevel(u.id) < u.maxLevel) {
+                  <div class="upgrade-price-note">
+                    Grundpreis: {{ u.currency === 'kerne' ? '🟡' : '🔮' }} {{ u.cost }}
+                  </div>
+                }
               </div>
               <button
                 class="btn btn-small"
-                [disabled]="game.upgradeLevel(u.id) >= u.maxLevel || game.meta().splitter < u.cost"
+                [disabled]="!game.canBuyUpgrade(u.id)"
                 (click)="game.buyUpgrade(u.id)"
               >
-                @if (game.upgradeLevel(u.id) >= u.maxLevel) { Max } @else { 🔮 {{ u.cost }} }
+                @if (game.upgradeLevel(u.id) >= u.maxLevel) {
+                  Max
+                } @else {
+                  {{ u.currency === 'kerne' ? '🟡' : '🔮' }} {{ game.upgradeCost(u.id) }}
+                }
               </button>
             </div>
           }

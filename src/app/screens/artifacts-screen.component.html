@@ -1,14 +1,17 @@
 <div class="screen meta-screen">
         <button class="btn btn-small screen-back" (click)="game.backToTitle()">← Zurück</button>
-        <h2>Artefakte</h2>
+        <h2>Artefakteshop</h2>
         <div class="meta-summary">
           <span>🔮 {{ game.meta().splitter }} Splitter</span>
           <span>🟡 {{ game.meta().kerne }} Kerne</span>
         </div>
-        <p class="hint">Freigeschaltete Artefakte kannst du vor jedem Run auswählen.</p>
+        <p class="hint">Freigeschaltete Artefakte kannst du vor jedem Run auswählen. Fahre über ein Artefakt, um seine Regeln im Detail zu sehen.</p>
         <div class="upgrade-list">
           @for (a of game.allArtifacts; track a.id) {
-            <div class="upgrade-row" [class.owned-artifact]="game.ownsArtifact(a.id)">
+            <div class="upgrade-row effect-detail" [class.owned-artifact]="game.ownsArtifact(a.id)"
+                 tabindex="0"
+                 [attr.data-effect-tip]="game.artifactDetails(a)"
+                 [attr.aria-description]="game.artifactDetails(a)">
               <span class="upgrade-icon">{{ a.icon }}</span>
               <div class="upgrade-info">
                 <div class="upgrade-name">{{ a.name }}</div>

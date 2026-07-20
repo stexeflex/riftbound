@@ -4,7 +4,7 @@ import { ArtifactDef } from '../models';
 
 export const ARTIFACTS: ArtifactDef[] = [
   {
-    id: 'schildkern', name: 'Schildkern', icon: '🔷', starter: true,
+    id: 'schildkern', name: 'Schildkern', icon: '🔷', costSplitter: 120,
     text: 'Beginne jeden Zug mit 2 Schild.',
   },
   {

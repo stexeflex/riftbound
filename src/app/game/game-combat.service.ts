@@ -91,6 +91,10 @@ export abstract class GameCombatService extends GameRunService {
     this.zeitbruchArmed.set(c.zeitbruchArmed ?? false);
     this.log.set([]);
     this.screen.set('combat');
+    this.audio.startCombatMusic(
+      (this.currentArea() ?? DUNGEON_AREAS[0]).theme,
+      this.currentStation()?.kind ?? 'kampf',
+    );
   }
 
   // ================= Kampf =================
@@ -101,7 +105,9 @@ export abstract class GameCombatService extends GameRunService {
 
 
   private makeEnemy(def: EnemyDef): EnemyState {
-    const hpMultiplier = this.mode() === 'dungeon' ? this.difficultyHpMultiplier() : 1;
+    const hpMultiplier = this.mode() === 'dungeon'
+      ? this.difficultyHpMultiplier()
+      : this.campaignHpMultiplier();
     const maxHp = Math.round(def.maxHp * hpMultiplier);
     return {
       uid: this.nextEnemyUid++,
@@ -120,11 +126,16 @@ export abstract class GameCombatService extends GameRunService {
 
   enemyIntentValue(enemy: EnemyState): number {
     const move = enemy.intent;
-    if (this.mode() !== 'dungeon') return move.value;
+    const equivalentDifficulty = this.mode() === 'dungeon'
+      ? this.dungeonDifficulty()
+      : this.campaignEquivalentDifficulty();
+    const powerMultiplier = this.mode() === 'dungeon'
+      ? this.difficultyPowerMultiplier()
+      : this.campaignPowerMultiplier();
     if (move.kind === 'buff') {
-      return move.value + Math.floor((this.dungeonDifficulty() - 1) * 1.5);
+      return move.value + Math.floor((equivalentDifficulty - 1) * 1.5);
     }
-    return Math.max(1, Math.round(move.value * this.difficultyPowerMultiplier()));
+    return Math.max(1, Math.round(move.value * powerMultiplier));
   }
 
   enemyAttackPerHit(enemy: EnemyState): number {
@@ -165,6 +176,7 @@ export abstract class GameCombatService extends GameRunService {
       this.addLog('Blutvertrag: Leben geopfert, +2 Stärke für diesen Kampf.');
     }
     this.screen.set('combat');
+    this.audio.startCombatMusic(area.theme, kind);
     this.startPlayerTurn(true);
     this.saveRun();
   }
@@ -184,8 +196,9 @@ export abstract class GameCombatService extends GameRunService {
 
     let startBlock = 0;
     if (this.artifact()?.id === 'schildkern') startBlock += 2;
+    startBlock += this.runUpgradeLevel('schildfluss');
     if (first) {
-      startBlock += this.runUpgradeLevel('vorbereitung') * 3;
+      startBlock += this.runUpgradeLevel('vorbereitung') * 5;
       if (this.artifact()?.id === 'runenpanzer') startBlock += 8;
     }
     if (this.artifact()?.id === 'seelenspiegel' && this.block() > 0) {
@@ -408,39 +421,50 @@ export abstract class GameCombatService extends GameRunService {
       this.playedCategories.set([]); // Kategorien zurücksetzen, damit ggf. eine neue Resonanz aufgebaut werden kann
       const echoBonus = this.runUpgradeLevel('nachhall');
       if (resonance.effect === 'draw') {
-        this.drawCards(1);
-        this.addLog(`✨ ${resonance.name}: Du ziehst 1 Karte.`);
+        const draw = resonance.draw ?? 1;
+        this.drawCards(draw);
+        this.addLog(`✨ ${resonance.name}: Du ziehst ${draw} Karte.`);
       } else if (resonance.effect === 'block') {
-        this.gainBlock(7 + echoBonus);
-        this.addLog(`✨ ${resonance.name}: Du erhältst ${7 + echoBonus} Schild.`);
+        const block = (resonance.block ?? 7) + echoBonus;
+        this.gainBlock(block);
+        this.addLog(`✨ ${resonance.name}: Du erhältst ${block} Schild.`);
       } else if (resonance.effect === 'damage') {
-        for (const e of this.aliveEnemies()) this.dealDamage(e, 6 + echoBonus, true);
-        this.addLog(`✨ ${resonance.name}: ${6 + echoBonus} Schaden an allen Gegnern.`);
+        const damage = (resonance.damage ?? 6) + echoBonus;
+        for (const e of this.aliveEnemies()) this.dealDamage(e, damage, true);
+        this.addLog(`✨ ${resonance.name}: ${damage} Schaden an allen Gegnern.`);
       } else if (resonance.effect === 'balance') {
-        for (const e of this.aliveEnemies()) this.dealDamage(e, 3 + echoBonus, true);
-        this.gainBlock(3 + echoBonus);
-        this.addLog(`✨ ${resonance.name}: ${3 + echoBonus} Schaden an allen Gegnern und ${3 + echoBonus} Schild.`);
+        const damage = (resonance.damage ?? 3) + echoBonus;
+        const block = (resonance.block ?? 3) + echoBonus;
+        for (const e of this.aliveEnemies()) this.dealDamage(e, damage, true);
+        this.gainBlock(block);
+        this.addLog(`✨ ${resonance.name}: ${damage} Schaden an allen Gegnern und ${block} Schild.`);
       } else if (resonance.effect === 'energy') {
 
-        this.energy.set(this.energy() + 1);
+        const energy = resonance.energy ?? 1;
+        this.energy.set(this.energy() + energy);
         this.zeitbruchArmed.set(true);
-        this.addLog(`✨ ${resonance.name}: +1 Energie – die nächste Karte beendet deinen Zug!`);
+        this.addLog(`✨ ${resonance.name}: +${energy} Energie – die nächste Karte beendet deinen Zug!`);
       } else if (resonance.effect === 'echo') {
-        this.gainBlock(3 + echoBonus);
+        const block = (resonance.block ?? 3) + echoBonus;
+        this.gainBlock(block);
         if (this.aliveEnemies().length >= 2) {
-          this.drawCards(1);
-          this.addLog(`✨ ${resonance.name}: ${3 + echoBonus} Schild und 1 Karte (2+ Gegner).`);
+          const draw = resonance.draw ?? 1;
+          this.drawCards(draw);
+          this.addLog(`✨ ${resonance.name}: ${block} Schild und ${draw} Karte (2+ Gegner).`);
         } else {
-          this.addLog(`✨ ${resonance.name}: ${3 + echoBonus} Schild.`);
+          this.addLog(`✨ ${resonance.name}: ${block} Schild.`);
         }
       } else if (resonance.effect === 'storm') {
-        for (let hit = 0; hit < 3 && this.aliveEnemies().length > 0; hit++) {
-          this.dealDamage(pick(this.aliveEnemies()), 3 + echoBonus, true);
+        const hits = resonance.hits ?? 3;
+        const damage = (resonance.damage ?? 3) + echoBonus;
+        for (let hit = 0; hit < hits && this.aliveEnemies().length > 0; hit++) {
+          this.dealDamage(pick(this.aliveEnemies()), damage, true);
         }
-        this.addLog(`✨ ${resonance.name}: 3 zufällige Treffer mit ${3 + echoBonus} Schaden.`);
+        this.addLog(`✨ ${resonance.name}: ${hits} zufällige Treffer mit ${damage} Schaden.`);
       } else if (resonance.effect === 'heal') {
-        this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + 2));
-        this.addLog(`✨ ${resonance.name}: Du heilst 2 Leben.`);
+        const heal = resonance.heal ?? 2;
+        this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + heal));
+        this.addLog(`✨ ${resonance.name}: Du heilst ${heal} Leben.`);
       }
     }
   }
@@ -570,8 +594,6 @@ export abstract class GameCombatService extends GameRunService {
     if (this.mode() === 'dungeon') {
       splitter = Math.round(splitter * this.difficultyRewardMultiplier());
     }
-    splitter = Math.round(splitter * (1 + this.runUpgradeLevel('pluenderer') * 0.1));
-
     // Bereits abgeschlossene Kampagnen-Stages geben nur halben Loot
     const stage = this.currentStage();
     if (this.mode() === 'campaign' && stage && this.stageCompleted(stage)) {

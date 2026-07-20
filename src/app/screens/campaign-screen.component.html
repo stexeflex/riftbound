@@ -20,6 +20,11 @@
                   Belohnung: 🔮 {{ game.stageCompleted(s) ? s.reward * 0.25 : s.reward }}
                   @if (s.kern && !game.stageCompleted(s)) { + 🟡 1 Kern }
                 </div>
+                <div class="stage-scaling">
+                  ❤️ Gegner +{{ game.campaignHpBonus(s) }} % ·
+                  ⚔️ Aktionen +{{ game.campaignPowerBonus(s) }} %
+                  @if (i === 4) { · ≈ Dungeon-Schwierigkeit 10 }
+                </div>
               </div>
               <button class="btn btn-small" [disabled]="!game.stageUnlocked(s)" (click)="game.startStage(s)">
                 {{ game.stageCompleted(s) ? 'Erneut' : 'Start' }}

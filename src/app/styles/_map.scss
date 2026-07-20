@@ -132,7 +132,6 @@
     rgba(175, 235, 255, 0.98) 0 4px,
     rgba(45, 135, 205, 0.95) 4px 8px
   );
-  animation: shield-preview 0.8s ease-in-out infinite alternate;
 }
 
 .enemy-shield {
@@ -151,7 +150,6 @@
     rgba(178, 68, 59, 0.8) 5px 10px
   );
   border-inline: none;
-  animation: hp-warning 1.2s ease-in-out infinite alternate;
 }
 
 .enemy-loss-preview {
@@ -160,16 +158,6 @@
     rgba(238, 181, 105, 0.86) 0 5px,
     rgba(120, 41, 36, 0.84) 5px 10px
   );
-}
-
-@keyframes hp-warning {
-  from { filter: brightness(0.91); }
-  to { filter: brightness(1.12); }
-}
-
-@keyframes shield-preview {
-  from { filter: brightness(0.9); }
-  to { filter: brightness(1.25); }
 }
 
 .enemy-fill { background: linear-gradient(180deg, #e05545, #a03024); }
@@ -271,6 +259,10 @@
   flex-direction: column;
   gap: 0.5rem;
   align-items: center;
+}
+
+.combat-give-up {
+  margin-top: 1rem;
 }
 
 .energy-orb {

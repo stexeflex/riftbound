@@ -12,8 +12,15 @@ import {
 } from './data';
 import { legacyLoad, secureLoad, secureRemove, secureSave } from './storage';
 import { clampDifficulty } from './game.utils';
+import {
+  artifactDetails as buildArtifactDetails,
+  resonanceDetails as buildResonanceDetails,
+  resonanceEffectText as buildResonanceEffectText,
+  resonanceUsesNachhall as hasResonanceNachhallEffect,
+} from './effect-text';
 
-const META_KEY = 'riftbound-meta-v2';
+const META_KEY = 'riftbound-meta-v3';
+const PREVIOUS_META_KEY = 'riftbound-meta-v2';
 const LEGACY_META_KEY = 'riftbound-meta-v1';
 export const RUN_KEY = 'riftbound-run-v1';
 export const DIFFICULTY_KEY = 'riftbound-dungeon-difficulty-v1';
@@ -129,6 +136,7 @@ export abstract class GameMetaService {
 
   // ---------- Hover-Vorschau ----------
   readonly hoveredCard = signal<CardInstance | null>(null);
+  readonly giveUpConfirmationOpen = signal(false);
 
   // ---------- Belohnung / Run-Ende ----------
   readonly rewardCards = signal<CardDef[]>([]);
@@ -136,6 +144,7 @@ export abstract class GameMetaService {
   readonly endSplitter = signal(0);
   readonly endKerne = signal(0);
   readonly endFirstClear = signal(false);
+  readonly endSurrendered = signal(false);
 
   readonly aliveEnemies = computed(() => this.enemies().filter(e => e.hp > 0));
   readonly currentTarget = computed(() =>
@@ -152,7 +161,9 @@ export abstract class GameMetaService {
   // ================= Meta =================
 
   private normalizeMeta(m: Partial<MetaState> | null): MetaState {
-    const artifacts = Array.isArray(m?.artifacts) ? m.artifacts : [];
+    const artifacts = Array.isArray(m?.artifacts)
+      ? [...m.artifacts.filter(id => ARTIFACTS.some(a => a.id === id))]
+      : [];
     for (const a of ARTIFACTS) {
       if (a.starter && !artifacts.includes(a.id)) artifacts.push(a.id);
     }
@@ -175,7 +186,7 @@ export abstract class GameMetaService {
         artifactId: typeof stored?.artifactId === 'string'
           && artifacts.includes(stored.artifactId)
           ? stored.artifactId
-          : 'schildkern',
+          : null,
         resonanceId: typeof stored?.resonanceId === 'string'
           && Array.isArray(m?.resonances)
           && m.resonances.includes(stored.resonanceId)
@@ -210,9 +221,35 @@ export abstract class GameMetaService {
   private loadMeta(): MetaState {
     const signed = secureLoad<MetaState>(META_KEY);
     if (signed) return this.normalizeMeta(signed);
+    const previous = secureLoad<MetaState>(PREVIOUS_META_KEY);
+    if (previous) {
+      // Schildkern war in v2 immer kostenlos und konnte daher nie regulär gekauft werden.
+      const migrated = this.normalizeMeta({
+        ...previous,
+        artifacts: Array.isArray(previous.artifacts)
+          ? previous.artifacts.filter(id => id !== 'schildkern')
+          : [],
+        deckLayouts: (Array.isArray(previous.deckLayouts) ? previous.deckLayouts : []).map(layout => ({
+          ...layout,
+          artifactId: layout.artifactId === 'schildkern' ? null : layout.artifactId,
+        })),
+      });
+      secureSave(META_KEY, migrated);
+      secureRemove(PREVIOUS_META_KEY);
+      return migrated;
+    }
     // Migration vom alten, unsignierten Format
     const legacy = legacyLoad<MetaState>(LEGACY_META_KEY);
-    const meta = this.normalizeMeta(legacy);
+    const meta = this.normalizeMeta(legacy ? {
+      ...legacy,
+      artifacts: Array.isArray(legacy.artifacts)
+        ? legacy.artifacts.filter(id => id !== 'schildkern')
+        : [],
+      deckLayouts: (Array.isArray(legacy.deckLayouts) ? legacy.deckLayouts : []).map(layout => ({
+        ...layout,
+        artifactId: layout.artifactId === 'schildkern' ? null : layout.artifactId,
+      })),
+    } : null);
     if (legacy) {
       secureSave(META_KEY, meta);
       secureRemove(LEGACY_META_KEY);
@@ -228,6 +265,22 @@ export abstract class GameMetaService {
     return this.meta().upgrades[id] ?? 0;
   }
 
+  upgradeCost(id: string): number {
+    const def = META_UPGRADES.find(upgrade => upgrade.id === id);
+    if (!def) return 0;
+    const level = this.upgradeLevel(id);
+    return def.currency === 'kerne'
+      ? def.cost * (level + 1)
+      : Math.round(def.cost * (1 + level * 0.1));
+  }
+
+  canBuyUpgrade(id: string): boolean {
+    const def = META_UPGRADES.find(upgrade => upgrade.id === id);
+    if (!def || this.upgradeLevel(id) >= def.maxLevel) return false;
+    const cost = this.upgradeCost(id);
+    return def.currency === 'kerne' ? this.meta().kerne >= cost : this.meta().splitter >= cost;
+  }
+
   /** Upgrade-Stufe für den laufenden Run (beim Start eingefroren). */
   runUpgradeLevel(id: string): number {
     return this.runUpgrades()[id] ?? 0;
@@ -238,12 +291,52 @@ export abstract class GameMetaService {
     if (!def) return;
     const m = this.meta();
     const level = m.upgrades[id] ?? 0;
-    if (level >= def.maxLevel || m.splitter < def.cost) return;
+    if (!this.canBuyUpgrade(id)) return;
+    const cost = this.upgradeCost(id);
     this.meta.set({
       ...m,
-      splitter: m.splitter - def.cost,
+      splitter: m.splitter - (def.currency === 'kerne' ? 0 : cost),
+      kerne: m.kerne - (def.currency === 'kerne' ? cost : 0),
       upgrades: { ...m.upgrades, [id]: level + 1 },
     });
+    this.saveMeta();
+  }
+
+  artifactDetails(artifact: ArtifactDef): string {
+    return buildArtifactDetails(artifact);
+  }
+
+  resonanceText(resonance: ResonanceDef, nachhall = this.upgradeLevel('nachhall')): string {
+    return buildResonanceEffectText(resonance, nachhall);
+  }
+
+  resonanceRunText(resonance: ResonanceDef): string {
+    return buildResonanceEffectText(resonance, this.runUpgradeLevel('nachhall'));
+  }
+
+  resonanceDetails(resonance: ResonanceDef, nachhall = this.upgradeLevel('nachhall')): string {
+    return buildResonanceDetails(resonance, nachhall);
+  }
+
+  resonanceRunDetails(resonance: ResonanceDef): string {
+    return buildResonanceDetails(resonance, this.runUpgradeLevel('nachhall'));
+  }
+
+  resonanceUsesNachhall(resonance: ResonanceDef): boolean {
+    return hasResonanceNachhallEffect(resonance);
+  }
+
+  convertSplitterToKern() {
+    const m = this.meta();
+    if (m.splitter < 1000) return;
+    this.meta.set({ ...m, splitter: m.splitter - 1000, kerne: m.kerne + 1 });
+    this.saveMeta();
+  }
+
+  convertKernToSplitter() {
+    const m = this.meta();
+    if (m.kerne < 1) return;
+    this.meta.set({ ...m, splitter: m.splitter + 1000, kerne: m.kerne - 1 });
     this.saveMeta();
   }
 

@@ -6,13 +6,38 @@
      [class.theme-sky]="game.currentArea()?.theme === 'sky'"
      [class.theme-void]="game.currentArea()?.theme === 'void'"
      [style.--dungeon-bg]="'url(' + game.dungeonBackground() + ')'">
+  @if (game.themedRunActive() && game.dungeonBackground()) {
+    <img class="dungeon-backdrop"
+         [src]="game.dungeonBackground()"
+         alt=""
+         aria-hidden="true"
+         fetchpriority="high" />
+  }
   <div class="audio-controls" aria-label="Audioeinstellungen"
        [attr.data-music-playing]="audio.musicPlaying()"
        [attr.data-track-index]="audio.currentTrackIndex()">
-    @if (audio.menuActive() && audio.musicEnabled()) {
+    <button type="button" class="audio-btn utility-audio-btn"
+            aria-label="Hilfe und Effektlexikon öffnen"
+            title="Hilfe und Effektlexikon"
+            (click)="helpOpen.set(true)">
+      <span aria-hidden="true">?</span>
+    </button>
+    @if (game.themedRunActive()) {
+      <button type="button" class="audio-btn utility-audio-btn give-up-btn"
+              aria-label="Run aufgeben"
+              title="Run aufgeben"
+              (click)="game.giveUpConfirmationOpen.set(true)">
+        <span aria-hidden="true">🏳️</span>
+      </button>
+    }
+    @if (audio.musicEnabled() && (audio.menuActive() || audio.combatMusicActive())) {
       <span class="now-playing" aria-live="polite">
-        {{ audio.musicPlaying() ? '♪ ' + audio.currentTrackLabel() : 'Tippen für Musik' }}
+        {{ audio.musicPlaying()
+          ? '♪ ' + (audio.menuActive() ? audio.currentTrackLabel() : audio.currentCombatTrackLabel())
+          : 'Tippen für Musik' }}
       </span>
+    }
+    @if (audio.menuActive() && audio.musicEnabled()) {
       <button type="button" class="audio-btn"
               aria-label="Nächstes Menü-Theme"
               title="Nächstes Menü-Theme"
@@ -25,8 +50,8 @@
               [class.audio-active]="audio.musicEnabled()"
               [class.audio-muted]="!audio.musicEnabled()"
               [attr.aria-pressed]="audio.musicEnabled()"
-              [attr.aria-label]="audio.musicEnabled() ? 'Menümusik ausschalten' : 'Menümusik einschalten'"
-              [attr.title]="audio.musicEnabled() ? 'Menümusik ausschalten' : 'Menümusik einschalten'"
+              [attr.aria-label]="audio.musicEnabled() ? 'Musik ausschalten' : 'Musik einschalten'"
+              [attr.title]="audio.musicEnabled() ? 'Musik ausschalten' : 'Musik einschalten'"
               (click)="audio.toggleMusic()">
         <span class="audio-symbol" aria-hidden="true">🎵</span>
         @if (!audio.musicEnabled()) { <span class="mute-slash" aria-hidden="true"></span> }
@@ -54,6 +79,91 @@
              (input)="audio.setSfxVolume($any($event.target).valueAsNumber / 100)" />
     </div>
   </div>
+
+  @if (helpOpen()) {
+    <div class="modal-backdrop" role="presentation" (click)="helpOpen.set(false)">
+      <section class="help-dialog" role="dialog" aria-modal="true" aria-labelledby="help-title"
+               (click)="$event.stopPropagation()">
+        <header class="modal-header">
+          <div>
+            <span class="modal-kicker">Nachschlagewerk</span>
+            <h2 id="help-title">Hilfe & Effekte</h2>
+          </div>
+          <button type="button" class="modal-close" aria-label="Hilfe schließen"
+                  (click)="helpOpen.set(false)">×</button>
+        </header>
+
+        <div class="help-content">
+          <section class="help-section">
+            <h3>Grundlagen</h3>
+            <dl class="glossary-grid">
+              <div><dt>🔵 Energie</dt><dd>Du bezahlst damit Karten. Zu Beginn jedes Zuges wird sie auf deine maximale Energie erneuert.</dd></div>
+              <div><dt>❤️ Leben</dt><dd>Fällt dein Leben auf 0, endet der Run. Heilung kann dein maximales Leben nicht überschreiten.</dd></div>
+              <div><dt>🛡️ Schild</dt><dd>Blockt eingehenden Schaden. Vorhandener Schild verfällt grundsätzlich zu Beginn deines nächsten Zuges.</dd></div>
+              <div><dt>🃏 Ziehen & Ablage</dt><dd>Gespielte Karten landen auf der Ablage. Ist der Nachziehstapel leer, wird die Ablage gemischt.</dd></div>
+              <div><dt>🎯 Ziel</dt><dd>Klicke einen Gegner an, um ihn als Ziel für Einzelangriffe zu wählen. Karten mit „allen Gegnern“ benötigen kein Einzelziel.</dd></div>
+              <div><dt>♾️ Macht</dt><dd>Machtkarten erzeugen einen Effekt, der für den restlichen Kampf aktiv bleibt.</dd></div>
+            </dl>
+          </section>
+
+          <section class="help-section">
+            <h3>Kampfeffekte</h3>
+            <dl class="glossary-grid">
+              <div><dt>💪 Stärke</dt><dd>Erhöht jeden einzelnen eigenen Angriffstreffer um den angezeigten Wert und bleibt bis zum Kampfende.</dd></div>
+              <div><dt>😵 Schwäche</dt><dd>Der Verursacher richtet 25 % weniger Schaden an. Die Dauer sinkt pro Zug um 1.</dd></div>
+              <div><dt>💔 Verwundbarkeit</dt><dd>Das betroffene Ziel erleidet 50 % mehr Schaden. Die Dauer sinkt pro Zug um 1.</dd></div>
+              <div><dt>Mehrfachtreffer</dt><dd>Stärke und andere Trefferboni werden für jeden Treffer einzeln berechnet. Schild wird Treffer für Treffer verbraucht.</dd></div>
+              <div><dt>Gestrichelte Leisten</dt><dd>Rot zeigt erwarteten Lebensverlust, Blau neuen Schild. Beim Hover einer Schildkarte wird der rote Bereich bereits um den verhinderten Schaden verkürzt.</dd></div>
+              <div><dt>Gegnerabsicht</dt><dd>Über dem Gegner siehst du seine nächste Aktion. Hover zeigt die Berechnung nach Stärke, Schwäche und deinem Schild.</dd></div>
+            </dl>
+          </section>
+
+          <section class="help-section">
+            <h3>Karten & Resonanz</h3>
+            <dl class="glossary-grid">
+              <div><dt>Kraft</dt><dd>Eine Kartenkategorie. Kategorien sind unabhängig von der Kartenfarbe und bauen Resonanz auf.</dd></div>
+              <div><dt>Schutz</dt><dd>Eine Kartenkategorie, häufig mit Schild- oder Überlebenseffekten.</dd></div>
+              <div><dt>Kontrolle</dt><dd>Eine Kartenkategorie, häufig mit Ziehen, Schwäche oder Verwundbarkeit.</dd></div>
+              <div><dt>Chaos</dt><dd>Eine Kartenkategorie mit riskanten, zufälligen oder ungewöhnlichen Effekten.</dd></div>
+              <div><dt>✨ Resonanz</dt><dd>Spiele in einem Zug 3 verschiedene Kategorien. Der gewählte Resonanzeffekt wird ausgelöst und die Kategorien werden zurückgesetzt.</dd></div>
+              <div><dt>Resonanz-Nachhall</dt><dd>Erhöht jeden auf einer Resonanz angegebenen Schadens- und Schildwert. Basiswert und aktueller Wert bleiben im Resonanzshop sichtbar.</dd></div>
+            </dl>
+          </section>
+
+          <section class="help-section">
+            <h3>Run & Fortschritt</h3>
+            <dl class="glossary-grid">
+              <div><dt>🔮 Splitter</dt><dd>Währung für Karten, Artefakte, Resonanzen und die meisten Upgrades.</dd></div>
+              <div><dt>🟡 Kerne</dt><dd>Seltene Währung für besondere Käufe. Im Umwandler entspricht 1 Kern genau 1.000 Splittern.</dd></div>
+              <div><dt>Artefakt</dt><dd>Ein dauerhaft aktiver Begleiter für einen Run. Pro Ausrüstungslayout kannst du eines wählen.</dd></div>
+              <div><dt>Rastplatz</dt><dd>Heilt 30 % deines maximalen Lebens; Rastkunde verstärkt diese Heilung.</dd></div>
+              <div><dt>Belohnung</dt><dd>Nach Kämpfen erhältst du Splitter und darfst eine Karte nehmen oder überspringen.</dd></div>
+              <div><dt>Run aufgeben</dt><dd>Beendet den aktiven Run. Alle bis dahin gesammelten Splitter werden ausgezahlt.</dd></div>
+            </dl>
+          </section>
+        </div>
+      </section>
+    </div>
+  }
+
+  @if (game.giveUpConfirmationOpen()) {
+    <div class="modal-backdrop" role="presentation" (click)="game.giveUpConfirmationOpen.set(false)">
+      <section class="confirm-dialog" role="alertdialog" aria-modal="true"
+               aria-labelledby="give-up-title" aria-describedby="give-up-description"
+               (click)="$event.stopPropagation()">
+        <span class="confirm-icon" aria-hidden="true">🏳️</span>
+        <h2 id="give-up-title">Run aufgeben?</h2>
+        <p id="give-up-description">
+          Der Run endet sofort. Deine bisher gesammelten {{ game.runSplitter() }} Splitter werden ausgezahlt.
+        </p>
+        <div class="title-buttons">
+          <button type="button" class="btn btn-danger" (click)="confirmGiveUp()">Run aufgeben</button>
+          <button type="button" class="btn" (click)="game.giveUpConfirmationOpen.set(false)">Weiterspielen</button>
+        </div>
+      </section>
+    </div>
+  }
+
   @switch (game.screen()) {
     @case ('title') { <app-title-screen></app-title-screen> }
     @case ('dungeons') { <app-dungeons-screen></app-dungeons-screen> }
@@ -69,5 +179,6 @@
     @case ('victory') { <app-victory-screen></app-victory-screen> }
     @case ('defeat') { <app-defeat-screen></app-defeat-screen> }
     @case ('meta') { <app-meta-screen></app-meta-screen> }
+    @case ('converter') { <app-converter-screen></app-converter-screen> }
   }
 </div>

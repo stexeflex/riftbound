@@ -140,6 +140,35 @@ export abstract class GameRunService extends GameDeckService {
     return 1 + (clampDifficulty(level) - 1) * 0.45;
   }
 
+  /**
+   * Kampagnen-Skalierung als Dungeon-Vergleichswert.
+   * Stage 1 startet bei Schwierigkeit 1, Stage 5 entspricht exakt Schwierigkeit 10.
+   * Danach steigt die Kampagne kontrolliert über den höchsten Dungeon-Wert hinaus.
+   */
+  campaignEquivalentDifficulty(stage: CampaignStage | null = this.currentStage()): number {
+    if (!stage) return 1;
+    const stageNumber = Math.max(1, CAMPAIGN_STAGES.indexOf(stage) + 1);
+    return stageNumber <= 5
+      ? 1 + (stageNumber - 1) * 2.25
+      : 10 + (stageNumber - 5) * 0.75;
+  }
+
+  campaignHpMultiplier(stage: CampaignStage | null = this.currentStage()): number {
+    return 1 + (this.campaignEquivalentDifficulty(stage) - 1) * 0.45;
+  }
+
+  campaignPowerMultiplier(stage: CampaignStage | null = this.currentStage()): number {
+    return 1 + (this.campaignEquivalentDifficulty(stage) - 1) * 0.3;
+  }
+
+  campaignHpBonus(stage: CampaignStage): number {
+    return Math.round((this.campaignHpMultiplier(stage) - 1) * 100);
+  }
+
+  campaignPowerBonus(stage: CampaignStage): number {
+    return Math.round((this.campaignPowerMultiplier(stage) - 1) * 100);
+  }
+
   difficultyHpBonus(level = this.dungeonDifficulty()): number {
     return Math.round((this.difficultyHpMultiplier(level) - 1) * 100);
   }
@@ -238,7 +267,13 @@ export abstract class GameRunService extends GameDeckService {
     }
   }
 
-  protected finishRun(won: boolean) {
+  giveUpRun() {
+    if (!['map', 'combat', 'reward', 'rest'].includes(this.screen())) return;
+    this.giveUpConfirmationOpen.set(false);
+    this.finishRun(false, true);
+  }
+
+  protected finishRun(won: boolean, surrendered = false) {
     this.clearRunSave();
     const m = this.meta();
     let earned = this.runSplitter();
@@ -273,6 +308,7 @@ export abstract class GameRunService extends GameDeckService {
     this.endSplitter.set(earned);
     this.endKerne.set(kerne);
     this.endFirstClear.set(firstClear);
+    this.endSurrendered.set(surrendered);
     this.meta.set({
       ...m,
       splitter: m.splitter + earned,

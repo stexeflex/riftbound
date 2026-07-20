@@ -5,15 +5,24 @@
           <span>🔮 {{ game.meta().splitter }} Splitter</span>
         </div>
         <p class="hint">
+          Resonanz wird ausgelöst, sobald du in einem Zug Karten aus 3 verschiedenen Kategorien spielst.
           Kaufe Resonanzen dauerhaft und wähle vor jedem Run eine davon aus.
         </p>
         <div class="upgrade-list">
           @for (r of game.allResonances; track r.id) {
-            <div class="upgrade-row resonance-shop-row" [class.owned-artifact]="game.ownsResonance(r.id)">
+            <div class="upgrade-row resonance-shop-row effect-detail" [class.owned-artifact]="game.ownsResonance(r.id)"
+                 tabindex="0"
+                 [attr.data-effect-tip]="game.resonanceDetails(r)"
+                 [attr.aria-description]="game.resonanceDetails(r)">
               <span class="upgrade-icon">{{ r.icon }}</span>
               <div class="upgrade-info">
                 <div class="upgrade-name">{{ r.name }}</div>
-                <div class="upgrade-text">{{ r.text }}</div>
+                <div class="upgrade-text">{{ game.resonanceText(r) }}</div>
+                @if (game.upgradeLevel('nachhall') > 0 && game.resonanceUsesNachhall(r)) {
+                  <div class="resonance-base-value">
+                    Basis: {{ game.resonanceText(r, 0) }} · Nachhall +{{ game.upgradeLevel('nachhall') }}
+                  </div>
+                }
               </div>
               @if (game.ownsResonance(r.id)) {
                 <span class="owned-badge">✔ Freigeschaltet</span>

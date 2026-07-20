@@ -52,7 +52,7 @@
             @for (a of game.ownedArtifacts(); track a.id) {
               <button class="loadout-choice"
                       [class.selected]="game.activeDeckLayout()?.artifactId === a.id"
-                      [attr.title]="a.text"
+                      [attr.title]="game.artifactDetails(a)"
                       (click)="game.selectLayoutArtifact(a.id)">
                 <span class="loadout-icon">{{ a.icon }}</span>
                 <span>{{ a.name }}</span>
@@ -74,7 +74,7 @@
             @for (r of game.ownedResonances(); track r.id) {
               <button class="loadout-choice"
                       [class.selected]="game.activeDeckLayout()?.resonanceId === r.id"
-                      [attr.title]="r.text"
+                      [attr.title]="game.resonanceDetails(r)"
                       (click)="game.selectLayoutResonance(r.id)">
                 <span class="loadout-icon">{{ r.icon }}</span>
                 <span>{{ r.name }}</span>

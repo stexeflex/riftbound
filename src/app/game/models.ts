@@ -98,6 +98,12 @@ export interface ResonanceDef {
   text: string;
   costSplitter: number;
   effect: 'draw' | 'block' | 'damage' | 'balance' | 'energy' | 'echo' | 'storm' | 'heal';
+  damage?: number;
+  block?: number;
+  hits?: number;
+  draw?: number;
+  energy?: number;
+  heal?: number;
 }
 
 export type Screen =
@@ -114,16 +120,18 @@ export type Screen =
   | 'victory'
   | 'defeat'
   | 'meta'
+  | 'converter'
   | 'cards';
 
 export type GameMode = 'dungeon' | 'campaign';
+export type DungeonTheme = 'desert' | 'winter' | 'crystal' | 'sky' | 'void';
 
 export interface DungeonArea {
   id: string;
   name: string;
   desc: string;
   icon: string;
-  theme: 'desert' | 'winter' | 'crystal' | 'sky' | 'void';
+  theme: DungeonTheme;
   background: string;
   stations: StationKind[];
   normalEncounters: string[][];
@@ -200,7 +208,8 @@ export interface MetaUpgradeDef {
   name: string;
   icon: string;
   maxLevel: number;
-  cost: number; // Splitter pro Stufe
+  cost: number; // Grundpreis; steigt mit jeder gekauften Stufe
+  currency?: 'splitter' | 'kerne';
   describe: (level: number) => string;
 }
 
