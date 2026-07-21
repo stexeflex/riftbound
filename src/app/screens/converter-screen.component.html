@@ -6,21 +6,21 @@
     <span>🟡 {{ game.meta().kerne }} Kerne</span>
   </div>
   <p class="hint">
-    Fester Kurs: 1.000 Splitter werden zu 1 Kern.
-    Kerne lassen sich nicht zurück in Splitter tauschen.
+    Fester Kurs: 1 Kern wird zu 1.000 Splittern.
+    Splitter lassen sich nicht in Kerne tauschen.
   </p>
 
   <div class="converter-options">
     <section class="converter-card">
-      <span class="converter-icon">🟡</span>
-      <h3>Kern herstellen</h3>
-      <p>1.000 Splitter werden zu 1 Kern.</p>
+      <span class="converter-icon">🔮</span>
+      <h3>Splitter herstellen</h3>
+      <p>1 Kern wird zu 1.000 Splittern.</p>
       <button
         class="btn btn-primary"
-        [disabled]="!game.canConvertSplitterToKern()"
-        (click)="game.convertSplitterToKern()"
+        [disabled]="!game.canConvertKernToSplitter()"
+        (click)="game.convertKernToSplitter()"
       >
-        🔮 1.000 → 🟡 1
+        🟡 1 → 🔮 1.000
       </button>
     </section>
   </div>

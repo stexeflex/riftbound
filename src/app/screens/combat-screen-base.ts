@@ -129,7 +129,11 @@ export abstract class CombatScreenBase extends CardScreenBase {
     enemies: EnemyState[],
     additionalBlock = 0,
   ): { total: number; byEnemy: Record<number, number> } {
-    let remainingBlock = this.game.block() + Math.max(0, additionalBlock);
+    // Dauerhafte Macht-Effekte wie Eiserne Haut werden beim Zugende noch
+    // vor den Gegnerangriffen ausgelöst und gehören deshalb in die Vorschau.
+    let remainingBlock = this.game.block()
+      + this.game.endTurnBlock()
+      + Math.max(0, additionalBlock);
     let hpDmg = 0;
     const byEnemy: Record<number, number> = {};
     const dornenkrone = this.game.artifact()?.id === 'dornenkrone';
@@ -191,6 +195,9 @@ export abstract class CombatScreenBase extends CardScreenBase {
       `❤️ Leben: ${this.game.playerHp()}/${this.game.playerMaxHp()}`,
       `🛡️ Aktives Schild: ${this.game.block()}`,
     ];
+    if (this.game.endTurnBlock() > 0) {
+      lines.push(`🛡️ Schild am Zugende: +${this.game.endTurnBlock()} (bereits eingerechnet)`);
+    }
     const raw = this.totalIncomingRaw();
     if (raw > 0) {
       const loss = this.totalIncomingDamage();

@@ -402,7 +402,7 @@ export abstract class GameCombatService extends GameRunService {
       this.enemies.set([...this.enemies()]);
     }
     if (def.selfWeak) this.playerWeak.set(this.playerWeak() + def.selfWeak);
-    if (def.randomBonus) this.applyRandomBonus();
+    if (def.randomBonus) this.applyRandomBonus(def.name);
 
     this.trackResonance(def.category);
     this.checkCombatEnd();
@@ -418,18 +418,18 @@ export abstract class GameCombatService extends GameRunService {
     }
   }
 
-  private applyRandomBonus() {
+  private applyRandomBonus(sourceName: string) {
     const roll = Math.floor(this.nextCombatRandom() * 3);
     if (roll === 0) {
       this.drawCards(1);
-      this.addLog('Chaoswoge: Du ziehst 1 Karte.');
+      this.addLog(`${sourceName}: Du ziehst 1 Karte.`);
     } else if (roll === 1) {
       this.gainBlock(5);
-      this.addLog('Chaoswoge: Du erhältst 5 Schild.');
+      this.addLog(`${sourceName}: Du erhältst 5 Schild.`);
     } else {
       const target = this.currentTarget();
       if (target) this.dealDamage(target, 5);
-      this.addLog('Chaoswoge: 5 zusätzlicher Schaden!');
+      this.addLog(`${sourceName}: 5 zusätzlicher Schaden!`);
     }
   }
 
@@ -573,7 +573,10 @@ export abstract class GameCombatService extends GameRunService {
     if (this.screen() !== 'combat') return;
     // Mit dem Zugende verfallen alle Rückgängig-Schritte dieses Zuges.
     this.combatUndoStack.set([]);
-    if (this.endTurnBlock() > 0) this.gainBlock(this.endTurnBlock());
+    if (this.endTurnBlock() > 0) {
+      this.gainBlock(this.endTurnBlock());
+      this.addLog(`Macht-Effekt: +${this.endTurnBlock()} Schild am Zugende.`);
+    }
     // Hand ablegen
     this.discardPile.set([...this.discardPile(), ...this.hand()]);
     this.hand.set([]);

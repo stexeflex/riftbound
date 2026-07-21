@@ -374,20 +374,20 @@ export abstract class GameMetaService {
 
   // ================= Umwandler =================
 
-  readonly kernConversionCost = 1000; // Splitter pro Kern
+  readonly splitterPerKern = 1000;
 
-  canConvertSplitterToKern(): boolean {
-    return this.meta().splitter >= this.kernConversionCost;
+  canConvertKernToSplitter(): boolean {
+    return this.meta().kerne >= 1;
   }
 
-  /** Wandelt 1000 Splitter in 1 Kern um – die Gegenrichtung gibt es bewusst nicht. */
-  convertSplitterToKern() {
-    if (!this.canConvertSplitterToKern()) return;
+  /** Wandelt 1 Kern in 1000 Splitter um – die Gegenrichtung gibt es bewusst nicht. */
+  convertKernToSplitter() {
+    if (!this.canConvertKernToSplitter()) return;
     const m = this.meta();
     this.meta.set({
       ...m,
-      splitter: m.splitter - this.kernConversionCost,
-      kerne: m.kerne + 1,
+      splitter: m.splitter + this.splitterPerKern,
+      kerne: m.kerne - 1,
     });
     this.saveMeta();
   }

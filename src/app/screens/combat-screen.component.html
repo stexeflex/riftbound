@@ -33,6 +33,12 @@
               @if (game.block() > 0) {
                 <span class="chip chip-block tip" [attr.data-tip]="tips.schild">🛡️ {{ game.block() }}</span>
               }
+              @if (game.endTurnBlock() > 0) {
+                <span class="chip chip-block tip"
+                      data-tip="Wird am Ende deines Zuges vor den Gegnerangriffen als Schild gutgeschrieben.">
+                  🛡️ +{{ game.endTurnBlock() }}/Zug
+                </span>
+              }
               @if (game.strength() > 0) {
                 <span class="chip chip-str tip" [attr.data-tip]="tips.staerke">💪 +{{ game.strength() }}</span>
               }
