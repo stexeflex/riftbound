@@ -199,11 +199,13 @@
           </div>
         </div>
 
-        <div class="combat-log">
-          @for (entry of game.log(); track $index) {
-            <div class="log-entry">{{ entry }}</div>
-          }
-        </div>
+        @if (game.log().length > 0) {
+          <div class="combat-log">
+            @for (entry of game.log(); track $index) {
+              <div class="log-entry">{{ entry }}</div>
+            }
+          </div>
+        }
       </div>
 
 

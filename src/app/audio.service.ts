@@ -143,9 +143,10 @@ export class AudioService {
   }
 
   syncScreen(screen: Screen, theme?: DungeonTheme) {
-    const combatStarted = screen === 'combat' && this.activeScreen !== 'combat';
+    const runScreenEntered = (screen === 'map' || screen === 'combat')
+      && this.activeScreen !== screen;
     this.activeScreen = screen;
-    if (combatStarted) this.setControlsCollapsed(true);
+    if (runScreenEntered) this.setControlsCollapsed(true);
 
     const active = MENU_SCREENS.has(screen);
     this.menuActive.set(active);
