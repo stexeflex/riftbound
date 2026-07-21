@@ -266,7 +266,11 @@
   &.active {
     color: #e8dcc0;
     border-color: #b08fff;
+    background:
+      linear-gradient(rgba(var(--category-rgb), 0.34), rgba(var(--category-rgb), 0.24)),
+      rgba(8, 6, 13, 0.82);
     box-shadow: 0 0 10px rgba(150, 110, 255, 0.4);
+    transform: translateY(-1px);
   }
 
   // Kategorie-Farben, passend zu den Karten in der Hand.
@@ -279,6 +283,15 @@
   &.cat-schutz.active { color: #a8d4ff; border-color: #6db9ff; box-shadow: 0 0 10px rgba(109, 185, 255, 0.45); }
   &.cat-kontrolle.active { color: #aef0c5; border-color: #7ee0a0; box-shadow: 0 0 10px rgba(126, 224, 160, 0.45); }
   &.cat-chaos.active { color: #e9b6ff; border-color: #d98aff; box-shadow: 0 0 10px rgba(217, 138, 255, 0.45); }
+}
+
+.resonance-progress {
+  padding: 0.15rem 0.55rem;
+  border-radius: 20px;
+  color: #ded5ed;
+  background: rgba(8, 6, 13, 0.72);
+  border: 1px solid rgba(210, 190, 245, 0.28);
+  font-weight: 700;
 }
 
 .resonance-active { color: #d8c8ff; font-weight: bold; }

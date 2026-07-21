@@ -1,6 +1,6 @@
 <div class="screen meta-screen">
         <button class="btn btn-small screen-back" (click)="game.backToTitle()">← Zurück</button>
-        <h2>Upgrades</h2>
+        <h2>Upgrade-Shop</h2>
         <div class="meta-summary">
           <span>🔮 {{ game.meta().splitter }} Splitter</span>
           <span>🟡 {{ game.meta().kerne }} Kerne</span>
@@ -31,7 +31,7 @@
               <button
                 class="btn btn-small"
                 [disabled]="!game.canBuyUpgrade(u.id)"
-                (click)="game.buyUpgrade(u.id)"
+                (click)="game.requestUpgradePurchase(u)"
               >
                 @if (game.upgradeLevel(u.id) >= u.maxLevel) {
                   Max

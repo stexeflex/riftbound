@@ -124,7 +124,7 @@ export abstract class GameMetaService {
   readonly block = signal(0);
   readonly strength = signal(0);
   readonly playerWeak = signal(0);
-  readonly endTurnBlock = signal(0);
+  readonly startTurnBlock = signal(0);
   readonly turn = signal(1);
   readonly playedCategories = signal<Category[]>([]);
   readonly resonanceCount = signal(0);

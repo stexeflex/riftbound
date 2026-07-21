@@ -1,9 +1,9 @@
 import { Injectable, signal } from '@angular/core';
 import { GameCombatService } from './game-combat.service';
-import { ArtifactDef, CardDef, ResonanceDef } from './models';
+import { ArtifactDef, CardDef, MetaUpgradeDef, ResonanceDef } from './models';
 
 interface PurchaseConfirmation {
-  itemType: 'Karte' | 'Artefakt' | 'Resonanz';
+  itemType: 'Karte' | 'Artefakt' | 'Resonanz' | 'Upgrade';
   itemName: string;
   purchase: () => void;
 }
@@ -41,6 +41,15 @@ export class GameService extends GameCombatService {
       itemType: 'Resonanz',
       itemName: resonance.name,
       purchase: () => this.buyResonance(resonance),
+    });
+  }
+
+  requestUpgradePurchase(upgrade: MetaUpgradeDef) {
+    if (!this.canBuyUpgrade(upgrade.id)) return;
+    this.purchaseConfirmation.set({
+      itemType: 'Upgrade',
+      itemName: upgrade.name,
+      purchase: () => this.buyUpgrade(upgrade.id),
     });
   }
 

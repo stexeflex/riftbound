@@ -49,7 +49,7 @@ export const CARDS: Record<string, CardDef> = {
   },
   eiserneHaut: {
     id: 'eiserneHaut', name: 'Eiserne Haut', cost: 2, type: 'Macht', category: 'Schutz', price: 90,
-    text: 'Erhalte am Ende jedes Zuges 3 Schild.', endTurnBlock: 3,
+    text: 'Erhalte ab deinem nächsten Zug am Anfang jedes Zuges 3 Schild.', startTurnBlock: 3,
   },
   nachladen: {
     id: 'nachladen', name: 'Nachladen', cost: 0, type: 'Technik', category: 'Kontrolle', price: 50,
@@ -85,7 +85,7 @@ export const CARDS: Record<string, CardDef> = {
   },
   festungsritual: {
     id: 'festungsritual', name: 'Festungsritual', cost: 3, type: 'Macht', category: 'Schutz', price: 140,
-    text: 'Erhalte am Ende jedes Zuges 6 Schild.', endTurnBlock: 6,
+    text: 'Erhalte ab deinem nächsten Zug am Anfang jedes Zuges 6 Schild.', startTurnBlock: 6,
   },
   schutzkreis: {
     id: 'schutzkreis', name: 'Schutzkreis', cost: 1, type: 'Verteidigung', category: 'Schutz', price: 100,

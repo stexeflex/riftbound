@@ -33,7 +33,7 @@ export interface CardDef {
   vulnerableEnemy?: number; // Verwundbarkeit auf Gegner (+50% erlittener Schaden)
   selfWeak?: number;       // Spieler erhält Schwäche
   strength?: number;       // dauerhafter Schadensbonus für diesen Kampf
-  endTurnBlock?: number;   // Schild am Ende jedes Zuges (Macht)
+  startTurnBlock?: number; // Schild am Anfang des nächsten Zuges (Macht)
   randomBonus?: boolean;   // Chaoswoge: zufälliger Zusatzeffekt
   unplayable?: boolean;
 }
@@ -171,7 +171,8 @@ export interface CombatSave {
   block: number;
   strength: number;
   playerWeak: number;
-  endTurnBlock: number;
+  startTurnBlock?: number;
+  endTurnBlock?: number; // Kompatibilität mit älteren gespeicherten Runs
   turn: number;
   playedCategories: Category[];
   resonanceCount: number;

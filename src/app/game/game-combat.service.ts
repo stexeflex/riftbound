@@ -36,7 +36,7 @@ export abstract class GameCombatService extends GameRunService {
       block: this.block(),
       strength: this.strength(),
       playerWeak: this.playerWeak(),
-      endTurnBlock: this.endTurnBlock(),
+      startTurnBlock: this.startTurnBlock(),
       turn: this.turn(),
       playedCategories: this.playedCategories(),
       resonanceCount: this.resonanceCount(),
@@ -81,7 +81,7 @@ export abstract class GameCombatService extends GameRunService {
     this.block.set(c.block);
     this.strength.set(c.strength);
     this.playerWeak.set(c.playerWeak);
-    this.endTurnBlock.set(c.endTurnBlock);
+    this.startTurnBlock.set(c.startTurnBlock ?? c.endTurnBlock ?? 0);
     this.turn.set(c.turn);
     this.playedCategories.set(c.playedCategories);
     this.resonanceCount.set(c.resonanceCount);
@@ -184,7 +184,7 @@ export abstract class GameCombatService extends GameRunService {
     this.block.set(0);
     this.strength.set(0);
     this.playerWeak.set(0);
-    this.endTurnBlock.set(0);
+    this.startTurnBlock.set(0);
     this.turn.set(1);
     this.firstAttackDone.set(false);
     this.log.set([]);
@@ -226,6 +226,10 @@ export abstract class GameCombatService extends GameRunService {
         startBlock += kept;
         this.addLog(`Seelenspiegel: ${kept} Schild bleibt erhalten.`);
       }
+    }
+    if (this.startTurnBlock() > 0) {
+      startBlock += this.startTurnBlock();
+      this.addLog(`Macht-Effekt: +${this.startTurnBlock()} Schild am Zuganfang.`);
     }
     this.block.set(startBlock);
 
@@ -389,9 +393,9 @@ export abstract class GameCombatService extends GameRunService {
       this.strength.set(this.strength() + def.strength);
       this.addLog(`${def.name}: +${def.strength} Schaden auf Angriffe.`);
     }
-    if (def.endTurnBlock) {
-      this.endTurnBlock.set(this.endTurnBlock() + def.endTurnBlock);
-      this.addLog(`${def.name}: +${def.endTurnBlock} Schild am Zugende.`);
+    if (def.startTurnBlock) {
+      this.startTurnBlock.set(this.startTurnBlock() + def.startTurnBlock);
+      this.addLog(`${def.name}: +${def.startTurnBlock} Schild am Anfang des nächsten Zuges.`);
     }
     if (def.weakEnemy) {
       for (const target of targets) target.weak += def.weakEnemy;
@@ -573,10 +577,6 @@ export abstract class GameCombatService extends GameRunService {
     if (this.screen() !== 'combat') return;
     // Mit dem Zugende verfallen alle Rückgängig-Schritte dieses Zuges.
     this.combatUndoStack.set([]);
-    if (this.endTurnBlock() > 0) {
-      this.gainBlock(this.endTurnBlock());
-      this.addLog(`Macht-Effekt: +${this.endTurnBlock()} Schild am Zugende.`);
-    }
     // Hand ablegen
     this.discardPile.set([...this.discardPile(), ...this.hand()]);
     this.hand.set([]);

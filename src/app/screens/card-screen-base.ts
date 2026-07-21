@@ -70,7 +70,7 @@ export abstract class CardScreenBase extends GameScreen {
     if (def.strength) {
       lines.push('Stärke erhöht jeden einzelnen Angriffstreffer und bleibt bis zum Ende des Kampfes bestehen.');
     }
-    if (def.endTurnBlock) {
+    if (def.startTurnBlock) {
       lines.push('Als Macht bleibt dieser Effekt nach dem Ausspielen für den gesamten Kampf aktiv.');
     }
     if (def.weakEnemy) {

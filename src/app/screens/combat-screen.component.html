@@ -33,10 +33,10 @@
               @if (game.block() > 0) {
                 <span class="chip chip-block tip" [attr.data-tip]="tips.schild">🛡️ {{ game.block() }}</span>
               }
-              @if (game.endTurnBlock() > 0) {
+              @if (game.startTurnBlock() > 0) {
                 <span class="chip chip-block tip"
-                      data-tip="Wird am Ende deines Zuges vor den Gegnerangriffen als Schild gutgeschrieben.">
-                  🛡️ +{{ game.endTurnBlock() }}/Zug
+                      data-tip="Wird am Anfang deines nächsten Zuges als sichtbarer Schild gutgeschrieben.">
+                  🛡️ +{{ game.startTurnBlock() }}/Zuganfang
                 </span>
               }
               @if (game.strength() > 0) {
@@ -138,10 +138,13 @@
             @for (cat of cardCategories; track cat) {
               <span class="resonance-dot {{ categoryClass(cat) }}"
                     [class.active]="game.playedCategories().includes(cat)">
-
+                @if (game.playedCategories().includes(cat)) { <span aria-hidden="true">✓</span> }
                 {{ cat }}
               </span>
             }
+            <span class="resonance-progress">
+              {{ game.playedCategories().length }}/3 Kategorien · {{ 3 - game.playedCategories().length }} fehlen
+            </span>
             @if (game.resonanceCount() > 0) {
               <span class="resonance-active">✨ {{ game.resonanceCount() }}× ausgelöst!</span>
             }
@@ -192,10 +195,6 @@
               <small>Gegnerzug starten</small>
             </button>
             <div class="turn-utility-controls" aria-label="Weitere Kampfaktionen">
-              <button class="btn btn-small"
-                      [disabled]="!game.canUndoCardPlay()"
-                      title="Macht die zuletzt gespielte Karte rückgängig (nur im aktuellen Zug)"
-                      (click)="game.undoCardPlay()">↩️ Rückgängig</button>
               <button class="btn btn-small" (click)="game.toMenu()">Menü</button>
               <button class="btn btn-small btn-danger combat-give-up"
                       (click)="game.giveUpConfirmationOpen.set(true)">
