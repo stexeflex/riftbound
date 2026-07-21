@@ -1,4 +1,4 @@
-import { Component, HostListener, ViewEncapsulation, effect, inject, signal } from '@angular/core';
+import { Component, HostListener, effect, inject, signal } from '@angular/core';
 import { AudioService } from './audio.service';
 import { GameService } from './game/game.service';
 import { TitleScreenComponent } from './screens/title-screen.component';
@@ -21,8 +21,6 @@ import { ConverterScreenComponent } from './screens/converter-screen.component';
   selector: 'app-root',
   imports: [TitleScreenComponent, DungeonsScreenComponent, CampaignScreenComponent, MapScreenComponent, DeckScreenComponent, CardsScreenComponent, ArtifactsScreenComponent, ResonancesScreenComponent, CombatScreenComponent, RewardScreenComponent, RestScreenComponent, VictoryScreenComponent, DefeatScreenComponent, MetaScreenComponent, ConverterScreenComponent],
   templateUrl: './app.html',
-  styleUrl: './app.scss',
-  encapsulation: ViewEncapsulation.None,
 })
 export class App {
   readonly game = inject(GameService);
