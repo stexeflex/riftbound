@@ -34,6 +34,12 @@ export interface CardDef {
   selfWeak?: number;       // Spieler erhält Schwäche
   strength?: number;       // dauerhafter Schadensbonus für diesen Kampf
   startTurnBlock?: number; // Schild am Anfang des nächsten Zuges (Macht)
+  veil?: number;           // so viele gegnerische Treffer gehen vollständig daneben
+  reflection?: number;     // Schaden, den der nächste gegnerische Treffer zurückwirft
+  purgeEnemyBuffs?: number; // so viele positive Effektarten vom Gegner entfernen
+  retainBlock?: number;    // bis zu so viel Restschild in den nächsten Zug übertragen
+  summonAlly?: string;     // ID des zu beschwörenden Verbündeten
+  damagePerAlly?: number;  // zusätzlicher Schaden pro aktivem Verbündeten
   randomBonus?: boolean;   // Chaoswoge: zufälliger Zusatzeffekt
   unplayable?: boolean;
 }
@@ -72,6 +78,24 @@ export interface EnemyState {
   vulnerable: number;
   moveIndex: number;
   intent: EnemyMove;
+}
+
+export interface AllyDef {
+  id: string;
+  name: string;
+  emoji: string;
+  maxHp: number;
+  text: string;
+  taunt?: boolean;          // fängt gegnerische Treffer ab, solange der Verbündete lebt
+  startTurnDamage?: number; // Schaden an einem zufälligen Gegner zu Beginn des Spielerzugs
+  duration?: number;        // Anzahl der Zuganfänge, danach verschwindet der Verbündete
+}
+
+export interface AllyState {
+  uid: number;
+  def: AllyDef;
+  hp: number;
+  turnsRemaining: number | null;
 }
 
 export type StationKind = 'kampf' | 'elite' | 'rast' | 'boss';
@@ -173,6 +197,14 @@ export interface CombatSave {
   playerWeak: number;
   startTurnBlock?: number;
   endTurnBlock?: number; // Kompatibilität mit älteren gespeicherten Runs
+  veil?: number;
+  reflection?: number;
+  blockCarryover?: number;
+  allies?: {
+    id: string;
+    hp: number;
+    turnsRemaining: number | null;
+  }[];
   turn: number;
   playedCategories: Category[];
   resonanceCount: number;

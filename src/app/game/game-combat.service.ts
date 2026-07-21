@@ -1,14 +1,14 @@
 import { computed, inject, signal } from '@angular/core';
 import { AudioService } from '../audio.service';
 import {
-  ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
+  AllyDef, AllyState, ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
   DeckLayout, DungeonArea, EnemyDef, EnemyState, GameMode, MetaState, RunSave, Screen,
   Station, StationKind, ResonanceDef,
 } from './models';
 import {
-  ARTIFACTS, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, DUNGEON_AREAS, ENEMIES,
+  ALLIES, ARTIFACTS, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, DUNGEON_AREAS, ENEMIES,
   MAX_CARD_COPIES, META_UPGRADES, REWARD_POOL, STARTER_COLLECTION, STARTER_DECK,
-  RESONANCES,
+  RESONANCES, MAX_ALLIES,
 } from './data';
 import { legacyLoad, secureLoad, secureRemove, secureSave } from './storage';
 import { GameRunService } from './game-run.service';
@@ -37,6 +37,14 @@ export abstract class GameCombatService extends GameRunService {
       strength: this.strength(),
       playerWeak: this.playerWeak(),
       startTurnBlock: this.startTurnBlock(),
+      veil: this.veil(),
+      reflection: this.reflection(),
+      blockCarryover: this.blockCarryover(),
+      allies: this.livingAllies().map(ally => ({
+        id: ally.def.id,
+        hp: ally.hp,
+        turnsRemaining: ally.turnsRemaining,
+      })),
       turn: this.turn(),
       playedCategories: this.playedCategories(),
       resonanceCount: this.resonanceCount(),
@@ -82,6 +90,17 @@ export abstract class GameCombatService extends GameRunService {
     this.strength.set(c.strength);
     this.playerWeak.set(c.playerWeak);
     this.startTurnBlock.set(c.startTurnBlock ?? c.endTurnBlock ?? 0);
+    this.veil.set(c.veil ?? 0);
+    this.reflection.set(c.reflection ?? 0);
+    this.blockCarryover.set(c.blockCarryover ?? 0);
+    this.allies.set((c.allies ?? [])
+      .filter(ally => ALLIES[ally.id] && ally.hp > 0)
+      .slice(0, MAX_ALLIES)
+      .map(ally => this.makeAlly(
+        ALLIES[ally.id],
+        ally.hp,
+        ally.turnsRemaining,
+      )));
     this.turn.set(c.turn);
     this.playedCategories.set(c.playedCategories);
     this.resonanceCount.set(c.resonanceCount);
@@ -104,6 +123,19 @@ export abstract class GameCombatService extends GameRunService {
 
   protected override makeCard(def: CardDef): CardInstance {
     return { uid: this.nextUid++, def };
+  }
+
+  private makeAlly(
+    def: AllyDef,
+    hp = def.maxHp,
+    turnsRemaining: number | null = def.duration ?? null,
+  ): AllyState {
+    return {
+      uid: this.nextAllyUid++,
+      def,
+      hp: Math.min(def.maxHp, Math.max(1, hp)),
+      turnsRemaining,
+    };
   }
 
 
@@ -185,6 +217,10 @@ export abstract class GameCombatService extends GameRunService {
     this.strength.set(0);
     this.playerWeak.set(0);
     this.startTurnBlock.set(0);
+    this.veil.set(0);
+    this.reflection.set(0);
+    this.blockCarryover.set(0);
+    this.allies.set([]);
     this.turn.set(1);
     this.firstAttackDone.set(false);
     this.log.set([]);
@@ -213,6 +249,7 @@ export abstract class GameCombatService extends GameRunService {
     }
     this.energy.set(energy);
 
+    const previousBlock = this.block();
     let startBlock = 0;
     if (this.artifact()?.id === 'schildkern') startBlock += 3;
     startBlock += this.runUpgradeLevel('schildfluss');
@@ -220,13 +257,21 @@ export abstract class GameCombatService extends GameRunService {
       startBlock += this.runUpgradeLevel('vorbereitung') * 5;
       if (this.artifact()?.id === 'runenpanzer') startBlock += 40;
     }
-    if (this.artifact()?.id === 'seelenspiegel' && this.block() > 0) {
-      const kept = Math.floor(this.block() / 2);
+    let retainedBlock = 0;
+    if (!first && this.artifact()?.id === 'seelenspiegel' && previousBlock > 0) {
+      const kept = Math.floor(previousBlock / 2);
       if (kept > 0) {
-        startBlock += kept;
+        retainedBlock += kept;
         this.addLog(`Seelenspiegel: ${kept} Schild bleibt erhalten.`);
       }
     }
+    if (!first && this.blockCarryover() > 0 && previousBlock > retainedBlock) {
+      const kept = Math.min(this.blockCarryover(), previousBlock - retainedBlock);
+      retainedBlock += kept;
+      this.addLog(`Schildanker: ${kept} Schild wird übertragen.`);
+    }
+    this.blockCarryover.set(0);
+    startBlock += retainedBlock;
     if (this.startTurnBlock() > 0) {
       startBlock += this.startTurnBlock();
       this.addLog(`Macht-Effekt: +${this.startTurnBlock()} Schild am Zuganfang.`);
@@ -240,6 +285,8 @@ export abstract class GameCombatService extends GameRunService {
     this.sanduhrUsedThisTurn.set(false);
     this.zeitbruchArmed.set(false);
     this.attackPlayedThisTurn.set(false);
+    this.triggerAlliesAtStartTurn();
+    if (this.screen() !== 'combat') return;
     let draw = 5;
     if (first) {
       draw += this.runUpgradeLevel('vorausahnung');
@@ -247,6 +294,31 @@ export abstract class GameCombatService extends GameRunService {
     }
     this.drawCards(draw);
     if (this.playerWeak() > 0) this.playerWeak.set(this.playerWeak() - 1);
+  }
+
+  private triggerAlliesAtStartTurn() {
+    const remaining: AllyState[] = [];
+    for (const ally of this.livingAllies()) {
+      if (ally.def.startTurnDamage && this.aliveEnemies().length > 0) {
+        const target = this.pickCombat(this.aliveEnemies());
+        this.dealDamage(target, ally.def.startTurnDamage, true);
+        this.addLog(`${ally.def.name}: ${ally.def.startTurnDamage} Schaden an ${target.def.name}.`);
+      }
+
+      if (ally.turnsRemaining === null) {
+        remaining.push(ally);
+        continue;
+      }
+
+      ally.turnsRemaining -= 1;
+      if (ally.turnsRemaining > 0) {
+        remaining.push(ally);
+      } else {
+        this.addLog(`${ally.def.name} kehrt in den Riss zurück.`);
+      }
+    }
+    this.allies.set(remaining);
+    this.checkCombatEnd();
   }
 
   private drawCards(n: number) {
@@ -284,10 +356,19 @@ export abstract class GameCombatService extends GameRunService {
   }
 
   canPlay(card: CardInstance): boolean {
-    const needsEnemy = Boolean(card.def.damage || card.def.weakEnemy || card.def.vulnerableEnemy);
+    const def = card.def;
+    const needsEnemy = Boolean(
+      def.damage || def.weakEnemy || def.vulnerableEnemy || def.purgeEnemyBuffs,
+    );
+    const summonBlocked = Boolean(def.summonAlly) && (
+      !ALLIES[def.summonAlly!]
+      || this.livingAllies().length >= MAX_ALLIES
+      || this.livingAllies().some(ally => ally.def.id === def.summonAlly)
+    );
     return !card.def.unplayable
       && this.costOf(card) <= this.energy()
-      && (!needsEnemy || this.aliveEnemies().length > 0);
+      && (!needsEnemy || this.aliveEnemies().length > 0)
+      && !summonBlocked;
   }
 
   selectEnemy(enemy: EnemyState) {
@@ -323,7 +404,7 @@ export abstract class GameCombatService extends GameRunService {
     // Jägerauge verdoppelt beim ersten Angriff gegen jedes Ziel mit vollen Leben.
     const klingenTarget = def.target !== 'all' || this.aliveEnemies()[0]?.uid === enemy.uid;
     for (let h = 0; h < hits; h++) {
-      let dmg = def.damage + this.strength();
+      let dmg = def.damage + (def.damagePerAlly ?? 0) * this.livingAllies().length + this.strength();
       if (firstAttackCard && h === 0) {
         if (klingenTarget) dmg += this.runUpgradeLevel('klingenmeisterschaft') * 2;
         if (this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) dmg *= 2;
@@ -375,10 +456,15 @@ export abstract class GameCombatService extends GameRunService {
       for (const target of targets) {
         const hits = def.hits ?? 1;
         for (let h = 0; h < hits; h++) {
-          this.dealDamage(target, def.damage, false, {
-            klingen: klingenAvailable,
-            jaeger: firstAttackCard && h === 0,
-          });
+          this.dealDamage(
+            target,
+            def.damage + (def.damagePerAlly ?? 0) * this.livingAllies().length,
+            false,
+            {
+              klingen: klingenAvailable,
+              jaeger: firstAttackCard && h === 0,
+            },
+          );
           klingenAvailable = false;
         }
       }
@@ -397,6 +483,18 @@ export abstract class GameCombatService extends GameRunService {
       this.startTurnBlock.set(this.startTurnBlock() + def.startTurnBlock);
       this.addLog(`${def.name}: +${def.startTurnBlock} Schild am Anfang des nächsten Zuges.`);
     }
+    if (def.veil) {
+      this.veil.set(this.veil() + def.veil);
+      this.addLog(`${def.name}: ${def.veil} Verschleierung.`);
+    }
+    if (def.reflection) {
+      this.reflection.set(this.reflection() + def.reflection);
+      this.addLog(`${def.name}: ${def.reflection} Schaden sind zur Reflektion bereit.`);
+    }
+    if (def.retainBlock) {
+      this.blockCarryover.set(this.blockCarryover() + def.retainBlock);
+      this.addLog(`${def.name}: Bis zu ${def.retainBlock} Restschild werden übertragen.`);
+    }
     if (def.weakEnemy) {
       for (const target of targets) target.weak += def.weakEnemy;
       this.enemies.set([...this.enemies()]);
@@ -405,6 +503,10 @@ export abstract class GameCombatService extends GameRunService {
       for (const target of targets) target.vulnerable += def.vulnerableEnemy;
       this.enemies.set([...this.enemies()]);
     }
+    if (def.purgeEnemyBuffs) {
+      for (const target of targets) this.purgeEnemyBuffs(target, def.purgeEnemyBuffs, def.name);
+    }
+    if (def.summonAlly) this.summonAlly(def.summonAlly, def.name);
     if (def.selfWeak) this.playerWeak.set(this.playerWeak() + def.selfWeak);
     if (def.randomBonus) this.applyRandomBonus(def.name);
 
@@ -435,6 +537,31 @@ export abstract class GameCombatService extends GameRunService {
       if (target) this.dealDamage(target, 5);
       this.addLog(`${sourceName}: 5 zusätzlicher Schaden!`);
     }
+  }
+
+  private purgeEnemyBuffs(enemy: EnemyState, limit: number, sourceName: string) {
+    const removed: string[] = [];
+    if (enemy.strength > 0 && removed.length < limit) {
+      enemy.strength = 0;
+      removed.push('Stärke');
+    }
+    if (enemy.block > 0 && removed.length < limit) {
+      enemy.block = 0;
+      removed.push('Schild');
+    }
+    this.enemies.set([...this.enemies()]);
+    this.addLog(removed.length > 0
+      ? `${sourceName}: ${enemy.def.name} verliert ${removed.join(' und ')}.`
+      : `${sourceName}: ${enemy.def.name} hat keine positiven Effekte.`);
+  }
+
+  private summonAlly(allyId: string, sourceName: string) {
+    const def = ALLIES[allyId];
+    if (!def
+      || this.livingAllies().length >= MAX_ALLIES
+      || this.livingAllies().some(ally => ally.def.id === allyId)) return;
+    this.allies.set([...this.livingAllies(), this.makeAlly(def)]);
+    this.addLog(`${sourceName}: ${def.name} wurde beschworen.`);
   }
 
   private maxResonancePerTurn(): number {
@@ -609,7 +736,7 @@ export abstract class GameCombatService extends GameRunService {
     if (this.screen() === 'combat') {
       this.ensureTarget();
       this.startPlayerTurn();
-      this.saveRun();
+      if (this.screen() === 'combat') this.saveRun();
     }
   }
 
@@ -620,12 +747,18 @@ export abstract class GameCombatService extends GameRunService {
     enemy.block = 0;
     if (move.kind === 'attack' || move.kind === 'attack_debuff') {
       const hits = move.hits ?? 1;
+      let playerWasHit = false;
       for (let h = 0; h < hits; h++) {
         const dmg = this.enemyAttackPerHit(enemy);
-        this.damagePlayer(dmg, enemy);
+        const tauntAlly = this.livingAllies().find(ally => ally.def.taunt);
+        if (tauntAlly) {
+          this.damageAlly(tauntAlly, dmg, enemy);
+        } else {
+          playerWasHit = this.damagePlayer(dmg, enemy) || playerWasHit;
+        }
         if (this.playerHp() <= 0) return;
       }
-      if (move.kind === 'attack_debuff' && move.weak) {
+      if (move.kind === 'attack_debuff' && move.weak && playerWasHit) {
         this.playerWeak.set(this.playerWeak() + move.weak);
         this.addLog(`${enemy.def.name} schwächt dich (${move.weak} Schwäche).`);
       }
@@ -638,7 +771,12 @@ export abstract class GameCombatService extends GameRunService {
     this.enemies.set([...this.enemies()]);
   }
 
-  private damagePlayer(dmg: number, attacker: EnemyState) {
+  private damagePlayer(dmg: number, attacker: EnemyState): boolean {
+    if (this.veil() > 0) {
+      this.veil.set(this.veil() - 1);
+      this.addLog(`Verschleierung: ${attacker.def.name} verfehlt dich.`);
+      return false;
+    }
     const blocked = Math.min(this.block(), dmg);
     this.block.set(this.block() - blocked);
     let hpDmg = dmg - blocked;
@@ -652,6 +790,29 @@ export abstract class GameCombatService extends GameRunService {
       this.playerHp.set(Math.max(0, this.playerHp() - hpDmg));
       this.audio.playPlayerHit(hpDmg);
     }
+    this.triggerReflection(attacker);
+    return true;
+  }
+
+  private damageAlly(ally: AllyState, dmg: number, attacker: EnemyState) {
+    const actualDamage = Math.min(ally.hp, dmg);
+    ally.hp = Math.max(0, ally.hp - dmg);
+    if (ally.hp > 0) {
+      this.allies.set([...this.livingAllies()]);
+      this.addLog(`${ally.def.name} fängt ${actualDamage} Schaden von ${attacker.def.name} ab.`);
+    } else {
+      this.allies.set(this.livingAllies().filter(current => current.uid !== ally.uid));
+      this.addLog(`${ally.def.name} fängt den Treffer ab und wird besiegt.`);
+    }
+    this.triggerReflection(attacker);
+  }
+
+  private triggerReflection(attacker: EnemyState) {
+    const reflectedDamage = this.reflection();
+    if (reflectedDamage <= 0) return;
+    this.reflection.set(0);
+    this.dealDamage(attacker, reflectedDamage, true);
+    this.addLog(`Reflektion: ${attacker.def.name} erleidet ${reflectedDamage} Schaden.`);
   }
 
   private onCombatWon() {

@@ -39,6 +39,24 @@
                   🛡️ +{{ game.startTurnBlock() }}/Zuganfang
                 </span>
               }
+              @if (game.veil() > 0) {
+                <span class="chip chip-veil tip"
+                      data-tip="Jede Ladung lässt einen gegnerischen Treffer gegen dich vollständig verfehlen.">
+                  🌫️ Verschleierung {{ game.veil() }}
+                </span>
+              }
+              @if (game.reflection() > 0) {
+                <span class="chip chip-reflect tip"
+                      data-tip="Der nächste Treffer gegen dich oder einen Verbündeten wirft diesen Schaden auf den Angreifer zurück.">
+                  🪞 Reflektion {{ game.reflection() }}
+                </span>
+              }
+              @if (game.blockCarryover() > 0) {
+                <span class="chip chip-carry tip"
+                      data-tip="Bis zu diesem Wert deines Schilds wird nach dem Gegnerzug in den nächsten Zug übertragen.">
+                  ⚓ Schildtransfer {{ game.blockCarryover() }}
+                </span>
+              }
               @if (game.strength() > 0) {
                 <span class="chip chip-str tip" [attr.data-tip]="tips.staerke">💪 +{{ game.strength() }}</span>
               }
@@ -58,6 +76,44 @@
               }
             </div>
           </div>
+
+          @if (game.livingAllies().length > 0) {
+            <div class="allies-group" aria-label="Verbündete">
+              @for (ally of game.livingAllies(); track ally.uid) {
+                <div class="fighter ally tip tip-pre" [attr.data-tip]="ally.def.text">
+                  <div class="ally-role" [class.ally-taunt]="ally.def.taunt">
+                    @if (ally.def.taunt) { 🎯 Provokation } @else { ✨ Verbündeter }
+                  </div>
+                  @if (allyIncomingDamage(ally) > 0) {
+                    <div class="dmg-preview">⚔️ {{ allyIncomingDamage(ally) }} Schaden</div>
+                  }
+                  <div class="fighter-emoji">{{ ally.def.emoji }}</div>
+                  <div class="fighter-name">{{ ally.def.name }}</div>
+                  @if (ally.def.taunt) {
+                    <div class="hp-bar ally-hp-bar">
+                      <div class="hp-fill ally-fill"
+                           [style.width.%]="barPercent(ally.hp, ally.def.maxHp)"></div>
+                      @if (allyIncomingDamage(ally) > 0) {
+                        <div class="hp-loss-preview ally-loss-preview"
+                             [style.left.%]="barPercent(projectedAllyHp(ally), ally.def.maxHp)"
+                             [style.width.%]="barPercent(allyIncomingDamage(ally), ally.def.maxHp)"></div>
+                        <span class="hp-text">{{ ally.hp }}/{{ ally.def.maxHp }} → {{ projectedAllyHp(ally) }}</span>
+                      } @else {
+                        <span class="hp-text">{{ ally.hp }}/{{ ally.def.maxHp }}</span>
+                      }
+                    </div>
+                  }
+                  <div class="status-row">
+                    @if (ally.turnsRemaining !== null) {
+                      <span class="chip chip-ally-turns">⏳ {{ ally.turnsRemaining }} Zuganfänge</span>
+                    } @else {
+                      <span class="chip chip-ally-stays">Bleibt bis besiegt</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
 
           <div class="vs">⚡</div>
 

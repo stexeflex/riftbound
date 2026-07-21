@@ -1,7 +1,7 @@
 import { computed, inject, signal } from '@angular/core';
 import { AudioService } from '../audio.service';
 import {
-  ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
+  AllyState, ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
   DeckLayout, DungeonArea, EnemyDef, EnemyState, GameMode, MetaState, RunSave, Screen,
   Station, StationKind, ResonanceDef,
 } from './models';
@@ -32,6 +32,7 @@ export abstract class GameMetaService {
   protected readonly audio = inject(AudioService);
   protected nextUid = 1;
   protected nextEnemyUid = 1;
+  protected nextAllyUid = 1;
   protected combatRngState = 0;
 
   // ---------- Meta (bleibt über Runs erhalten) ----------
@@ -125,6 +126,10 @@ export abstract class GameMetaService {
   readonly strength = signal(0);
   readonly playerWeak = signal(0);
   readonly startTurnBlock = signal(0);
+  readonly veil = signal(0);
+  readonly reflection = signal(0);
+  readonly blockCarryover = signal(0);
+  readonly allies = signal<AllyState[]>([]);
   readonly turn = signal(1);
   readonly playedCategories = signal<Category[]>([]);
   readonly resonanceCount = signal(0);
@@ -153,6 +158,7 @@ export abstract class GameMetaService {
   readonly endSurrendered = signal(false);
 
   readonly aliveEnemies = computed(() => this.enemies().filter(e => e.hp > 0));
+  readonly livingAllies = computed(() => this.allies().filter(ally => ally.hp > 0));
   readonly currentTarget = computed(() =>
     this.aliveEnemies().find(e => e.uid === this.selectedEnemyUid()) ?? this.aliveEnemies()[0] ?? null,
   );

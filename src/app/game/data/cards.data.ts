@@ -124,6 +124,40 @@ export const CARDS: Record<string, CardDef> = {
     id: 'ueberladung', name: 'Überladung', cost: 2, type: 'Angriff', category: 'Chaos', price: 100,
     text: 'Füge 19 Schaden zu. Erhalte 2 Schwäche.', damage: 19, selfWeak: 2,
   },
+  phasenschritt: {
+    id: 'phasenschritt', name: 'Phasenschritt', cost: 2, type: 'Technik', category: 'Kontrolle', price: 130,
+    text: 'Erhalte 1 Verschleierung. Ziehe 1 Karte.', veil: 1, draw: 1,
+  },
+  spiegelwacht: {
+    id: 'spiegelwacht', name: 'Spiegelwacht', cost: 2, type: 'Verteidigung', category: 'Schutz', price: 120,
+    text: 'Erhalte 8 Schild. Der nächste gegnerische Treffer reflektiert 8 Schaden.',
+    block: 8, reflection: 8,
+  },
+  bannzeichen: {
+    id: 'bannzeichen', name: 'Bannzeichen', cost: 1, type: 'Technik', category: 'Kontrolle', price: 110,
+    text: 'Entferne bis zu 2 positive Effekte vom Ziel. Ziehe 1 Karte.',
+    purgeEnemyBuffs: 2, draw: 1,
+  },
+  schildanker: {
+    id: 'schildanker', name: 'Schildanker', cost: 1, type: 'Verteidigung', category: 'Schutz', price: 100,
+    text: 'Erhalte 7 Schild. Übertrage bis zu 5 Restschild in deinen nächsten Zug.',
+    block: 7, retainBlock: 5,
+  },
+  risswaechter: {
+    id: 'risswaechter', name: 'Risswächter', cost: 2, type: 'Macht', category: 'Schutz', price: 150,
+    text: 'Beschwöre einen Risswächter mit 12 Leben und Provokation.',
+    summonAlly: 'risswaechter',
+  },
+  funkengeist: {
+    id: 'funkengeist', name: 'Funkengeist', cost: 2, type: 'Macht', category: 'Chaos', price: 150,
+    text: 'Beschwöre für 3 Zuganfänge einen Funkengeist. Er verursacht jeweils 4 Schaden.',
+    summonAlly: 'funkengeist',
+  },
+  verbundschlag: {
+    id: 'verbundschlag', name: 'Verbundschlag', cost: 1, type: 'Angriff', category: 'Kraft', price: 100,
+    text: 'Füge 6 Schaden zu. +3 Schaden pro aktivem Verbündeten.',
+    damage: 6, damagePerAlly: 3,
+  },
   schwaeche: {
     id: 'schwaeche', name: 'Schwäche', cost: 0, type: 'Fluch', category: 'Chaos',
     text: 'Nicht spielbar. Blockiert einen Platz in deiner Hand.', unplayable: true,
@@ -138,6 +172,8 @@ export const REWARD_POOL: string[] = [
   'hinrichtung', 'blutrausch', 'bollwerk', 'wachsamkeit', 'festungsritual',
   'schutzkreis', 'einschuechtern', 'markieren', 'zeitfenster', 'umleitung',
   'risssalve', 'funkenflug', 'gluecksspiel', 'ueberladung',
+  'phasenschritt', 'spiegelwacht', 'bannzeichen', 'schildanker',
+  'risswaechter', 'funkengeist', 'verbundschlag',
 ];
 
 export const STARTER_DECK: string[] = [

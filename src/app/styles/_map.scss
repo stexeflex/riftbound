@@ -28,6 +28,56 @@
   &.dead { opacity: 0.25; filter: grayscale(1); }
 }
 
+.allies-group {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.fighter.ally {
+  position: relative;
+  min-width: 140px;
+  padding: 0.65rem;
+  border: 1px solid rgba(92, 205, 190, 0.38);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(24, 62, 67, 0.7), rgba(11, 29, 39, 0.78));
+  box-shadow: 0 0 16px rgba(61, 185, 178, 0.12);
+
+  .fighter-emoji { font-size: 3rem; }
+  .fighter-name { color: #bcece5; }
+}
+
+.ally-role {
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  color: #8fd9cf;
+  background: rgba(23, 93, 90, 0.28);
+  border: 1px solid rgba(100, 220, 205, 0.3);
+  font-size: 0.68rem;
+  font-weight: 700;
+
+  &.ally-taunt {
+    color: #ffd58a;
+    border-color: rgba(255, 196, 92, 0.45);
+    background: rgba(112, 71, 17, 0.34);
+  }
+}
+
+.ally-hp-bar { width: 130px; }
+.ally-fill { background: linear-gradient(180deg, #42c3b1, #217f78); }
+.ally-loss-preview {
+  background: repeating-linear-gradient(
+    135deg,
+    rgb(247, 186, 121) 0 5px,
+    rgb(160, 67, 61) 5px 10px
+  );
+}
+
+.chip-ally-turns { border-color: rgba(135, 112, 230, 0.55); color: #c8b9ff; }
+.chip-ally-stays { border-color: rgba(100, 220, 205, 0.4); color: #9cddd4; }
+
 .area-map-desc {
   margin: -0.6rem 0 0;
   color: #9c92b5;
@@ -207,6 +257,9 @@
 
 .chip-weak { border-color: rgba(180, 120, 220, 0.5); }
 .chip-vuln { border-color: rgba(240, 90, 90, 0.5); }
+.chip-veil { border-color: rgba(160, 215, 230, 0.55); color: #bcebf4; }
+.chip-reflect { border-color: rgba(218, 155, 255, 0.55); color: #e4b6ff; }
+.chip-carry { border-color: rgba(102, 177, 255, 0.55); color: #a9d4ff; }
 
 // Kampf-Log unten am Bildschirmrand, scrollt statt in die Hand zu wachsen.
 .combat-log {

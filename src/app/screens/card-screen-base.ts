@@ -73,6 +73,24 @@ export abstract class CardScreenBase extends GameScreen {
     if (def.startTurnBlock) {
       lines.push('Als Macht bleibt dieser Effekt nach dem Ausspielen für den gesamten Kampf aktiv.');
     }
+    if (def.veil) {
+      lines.push('Verschleierung: Der nächste gegnerische Treffer gegen dich verfehlt vollständig. Mehrere Ladungen wirken nacheinander.');
+    }
+    if (def.reflection) {
+      lines.push('Reflektion: Der nächste Treffer gegen dich oder einen Verbündeten wirft den gespeicherten Schaden auf den Angreifer zurück.');
+    }
+    if (def.purgeEnemyBuffs) {
+      lines.push('Positive Effektarten sind Stärke und Schild. Eine entfernte Effektart verliert ihren gesamten aktuellen Wert.');
+    }
+    if (def.retainBlock) {
+      lines.push('Nur Schild, der nach dem Gegnerzug noch übrig ist, kann übertragen werden. Der Effekt wird danach verbraucht.');
+    }
+    if (def.summonAlly) {
+      lines.push('Du kannst höchstens 2 unterschiedliche Verbündete gleichzeitig kontrollieren. Ein bereits aktiver Verbündeter kann nicht erneut beschworen werden.');
+    }
+    if (def.damagePerAlly) {
+      lines.push('Gezählt werden deine aktuell aktiven Verbündeten, bevor der Angriff ausgeführt wird.');
+    }
     if (def.weakEnemy) {
       lines.push('Schwäche: Der Gegner verursacht 25 % weniger Schaden. Sie sinkt nach jedem Gegnerzug um 1.');
     }
