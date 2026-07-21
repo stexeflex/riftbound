@@ -250,9 +250,15 @@
 }
 
 .resonance-dot {
+  --category-rgb: 140, 130, 170;
   padding: 0.15rem 0.6rem;
   border-radius: 20px;
   border: 1px solid rgba(140, 130, 170, 0.3);
+  background:
+    linear-gradient(rgba(var(--category-rgb), 0.09), rgba(var(--category-rgb), 0.09)),
+    rgba(8, 6, 13, 0.66);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
   font-weight: 700;
   letter-spacing: 0.015em;
   transition: all 0.2s ease;
@@ -264,10 +270,10 @@
   }
 
   // Kategorie-Farben, passend zu den Karten in der Hand.
-  &.cat-kraft { color: #e88d68; border-color: rgba(255, 138, 92, 0.55); background: rgba(255, 138, 92, 0.07); }
-  &.cat-schutz { color: #74b8ee; border-color: rgba(109, 185, 255, 0.55); background: rgba(109, 185, 255, 0.07); }
-  &.cat-kontrolle { color: #7dd39a; border-color: rgba(126, 224, 160, 0.55); background: rgba(126, 224, 160, 0.07); }
-  &.cat-chaos { color: #cc83eb; border-color: rgba(217, 138, 255, 0.55); background: rgba(217, 138, 255, 0.07); }
+  &.cat-kraft { --category-rgb: 255, 138, 92; color: #e88d68; border-color: rgba(255, 138, 92, 0.55); }
+  &.cat-schutz { --category-rgb: 109, 185, 255; color: #74b8ee; border-color: rgba(109, 185, 255, 0.55); }
+  &.cat-kontrolle { --category-rgb: 126, 224, 160; color: #7dd39a; border-color: rgba(126, 224, 160, 0.55); }
+  &.cat-chaos { --category-rgb: 217, 138, 255; color: #cc83eb; border-color: rgba(217, 138, 255, 0.55); }
 
   &.cat-kraft.active { color: #ffb28c; border-color: #ff8a5c; box-shadow: 0 0 10px rgba(255, 138, 92, 0.45); }
   &.cat-schutz.active { color: #a8d4ff; border-color: #6db9ff; box-shadow: 0 0 10px rgba(109, 185, 255, 0.45); }
