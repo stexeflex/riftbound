@@ -69,7 +69,7 @@
               </div>
               <button class="btn btn-small buy-btn"
                       [disabled]="!game.canBuyCard(def)"
-                      (click)="game.buyCard(def)">
+                      (click)="game.requestCardPurchase(def)">
                 @if (game.cardCount(def.id) >= game.maxCopies) { Max } @else { 🔮 {{ def.price }} }
               </button>
             </div>

@@ -31,7 +31,7 @@
                   {{ game.isEquippedResonance(r.id) ? '★ Ausgerüstet' : '✔ Freigeschaltet' }}
                 </span>
               } @else {
-                <button class="btn btn-small" [disabled]="!game.canBuyResonance(r)" (click)="game.buyResonance(r)">
+                <button class="btn btn-small" [disabled]="!game.canBuyResonance(r)" (click)="game.requestResonancePurchase(r)">
                   🔮 {{ r.costSplitter }}
                 </button>
               }

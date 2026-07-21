@@ -164,6 +164,20 @@
     </div>
   }
 
+  @if (game.purchaseConfirmation(); as purchase) {
+    <div class="modal-backdrop" role="presentation" (click)="game.cancelPurchase()">
+      <section class="confirm-dialog" role="alertdialog" aria-modal="true"
+               aria-labelledby="purchase-title"
+               (click)="$event.stopPropagation()">
+        <h2 id="purchase-title">{{ purchase.itemType }} „{{ purchase.itemName }}“ kaufen?</h2>
+        <div class="title-buttons">
+          <button type="button" class="btn" (click)="game.confirmPurchase()">Ja</button>
+          <button type="button" class="btn" (click)="game.cancelPurchase()">Abbrechen</button>
+        </div>
+      </section>
+    </div>
+  }
+
   @if (game.giveUpConfirmationOpen()) {
     <div class="modal-backdrop" role="presentation" (click)="game.giveUpConfirmationOpen.set(false)">
       <section class="confirm-dialog" role="alertdialog" aria-modal="true"

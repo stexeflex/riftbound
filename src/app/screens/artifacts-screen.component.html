@@ -27,7 +27,7 @@
                   {{ game.isEquippedArtifact(a.id) ? '★ Ausgerüstet' : '✔ Freigeschaltet' }}
                 </span>
               } @else {
-                <button class="btn btn-small" [disabled]="!game.canBuyArtifact(a)" (click)="game.buyArtifact(a)">
+                <button class="btn btn-small" [disabled]="!game.canBuyArtifact(a)" (click)="game.requestArtifactPurchase(a)">
                   @if (a.costKerne) { 🟡 {{ a.costKerne }} } @else { 🔮 {{ a.costSplitter }} }
                 </button>
               }
