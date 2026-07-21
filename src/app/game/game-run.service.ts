@@ -20,6 +20,9 @@ export abstract class GameRunService extends GameDeckService {
   protected abstract buildCombatSave(): CombatSave | null;
   protected abstract restoreCombat(combat: CombatSave): void;
   protected abstract startCombat(kind: 'kampf' | 'elite' | 'boss'): void;
+  private pendingNewRun: { mode: 'dungeon'; area: DungeonArea }
+    | { mode: 'campaign'; stage: CampaignStage }
+    | null = null;
 
   // ================= Run speichern / fortsetzen =================
 
@@ -196,6 +199,11 @@ export abstract class GameRunService extends GameDeckService {
 
   startArea(area: DungeonArea) {
     if (!this.areaUnlocked(area)) return;
+    if (this.requestNewRunConfirmation({ mode: 'dungeon', area })) return;
+    this.beginArea(area);
+  }
+
+  private beginArea(area: DungeonArea) {
     this.mode.set('dungeon');
     this.currentArea.set(area);
     this.currentStage.set(null);
@@ -216,12 +224,61 @@ export abstract class GameRunService extends GameDeckService {
 
   startStage(stage: CampaignStage) {
     if (!this.stageUnlocked(stage)) return;
+    if (this.requestNewRunConfirmation({ mode: 'campaign', stage })) return;
+    this.beginStage(stage);
+  }
+
+  private beginStage(stage: CampaignStage) {
     this.mode.set('campaign');
     this.currentStage.set(stage);
     this.currentArea.set(DUNGEON_AREAS.find(area => area.id === stage.areaId) ?? DUNGEON_AREAS[0]);
     this.artifact.set(null);
     this.resonance.set(null);
     this.startConfiguredRun();
+  }
+
+  private requestNewRunConfirmation(
+    pending: { mode: 'dungeon'; area: DungeonArea } | { mode: 'campaign'; stage: CampaignStage },
+  ): boolean {
+    if (!this.hasRunSave()) return false;
+    const save = secureLoad<RunSave>(RUN_KEY);
+    if (!save) {
+      this.hasRunSave.set(false);
+      return false;
+    }
+
+    this.pendingNewRun = pending;
+    this.previousRunSplitter.set(
+      Number.isFinite(save.runSplitter) ? Math.max(0, save.runSplitter) : 0,
+    );
+    this.newRunConfirmationOpen.set(true);
+    return true;
+  }
+
+  cancelNewRun() {
+    this.pendingNewRun = null;
+    this.previousRunSplitter.set(0);
+    this.newRunConfirmationOpen.set(false);
+  }
+
+  confirmNewRun() {
+    const pending = this.pendingNewRun;
+    if (!pending) {
+      this.cancelNewRun();
+      return;
+    }
+
+    const earned = this.previousRunSplitter();
+    this.clearRunSave();
+    if (earned > 0) {
+      const m = this.meta();
+      this.meta.set({ ...m, splitter: m.splitter + earned });
+      this.saveMeta();
+    }
+
+    this.cancelNewRun();
+    if (pending.mode === 'dungeon') this.beginArea(pending.area);
+    else this.beginStage(pending.stage);
   }
 
   private startConfiguredRun() {

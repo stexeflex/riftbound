@@ -46,6 +46,7 @@ export class App {
     this.audio.unlock();
     if (event.key !== 'Escape') return;
     if (this.game.giveUpConfirmationOpen()) this.game.giveUpConfirmationOpen.set(false);
+    else if (this.game.newRunConfirmationOpen()) this.game.cancelNewRun();
     else if (this.helpOpen()) this.helpOpen.set(false);
   }
 

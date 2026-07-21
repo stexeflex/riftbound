@@ -14,7 +14,15 @@
   .area-row > .btn { margin-left: auto; }
   .card { width: 118px; height: 160px; }
   .combat-bottom { flex-direction: column; }
-  .pile-info, .turn-controls { flex-direction: row; }
-  .combat-give-up { margin: 0 0 0 1rem; }
+  .pile-info { flex-direction: row; }
+  .turn-controls {
+    width: min(100%, 520px);
+    flex-direction: column;
+  }
+  .turn-utility-controls {
+    flex-direction: row;
+
+    .btn { flex: 1; width: auto; }
+  }
 }
 

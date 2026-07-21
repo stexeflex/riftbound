@@ -54,6 +54,14 @@
         <span class="audio-symbol" aria-hidden="true">⏭️</span>
       </button>
     }
+    @if (audio.combatMusicActive() && audio.musicEnabled()) {
+      <button type="button" class="audio-btn"
+              aria-label="Nächste Dungeon-Musik"
+              title="Nächste Dungeon-Musik"
+              (click)="audio.nextCombatTrack()">
+        <span class="audio-symbol" aria-hidden="true">⏭️</span>
+      </button>
+    }
     <div class="audio-group">
       <button type="button" class="audio-btn"
               [class.audio-active]="audio.musicEnabled()"
@@ -169,6 +177,27 @@
         <div class="title-buttons">
           <button type="button" class="btn btn-danger" (click)="confirmGiveUp()">Run aufgeben</button>
           <button type="button" class="btn" (click)="game.giveUpConfirmationOpen.set(false)">Weiterspielen</button>
+        </div>
+      </section>
+    </div>
+  }
+
+  @if (game.newRunConfirmationOpen()) {
+    <div class="modal-backdrop" role="presentation" (click)="game.cancelNewRun()">
+      <section class="confirm-dialog" role="alertdialog" aria-modal="true"
+               aria-labelledby="new-run-title" aria-describedby="new-run-description"
+               (click)="$event.stopPropagation()">
+        <span class="confirm-icon" aria-hidden="true">⚠️</span>
+        <h2 id="new-run-title">Neuen Run starten?</h2>
+        <p id="new-run-description">
+          Dein letzter Spieldurchlauf geht verloren. Die bisher erspielten
+          {{ game.previousRunSplitter() }} Splitter werden dir vorher gutgeschrieben – genau wie beim Aufgeben.
+        </p>
+        <div class="title-buttons">
+          <button type="button" class="btn btn-danger" (click)="game.confirmNewRun()">
+            Alten Run beenden &amp; neuen starten
+          </button>
+          <button type="button" class="btn" (click)="game.cancelNewRun()">Abbrechen</button>
         </div>
       </section>
     </div>

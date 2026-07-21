@@ -141,6 +141,8 @@ export abstract class GameMetaService {
   // ---------- Hover-Vorschau ----------
   readonly hoveredCard = signal<CardInstance | null>(null);
   readonly giveUpConfirmationOpen = signal(false);
+  readonly newRunConfirmationOpen = signal(false);
+  readonly previousRunSplitter = signal(0);
 
   // ---------- Belohnung / Run-Ende ----------
   readonly rewardCards = signal<CardDef[]>([]);

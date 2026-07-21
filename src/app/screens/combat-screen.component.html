@@ -181,16 +181,21 @@
 
           <div class="turn-controls">
             <div class="pile tip" [attr.data-tip]="tips.ablage">🗑️ {{ game.discardPile().length }}</div>
-            <button class="btn btn-small"
-                    [disabled]="!game.canUndoCardPlay()"
-                    title="Macht die zuletzt gespielte Karte rückgängig (nur im aktuellen Zug)"
-                    (click)="game.undoCardPlay()">↩️ Rückgängig</button>
-            <button class="btn btn-primary" (click)="game.endTurn()">Zug beenden</button>
-            <button class="btn btn-small" (click)="game.toMenu()">Menü</button>
-            <button class="btn btn-small btn-danger combat-give-up"
-                    (click)="game.giveUpConfirmationOpen.set(true)">
-              Run aufgeben
+            <button class="btn end-turn-btn" (click)="game.endTurn()">
+              <span class="end-turn-label"><span aria-hidden="true">⚡</span> Zug beenden</span>
+              <small>Gegnerzug starten</small>
             </button>
+            <div class="turn-utility-controls" aria-label="Weitere Kampfaktionen">
+              <button class="btn btn-small"
+                      [disabled]="!game.canUndoCardPlay()"
+                      title="Macht die zuletzt gespielte Karte rückgängig (nur im aktuellen Zug)"
+                      (click)="game.undoCardPlay()">↩️ Rückgängig</button>
+              <button class="btn btn-small" (click)="game.toMenu()">Menü</button>
+              <button class="btn btn-small btn-danger combat-give-up"
+                      (click)="game.giveUpConfirmationOpen.set(true)">
+                Run aufgeben
+              </button>
+            </div>
           </div>
         </div>
 

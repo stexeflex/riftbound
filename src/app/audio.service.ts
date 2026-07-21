@@ -120,6 +120,7 @@ export class AudioService {
   private combatTracks: readonly string[] = [];
   private combatTrackIndex = 0;
   private combatTheme: DungeonTheme | null = null;
+  private activeScreen: Screen | null = null;
   private audioContext: AudioContext | null = null;
   private unlocked = false;
 
@@ -142,6 +143,10 @@ export class AudioService {
   }
 
   syncScreen(screen: Screen, theme?: DungeonTheme) {
+    const combatStarted = screen === 'combat' && this.activeScreen !== 'combat';
+    this.activeScreen = screen;
+    if (combatStarted) this.setControlsCollapsed(true);
+
     const active = MENU_SCREENS.has(screen);
     this.menuActive.set(active);
     if (active) {
@@ -187,7 +192,10 @@ export class AudioService {
   }
 
   toggleControls() {
-    const collapsed = !this.controlsCollapsed();
+    this.setControlsCollapsed(!this.controlsCollapsed());
+  }
+
+  private setControlsCollapsed(collapsed: boolean) {
     this.controlsCollapsed.set(collapsed);
     saveSetting(CONTROLS_COLLAPSED_KEY, collapsed);
   }
@@ -255,6 +263,15 @@ export class AudioService {
     this.loadTrack((this.currentTrackIndex() + 1) % MENU_TRACKS.length);
     this.unlock();
     if (this.menuActive() && this.musicEnabled()) void this.playMenuMusic();
+  }
+
+  /** Wechselt manuell zur nächsten Musik des aktuellen Dungeons. */
+  nextCombatTrack() {
+    if (!this.combatMusicActive() || this.combatTracks.length === 0) return;
+    this.combatTrackIndex = (this.combatTrackIndex + 1) % this.combatTracks.length;
+    this.loadCombatTrack();
+    this.unlock();
+    if (this.musicEnabled()) void this.playCombatMusic();
   }
 
   playEnemyHit(damage: number, blocked: boolean) {
