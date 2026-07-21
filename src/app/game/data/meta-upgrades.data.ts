@@ -9,11 +9,18 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
     describeNext: l => `+2 maximales Leben (danach insgesamt +${(l + 1) * 2})`,
   },
   {
+    id: 'erstschlag', name: 'Erstschlag', icon: '⚔️', maxLevel: 4, cost: 50,
+    describeCurrent: l => l > 0
+      ? `Aktueller Bonus: Der erste Angriff jedes Zuges verursacht +${l} Schaden`
+      : 'Noch kein Bonus',
+    describeNext: l => `+1 Schaden (danach insgesamt +${l + 1})`,
+  },
+  {
     id: 'klingenmeisterschaft', name: 'Klingenmeisterschaft', icon: '🗡️', maxLevel: 5, cost: 60,
     describeCurrent: l => l > 0
-      ? `Aktueller Bonus: Der erste Angriff jedes Kampfes verursacht +${l * 2} Schaden`
+      ? `Aktueller Bonus: Der erste Angriff jedes Kampfes verursacht +${l * 4} Schaden`
       : 'Noch kein Bonus',
-    describeNext: l => `+2 Schaden (danach insgesamt +${(l + 1) * 2})`,
+    describeNext: l => `+4 Schaden (danach insgesamt +${(l + 1) * 4})`,
   },
   {
     id: 'heilung', name: 'Rastkunde', icon: '🔥', maxLevel: 4, cost: 50,

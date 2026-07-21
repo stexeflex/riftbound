@@ -404,14 +404,17 @@ export abstract class GameCombatService extends GameRunService {
     const hits = def.hits ?? 1;
     let total = 0;
     const firstAttackCard = !this.firstAttackDone();
-    // Klingenmeisterschaft trifft nur den ersten Treffer des ersten Ziels,
-    // Jägerauge verdoppelt beim ersten Angriff gegen jedes Ziel mit vollen Leben.
+    const firstAttackTurn = !this.attackPlayedThisTurn();
+    // Klingenmeisterschaft (pro Kampf) und Erstschlag (pro Zug) treffen nur den
+    // ersten Treffer des ersten Ziels; Jägerauge verdoppelt beim ersten Angriff
+    // gegen jedes Ziel mit vollen Leben.
     const klingenTarget = def.target !== 'all' || this.aliveEnemies()[0]?.uid === enemy.uid;
     for (let h = 0; h < hits; h++) {
       let dmg = def.damage + (def.damagePerAlly ?? 0) * this.livingAllies().length + this.strength();
-      if (firstAttackCard && h === 0) {
-        if (klingenTarget) dmg += this.runUpgradeLevel('klingenmeisterschaft') * 2;
-        if (this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) dmg *= 2;
+      if (h === 0) {
+        if (firstAttackCard && klingenTarget) dmg += this.runUpgradeLevel('klingenmeisterschaft') * 4;
+        if (firstAttackTurn && klingenTarget) dmg += this.runUpgradeLevel('erstschlag');
+        if (firstAttackCard && this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) dmg *= 2;
       }
       if (this.artifact()?.id === 'glasherz') dmg = Math.round(dmg * 1.2);
       if (this.playerWeak() > 0) dmg = Math.round(dmg * 0.75);
@@ -450,13 +453,15 @@ export abstract class GameCombatService extends GameRunService {
       : this.currentTarget() ? [this.currentTarget()!] : [];
 
     if (def.damage && targets.length > 0) {
-      if (!this.attackPlayedThisTurn() && this.artifact()?.id === 'vampirfang') {
+      const firstAttackTurn = !this.attackPlayedThisTurn();
+      if (firstAttackTurn && this.artifact()?.id === 'vampirfang') {
         this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + 2));
         this.addLog('Vampirfang: Du heilst 2 Leben.');
       }
       this.attackPlayedThisTurn.set(true);
       const firstAttackCard = !this.firstAttackDone();
       let klingenAvailable = firstAttackCard;
+      let erstschlagAvailable = firstAttackTurn;
       for (const target of targets) {
         const hits = def.hits ?? 1;
         for (let h = 0; h < hits; h++) {
@@ -467,9 +472,11 @@ export abstract class GameCombatService extends GameRunService {
             {
               klingen: klingenAvailable,
               jaeger: firstAttackCard && h === 0,
+              erstschlag: erstschlagAvailable,
             },
           );
           klingenAvailable = false;
+          erstschlagAvailable = false;
         }
       }
       if (firstAttackCard) this.firstAttackDone.set(true);
@@ -659,17 +666,24 @@ export abstract class GameCombatService extends GameRunService {
     enemy: EnemyState,
     base: number,
     pure = false,
-    first?: { klingen: boolean; jaeger: boolean },
+    first?: { klingen: boolean; jaeger: boolean; erstschlag: boolean },
   ) {
     const wasAlive = enemy.hp > 0;
     let dmg = base;
     if (!pure) {
       dmg += this.strength();
       if (first?.klingen) {
-        const bonus = this.runUpgradeLevel('klingenmeisterschaft') * 2;
+        const bonus = this.runUpgradeLevel('klingenmeisterschaft') * 4;
         if (bonus > 0) {
           dmg += bonus;
           this.addLog(`Klingenmeisterschaft: +${bonus} Schaden.`);
+        }
+      }
+      if (first?.erstschlag) {
+        const bonus = this.runUpgradeLevel('erstschlag');
+        if (bonus > 0) {
+          dmg += bonus;
+          this.addLog(`Erstschlag: +${bonus} Schaden.`);
         }
       }
       if (first?.jaeger && this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) {

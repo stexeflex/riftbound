@@ -115,6 +115,8 @@
           <section class="help-section">
             <h3>Grundlagen</h3>
             <dl class="glossary-grid">
+              <div><dt>⚔️ Kampf</dt><dd>Beginnt, sobald du gegen neue Gegner antrittst, und endet, wenn alle besiegt sind. Effekte „zu Beginn jedes Kampfes“ wirken genau einmal pro Kampf.</dd></div>
+              <div><dt>🔄 Zug</dt><dd>Ein Abschnitt innerhalb eines Kampfes: Du spielst Karten, bis du auf „Zug beenden“ klickst – danach handeln die Gegner. Effekte „zu Beginn jedes Zuges“ wirken in jedem Zug erneut.</dd></div>
               <div><dt>🔵 Energie</dt><dd>Du bezahlst damit Karten. Zu Beginn jedes Zuges wird sie auf deine maximale Energie erneuert.</dd></div>
               <div><dt>❤️ Leben</dt><dd>Fällt dein Leben auf 0, endet der Run. Heilung kann dein maximales Leben nicht überschreiten.</dd></div>
               <div><dt>🛡️ Schild</dt><dd>Blockt eingehenden Schaden. Vorhandener Schild verfällt grundsätzlich zu Beginn deines nächsten Zuges.</dd></div>
@@ -164,7 +166,7 @@
             <h3>Run & Fortschritt</h3>
             <dl class="glossary-grid">
               <div><dt>🔮 Splitter</dt><dd>Währung für Karten, Artefakte, Resonanzen und die meisten Upgrades.</dd></div>
-              <div><dt>🟡 Kerne</dt><dd>Seltene Währung für besondere Käufe. Im Umwandler kannst du 1 Kern in genau 1.000 Splitter umwandeln.</dd></div>
+              <div><dt>🟡 Kerne</dt><dd>Seltene Währung für besondere Käufe wie Verbündete und ausgewählte Upgrades.</dd></div>
               <div><dt>Artefakt</dt><dd>Ein dauerhaft aktiver Begleiter für einen Run. Pro Ausrüstungslayout kannst du eines wählen.</dd></div>
               <div><dt>Rastplatz</dt><dd>Heilt 30 % deines maximalen Lebens; Rastkunde verstärkt diese Heilung.</dd></div>
               <div><dt>Belohnung</dt><dd>Nach Kämpfen erhältst du Splitter und darfst eine Karte nehmen oder überspringen.</dd></div>
@@ -245,6 +247,5 @@
     @case ('victory') { <app-victory-screen></app-victory-screen> }
     @case ('defeat') { <app-defeat-screen></app-defeat-screen> }
     @case ('meta') { <app-meta-screen></app-meta-screen> }
-    @case ('converter') { <app-converter-screen></app-converter-screen> }
   }
 </div>

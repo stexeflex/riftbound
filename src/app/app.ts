@@ -17,11 +17,10 @@ import { RestScreenComponent } from './screens/rest-screen.component';
 import { VictoryScreenComponent } from './screens/victory-screen.component';
 import { DefeatScreenComponent } from './screens/defeat-screen.component';
 import { MetaScreenComponent } from './screens/meta-screen.component';
-import { ConverterScreenComponent } from './screens/converter-screen.component';
 
 @Component({
   selector: 'app-root',
-  imports: [TitleScreenComponent, DungeonsScreenComponent, CampaignScreenComponent, MapScreenComponent, DeckScreenComponent, CardsScreenComponent, ArtifactsScreenComponent, AlliesScreenComponent, ResonancesScreenComponent, CombatScreenComponent, RewardScreenComponent, RestScreenComponent, VictoryScreenComponent, DefeatScreenComponent, MetaScreenComponent, ConverterScreenComponent],
+  imports: [TitleScreenComponent, DungeonsScreenComponent, CampaignScreenComponent, MapScreenComponent, DeckScreenComponent, CardsScreenComponent, ArtifactsScreenComponent, AlliesScreenComponent, ResonancesScreenComponent, CombatScreenComponent, RewardScreenComponent, RestScreenComponent, VictoryScreenComponent, DefeatScreenComponent, MetaScreenComponent],
   templateUrl: './app.html',
 })
 export class App {

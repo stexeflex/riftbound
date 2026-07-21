@@ -427,26 +427,6 @@ export abstract class GameMetaService {
     this.saveMeta();
   }
 
-  // ================= Umwandler =================
-
-  readonly splitterPerKern = 1000;
-
-  canConvertKernToSplitter(): boolean {
-    return this.meta().kerne >= 1;
-  }
-
-  /** Wandelt 1 Kern in 1000 Splitter um – die Gegenrichtung gibt es bewusst nicht. */
-  convertKernToSplitter() {
-    if (!this.canConvertKernToSplitter()) return;
-    const m = this.meta();
-    this.meta.set({
-      ...m,
-      splitter: m.splitter + this.splitterPerKern,
-      kerne: m.kerne - 1,
-    });
-    this.saveMeta();
-  }
-
   // ================= Kartensammlung & Shop =================
 
   cardCount(id: string): number {

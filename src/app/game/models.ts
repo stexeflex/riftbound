@@ -150,7 +150,6 @@ export type Screen =
   | 'victory'
   | 'defeat'
   | 'meta'
-  | 'converter'
   | 'cards';
 
 export type GameMode = 'dungeon' | 'campaign';
