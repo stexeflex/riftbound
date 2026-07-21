@@ -1,18 +1,19 @@
 import { computed, inject, signal } from '@angular/core';
 import { AudioService } from '../audio.service';
 import {
-  AllyState, ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
+  AllyDef, AllyState, ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
   DeckLayout, DungeonArea, EnemyDef, EnemyState, GameMode, MetaState, RunSave, Screen,
   Station, StationKind, ResonanceDef,
 } from './models';
 import {
-  ARTIFACTS, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, DUNGEON_AREAS, ENEMIES,
+  ALLIES, ARTIFACTS, assertGameDataIntegrity, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, DUNGEON_AREAS, ENEMIES,
   MAX_CARD_COPIES, META_UPGRADES, REWARD_POOL, STARTER_COLLECTION, STARTER_DECK,
   RESONANCES,
 } from './data';
 import { legacyLoad, secureLoad, secureRemove, secureSave } from './storage';
 import { clampDifficulty } from './game.utils';
 import {
+  allyDetails as buildAllyDetails,
   artifactDetails as buildArtifactDetails,
   resonanceDetails as buildResonanceDetails,
   resonanceEffectText as buildResonanceEffectText,
@@ -27,6 +28,8 @@ export const DIFFICULTY_KEY = 'riftbound-dungeon-difficulty-v1';
 export const BASE_HP = 80;
 const DECK_LAYOUT_IDS = ['layout-1', 'layout-2', 'layout-3', 'layout-4', 'layout-5'];
 
+assertGameDataIntegrity();
+
 /** Gemeinsamer Zustand sowie dauerhafter Fortschritt und Shops. */
 export abstract class GameMetaService {
   protected readonly audio = inject(AudioService);
@@ -40,6 +43,7 @@ export abstract class GameMetaService {
   readonly metaUpgrades = META_UPGRADES;
   readonly allArtifacts = ARTIFACTS;
   readonly allResonances = RESONANCES;
+  readonly allAllies = Object.values(ALLIES);
   readonly campaignStages = CAMPAIGN_STAGES;
   readonly dungeonAreas = DUNGEON_AREAS;
   readonly allCards: CardDef[] = Object.values(CARDS).filter(c => c.price !== undefined);
@@ -99,6 +103,7 @@ export abstract class GameMetaService {
   readonly filteredShopCards = computed(() => {
     const owned = this.meta().cards;
     const cards = this.allCards.filter(c => {
+      if (c.summonAlly && !this.ownsAlly(c.summonAlly)) return false;
       const count = owned[c.id] ?? 0;
       if (this.shopFilter() === 'besitzt' && count === 0) return false;
       if (this.shopFilter() === 'fehlt' && count > 0) return false;
@@ -129,6 +134,7 @@ export abstract class GameMetaService {
   readonly veil = signal(0);
   readonly reflection = signal(0);
   readonly blockCarryover = signal(0);
+  readonly allyStrength = signal(0);
   readonly allies = signal<AllyState[]>([]);
   readonly turn = signal(1);
   readonly playedCategories = signal<Category[]>([]);
@@ -169,6 +175,9 @@ export abstract class GameMetaService {
   readonly ownedResonances = computed(() =>
     RESONANCES.filter(r => this.meta().resonances.includes(r.id)),
   );
+  readonly ownedAllies = computed(() =>
+    Object.values(ALLIES).filter(ally => this.meta().allies.includes(ally.id)),
+  );
 
   // ================= Meta =================
 
@@ -182,6 +191,15 @@ export abstract class GameMetaService {
     let cards = m?.cards;
     if (!cards || typeof cards !== 'object' || Object.keys(cards).length === 0) {
       cards = { ...STARTER_COLLECTION };
+    }
+    const allies = Array.isArray(m?.allies)
+      ? m.allies.filter(id => Boolean(ALLIES[id]))
+      : [];
+    // Karten aus der Version vor dem Verbündeten-Shop bleiben vollständig nutzbar.
+    for (const ally of Object.values(ALLIES)) {
+      if ((cards[ally.summonCardId] ?? 0) > 0 && !allies.includes(ally.id)) {
+        allies.push(ally.id);
+      }
     }
     const lastDeck = Array.isArray(m?.lastDeck) ? m.lastDeck : [];
     const storedLayouts = Array.isArray(m?.deckLayouts) ? m.deckLayouts : [];
@@ -220,6 +238,7 @@ export abstract class GameMetaService {
       resonances: Array.isArray(m?.resonances)
         ? m.resonances.filter(id => RESONANCES.some(r => r.id === id))
         : [],
+      allies,
       completedStages: Array.isArray(m?.completedStages) ? m.completedStages : [],
       completedAreas: Array.isArray(m?.completedAreas) ? m.completedAreas : [],
 
@@ -378,6 +397,36 @@ export abstract class GameMetaService {
     return m.deckLayouts.find(l => l.id === m.activeDeckLayoutId)?.resonanceId === id;
   }
 
+  // ================= Verbündeten-Shop =================
+
+  allyDetails(ally: AllyDef): string {
+    return buildAllyDetails(ally);
+  }
+
+  ownsAlly(id: string): boolean {
+    return this.meta().allies.includes(id);
+  }
+
+  canBuyAlly(ally: AllyDef): boolean {
+    return !this.ownsAlly(ally.id) && this.meta().kerne >= ally.costKerne;
+  }
+
+  buyAlly(ally: AllyDef) {
+    if (!this.canBuyAlly(ally)) return;
+    const m = this.meta();
+    const currentCopies = m.cards[ally.summonCardId] ?? 0;
+    this.meta.set({
+      ...m,
+      kerne: m.kerne - ally.costKerne,
+      allies: [...m.allies, ally.id],
+      cards: {
+        ...m.cards,
+        [ally.summonCardId]: Math.min(MAX_CARD_COPIES, currentCopies + 1),
+      },
+    });
+    this.saveMeta();
+  }
+
   // ================= Umwandler =================
 
   readonly splitterPerKern = 1000;
@@ -406,6 +455,7 @@ export abstract class GameMetaService {
 
   canBuyCard(def: CardDef): boolean {
     if (def.price === undefined) return false;
+    if (def.summonAlly && !this.ownsAlly(def.summonAlly)) return false;
     if (this.cardCount(def.id) >= MAX_CARD_COPIES) return false;
     return this.meta().splitter >= def.price;
   }

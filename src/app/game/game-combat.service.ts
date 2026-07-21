@@ -40,6 +40,7 @@ export abstract class GameCombatService extends GameRunService {
       veil: this.veil(),
       reflection: this.reflection(),
       blockCarryover: this.blockCarryover(),
+      allyStrength: this.allyStrength(),
       allies: this.livingAllies().map(ally => ({
         id: ally.def.id,
         hp: ally.hp,
@@ -93,6 +94,7 @@ export abstract class GameCombatService extends GameRunService {
     this.veil.set(c.veil ?? 0);
     this.reflection.set(c.reflection ?? 0);
     this.blockCarryover.set(c.blockCarryover ?? 0);
+    this.allyStrength.set(c.allyStrength ?? 0);
     this.allies.set((c.allies ?? [])
       .filter(ally => ALLIES[ally.id] && ally.hp > 0)
       .slice(0, MAX_ALLIES)
@@ -220,6 +222,7 @@ export abstract class GameCombatService extends GameRunService {
     this.veil.set(0);
     this.reflection.set(0);
     this.blockCarryover.set(0);
+    this.allyStrength.set(0);
     this.allies.set([]);
     this.turn.set(1);
     this.firstAttackDone.set(false);
@@ -301,8 +304,9 @@ export abstract class GameCombatService extends GameRunService {
     for (const ally of this.livingAllies()) {
       if (ally.def.startTurnDamage && this.aliveEnemies().length > 0) {
         const target = this.pickCombat(this.aliveEnemies());
-        this.dealDamage(target, ally.def.startTurnDamage, true);
-        this.addLog(`${ally.def.name}: ${ally.def.startTurnDamage} Schaden an ${target.def.name}.`);
+        const damage = ally.def.startTurnDamage + this.allyStrength();
+        this.dealDamage(target, damage, true);
+        this.addLog(`${ally.def.name}: ${damage} Schaden an ${target.def.name}.`);
       }
 
       if (ally.turnsRemaining === null) {
@@ -495,6 +499,11 @@ export abstract class GameCombatService extends GameRunService {
       this.blockCarryover.set(this.blockCarryover() + def.retainBlock);
       this.addLog(`${def.name}: Bis zu ${def.retainBlock} Restschild werden übertragen.`);
     }
+    if (def.healAllies) this.healAllies(def.healAllies, def.name);
+    if (def.allyStrength) {
+      this.allyStrength.set(this.allyStrength() + def.allyStrength);
+      this.addLog(`${def.name}: Verbündete verursachen +${def.allyStrength} Schaden.`);
+    }
     if (def.weakEnemy) {
       for (const target of targets) target.weak += def.weakEnemy;
       this.enemies.set([...this.enemies()]);
@@ -562,6 +571,20 @@ export abstract class GameCombatService extends GameRunService {
       || this.livingAllies().some(ally => ally.def.id === allyId)) return;
     this.allies.set([...this.livingAllies(), this.makeAlly(def)]);
     this.addLog(`${sourceName}: ${def.name} wurde beschworen.`);
+  }
+
+  private healAllies(amount: number, sourceName: string) {
+    let healed = 0;
+    const allies = this.livingAllies();
+    for (const ally of allies) {
+      const before = ally.hp;
+      ally.hp = Math.min(ally.def.maxHp, ally.hp + amount);
+      healed += ally.hp - before;
+    }
+    if (allies.length > 0) this.allies.set([...allies]);
+    this.addLog(allies.length > 0
+      ? `${sourceName}: Verbündete heilen insgesamt ${healed} Leben.`
+      : `${sourceName}: Kein Verbündeter zum Heilen.`);
   }
 
   private maxResonancePerTurn(): number {
@@ -750,11 +773,18 @@ export abstract class GameCombatService extends GameRunService {
       let playerWasHit = false;
       for (let h = 0; h < hits; h++) {
         const dmg = this.enemyAttackPerHit(enemy);
-        const tauntAlly = this.livingAllies().find(ally => ally.def.taunt);
-        if (tauntAlly) {
-          this.damageAlly(tauntAlly, dmg, enemy);
-        } else {
+        if (move.target === 'all') {
           playerWasHit = this.damagePlayer(dmg, enemy) || playerWasHit;
+          for (const ally of [...this.livingAllies()]) {
+            this.damageAlly(ally, dmg, enemy, false);
+          }
+        } else {
+          const tauntAlly = this.livingAllies().find(ally => ally.def.taunt);
+          if (tauntAlly) {
+            this.damageAlly(tauntAlly, dmg, enemy, true);
+          } else {
+            playerWasHit = this.damagePlayer(dmg, enemy) || playerWasHit;
+          }
         }
         if (this.playerHp() <= 0) return;
       }
@@ -794,15 +824,24 @@ export abstract class GameCombatService extends GameRunService {
     return true;
   }
 
-  private damageAlly(ally: AllyState, dmg: number, attacker: EnemyState) {
+  private damageAlly(
+    ally: AllyState,
+    dmg: number,
+    attacker: EnemyState,
+    intercepted: boolean,
+  ) {
     const actualDamage = Math.min(ally.hp, dmg);
     ally.hp = Math.max(0, ally.hp - dmg);
     if (ally.hp > 0) {
       this.allies.set([...this.livingAllies()]);
-      this.addLog(`${ally.def.name} fängt ${actualDamage} Schaden von ${attacker.def.name} ab.`);
+      this.addLog(intercepted
+        ? `${ally.def.name} fängt ${actualDamage} Schaden von ${attacker.def.name} ab.`
+        : `${ally.def.name} erleidet ${actualDamage} Gruppenschaden.`);
     } else {
       this.allies.set(this.livingAllies().filter(current => current.uid !== ally.uid));
-      this.addLog(`${ally.def.name} fängt den Treffer ab und wird besiegt.`);
+      this.addLog(intercepted
+        ? `${ally.def.name} fängt den Treffer ab und wird besiegt.`
+        : `${ally.def.name} wird durch Gruppenschaden besiegt.`);
     }
     this.triggerReflection(attacker);
   }
@@ -837,7 +876,11 @@ export abstract class GameCombatService extends GameRunService {
     }
 
     // Zufällige, unterschiedliche Belohnungskarten
-    const pool = this.shuffleCombat(REWARD_POOL);
+    const availableRewards = REWARD_POOL.filter(id => {
+      const allyId = CARDS[id]?.summonAlly;
+      return !allyId || this.ownsAlly(allyId);
+    });
+    const pool = this.shuffleCombat(availableRewards);
     const rewardCount = this.artifact()?.id === 'beutesack' ? 4 : 3;
     this.rewardCards.set(pool.slice(0, rewardCount).map(id => CARDS[id]));
     this.screen.set('reward');

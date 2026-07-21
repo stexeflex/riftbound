@@ -1,9 +1,9 @@
 import { Injectable, signal } from '@angular/core';
 import { GameCombatService } from './game-combat.service';
-import { ArtifactDef, CardDef, MetaUpgradeDef, ResonanceDef } from './models';
+import { AllyDef, ArtifactDef, CardDef, MetaUpgradeDef, ResonanceDef } from './models';
 
 interface PurchaseConfirmation {
-  itemType: 'Karte' | 'Artefakt' | 'Resonanz' | 'Upgrade';
+  itemType: 'Karte' | 'Artefakt' | 'Resonanz' | 'Upgrade' | 'Verbündeten';
   itemName: string;
   purchase: () => void;
 }
@@ -50,6 +50,15 @@ export class GameService extends GameCombatService {
       itemType: 'Upgrade',
       itemName: upgrade.name,
       purchase: () => this.buyUpgrade(upgrade.id),
+    });
+  }
+
+  requestAllyPurchase(ally: AllyDef) {
+    if (!this.canBuyAlly(ally)) return;
+    this.purchaseConfirmation.set({
+      itemType: 'Verbündeten',
+      itemName: ally.name,
+      purchase: () => this.buyAlly(ally),
     });
   }
 

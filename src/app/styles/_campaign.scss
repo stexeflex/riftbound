@@ -47,6 +47,48 @@
 
 .upgrade-text { font-size: 0.85rem; color: #b8ae96; }
 
+.ally-shop-hint {
+  max-width: 680px;
+  text-align: center;
+}
+
+.ally-shop-row {
+  border-color: rgba(86, 187, 174, 0.28);
+  background: linear-gradient(180deg, #172227, #11171f);
+
+  .owned-badge {
+    max-width: 150px;
+    white-space: normal;
+    text-align: right;
+  }
+}
+
+.ally-shop-icon { font-size: 2.25rem; }
+
+.ally-shop-stats {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-top: 0.45rem;
+
+  span {
+    padding: 0.16rem 0.48rem;
+    border: 1px solid rgba(105, 198, 186, 0.3);
+    border-radius: 999px;
+    color: #9fd8d1;
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .ally-shop-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+
+    .owned-badge { max-width: none; text-align: left; }
+  }
+}
+
 .upgrade-hint { align-self: flex-start; font-size: 0.85rem; }
 
 .upgrade-current { color: #a8d8a8; }

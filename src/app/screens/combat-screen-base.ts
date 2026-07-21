@@ -1,4 +1,4 @@
-import { AllyState, CardDef, CardInstance, EnemyState } from '../game/models';
+import { AllyState, CardInstance, EnemyState } from '../game/models';
 import { CardScreenBase } from './card-screen-base';
 
 /** Kampfbezogene Interaktionen und Vorschauwerte. */
@@ -18,66 +18,6 @@ export abstract class CombatScreenBase extends CardScreenBase {
     if (!card || !card.def.damage || e.hp <= 0) return null;
     if (!this.game.cardTargetsEnemy(card, e)) return null;
     return this.game.previewDamage(card, e);
-  }
-
-  /** Nur Zusatzwissen zu Effekten, das nicht bereits direkt auf der Karte steht. */
-  override cardDetails(def: CardDef): string {
-    const lines: string[] = [];
-    if (def.block) {
-      lines.push('Schild blockt eingehenden Schaden und verfällt zu Beginn deines nächsten Zuges.');
-    }
-    if (def.draw) {
-      lines.push('Ist der Nachziehstapel leer, wird der Ablagestapel gemischt und zum neuen Nachziehstapel.');
-    }
-    if (def.energy) {
-      lines.push('Die Energie wird sofort gutgeschrieben und kann noch in diesem Zug verwendet werden.');
-    }
-    if (def.heal) {
-      lines.push('Heilung kann dein maximales Leben nicht überschreiten.');
-    }
-    if (def.blockPerEnemy) {
-      lines.push('Gezählt werden alle Gegner, die beim Ausspielen der Karte noch leben.');
-    }
-    if (def.target === 'all') {
-      lines.push('Dieser Effekt trifft jeden aktuell lebenden Gegner.');
-    }
-    if (def.strength) {
-      lines.push('Stärke erhöht jeden einzelnen Angriffstreffer und bleibt bis zum Ende des Kampfes bestehen.');
-    }
-    if (def.startTurnBlock) {
-      lines.push('Als Macht bleibt dieser Effekt nach dem Ausspielen für den gesamten Kampf aktiv.');
-    }
-    if (def.veil) {
-      lines.push('Verschleierung: Der nächste gegnerische Treffer gegen dich verfehlt vollständig. Mehrere Ladungen wirken nacheinander.');
-    }
-    if (def.reflection) {
-      lines.push('Reflektion: Der nächste Treffer gegen dich oder einen Verbündeten wirft den gespeicherten Schaden auf den Angreifer zurück.');
-    }
-    if (def.purgeEnemyBuffs) {
-      lines.push('Positive Effektarten sind Stärke und Schild. Eine entfernte Effektart verliert ihren gesamten aktuellen Wert.');
-    }
-    if (def.retainBlock) {
-      lines.push('Nur Schild, der nach dem Gegnerzug noch übrig ist, kann übertragen werden. Der Effekt wird danach verbraucht.');
-    }
-    if (def.summonAlly) {
-      lines.push('Du kannst höchstens 2 unterschiedliche Verbündete gleichzeitig kontrollieren. Ein bereits aktiver Verbündeter kann nicht erneut beschworen werden.');
-    }
-    if (def.damagePerAlly) {
-      lines.push('Gezählt werden deine aktuell aktiven Verbündeten, bevor der Angriff ausgeführt wird.');
-    }
-    if (def.weakEnemy) {
-      lines.push('Schwäche: Der Gegner verursacht 25 % weniger Schaden. Sie sinkt nach jedem Gegnerzug um 1.');
-    }
-    if (def.vulnerableEnemy) {
-      lines.push('Verwundbarkeit: Der Gegner erleidet 50 % mehr Schaden. Sie sinkt nach jedem Gegnerzug um 1.');
-    }
-    if (def.selfWeak) {
-      lines.push('Schwäche: Du verursachst 25 % weniger Schaden. Sie sinkt pro Zug um 1.');
-    }
-    if (def.randomBonus) {
-      lines.push('Zufallseffekt (je 1/3): Ziehe 1 Karte, erhalte 5 Schild oder verursache 5 zusätzlichen Schaden.');
-    }
-    return lines.join('\n');
   }
 
   /** Vorschau: Schild, das die gehoverte Karte gibt. */
@@ -108,11 +48,12 @@ export abstract class CombatScreenBase extends CardScreenBase {
     const i = e.intent;
     const value = this.game.enemyIntentValue(e);
     const dmg = this.game.enemyAttackPerHit(e);
+    const damageLabel = i.target === 'all' ? 'Gruppenschaden' : 'Schaden';
     switch (i.kind) {
       case 'attack':
-        return i.hits ? `⚔️ ${dmg} × ${i.hits} Schaden` : `⚔️ ${dmg} Schaden`;
+        return i.hits ? `⚔️ ${dmg} × ${i.hits} ${damageLabel}` : `⚔️ ${dmg} ${damageLabel}`;
       case 'attack_debuff':
-        return `⚔️ ${dmg} Schaden + 😵 ${i.weak ?? 1} Schwäche`;
+        return `⚔️ ${dmg} ${damageLabel} + 😵 ${i.weak ?? 1} Schwäche`;
       case 'block':
         return `🛡️ ${value} Schild`;
       case 'buff':
@@ -149,9 +90,8 @@ export abstract class CombatScreenBase extends CardScreenBase {
   ): { total: number; byEnemy: Record<number, number>; byAlly: Record<number, number> } {
     let remainingBlock = this.game.block() + Math.max(0, additionalBlock);
     let remainingVeil = this.game.veil();
-    const tauntAllies = this.game.livingAllies()
-      .filter(ally => ally.def.taunt)
-      .map(ally => ({ uid: ally.uid, hp: ally.hp }));
+    const simulatedAllies = this.game.livingAllies()
+      .map(ally => ({ uid: ally.uid, hp: ally.hp, taunt: Boolean(ally.def.taunt) }));
     let hpDmg = 0;
     const byEnemy: Record<number, number> = {};
     const byAlly: Record<number, number> = {};
@@ -161,12 +101,20 @@ export abstract class CombatScreenBase extends CardScreenBase {
       if (i.kind !== 'attack' && i.kind !== 'attack_debuff') continue;
       const per = this.game.enemyAttackPerHit(e);
       for (let h = 0; h < (i.hits ?? 1); h++) {
-        const tauntAlly = tauntAllies.find(ally => ally.hp > 0);
-        if (tauntAlly) {
-          const allyDamage = Math.min(tauntAlly.hp, per);
-          tauntAlly.hp = Math.max(0, tauntAlly.hp - per);
-          byAlly[tauntAlly.uid] = (byAlly[tauntAlly.uid] ?? 0) + allyDamage;
-          continue;
+        if (i.target === 'all') {
+          for (const ally of simulatedAllies.filter(current => current.hp > 0)) {
+            const allyDamage = Math.min(ally.hp, per);
+            ally.hp = Math.max(0, ally.hp - per);
+            byAlly[ally.uid] = (byAlly[ally.uid] ?? 0) + allyDamage;
+          }
+        } else {
+          const tauntAlly = simulatedAllies.find(ally => ally.taunt && ally.hp > 0);
+          if (tauntAlly) {
+            const allyDamage = Math.min(tauntAlly.hp, per);
+            tauntAlly.hp = Math.max(0, tauntAlly.hp - per);
+            byAlly[tauntAlly.uid] = (byAlly[tauntAlly.uid] ?? 0) + allyDamage;
+            continue;
+          }
         }
         if (remainingVeil > 0) {
           remainingVeil--;
@@ -206,6 +154,9 @@ export abstract class CombatScreenBase extends CardScreenBase {
       `${i.name}: ${hits > 1 ? `${hits} Treffer mit je ${per}` : `${per}`} Schaden vor deinem Schild.`,
       `Dein aktueller Schild: ${this.game.block()}. Tatsächlicher Lebensverlust: ${this.incomingDamage(e)}.`,
     ];
+    if (i.target === 'all') {
+      lines.push('Gruppenschaden trifft dich und jeden lebenden Verbündeten; Provokation lenkt ihn nicht um.');
+    }
     if (e.strength > 0) lines.push(`Gegnerische Stärke: +${e.strength} Schaden pro Treffer ist bereits eingerechnet.`);
     if (e.weak > 0) lines.push('Gegnerische Schwäche: 25 % weniger Schaden ist bereits eingerechnet.');
     if (i.kind === 'attack_debuff') {
@@ -249,7 +200,7 @@ export abstract class CombatScreenBase extends CardScreenBase {
     }
     const tauntAlly = this.game.livingAllies().find(ally => ally.def.taunt);
     if (tauntAlly) {
-      lines.push(`🎯 ${tauntAlly.def.name} fängt gegnerische Treffer ab, solange er lebt.`);
+      lines.push(`🎯 ${tauntAlly.def.name} fängt gezielte gegnerische Treffer ab, solange er lebt.`);
     }
     return lines.join('\n');
   }

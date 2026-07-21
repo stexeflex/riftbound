@@ -40,6 +40,8 @@ export interface CardDef {
   retainBlock?: number;    // bis zu so viel Restschild in den nächsten Zug übertragen
   summonAlly?: string;     // ID des zu beschwörenden Verbündeten
   damagePerAlly?: number;  // zusätzlicher Schaden pro aktivem Verbündeten
+  healAllies?: number;     // heilt alle aktiven Verbündeten
+  allyStrength?: number;   // dauerhafter Schadensbonus für Verbündete in diesem Kampf
   randomBonus?: boolean;   // Chaoswoge: zufälliger Zusatzeffekt
   unplayable?: boolean;
 }
@@ -55,6 +57,7 @@ export interface EnemyMove {
   value: number;
   hits?: number;
   weak?: number;
+  target?: 'player' | 'all'; // Gruppenschaden trifft Spieler und alle Verbündeten
 }
 
 export interface EnemyDef {
@@ -86,6 +89,8 @@ export interface AllyDef {
   emoji: string;
   maxHp: number;
   text: string;
+  costKerne: number;
+  summonCardId: string;
   taunt?: boolean;          // fängt gegnerische Treffer ab, solange der Verbündete lebt
   startTurnDamage?: number; // Schaden an einem zufälligen Gegner zu Beginn des Spielerzugs
   duration?: number;        // Anzahl der Zuganfänge, danach verschwindet der Verbündete
@@ -134,6 +139,7 @@ export type Screen =
   | 'title'
   | 'dungeons'
   | 'artifacts'
+  | 'allies'
   | 'resonances'
   | 'deck'
   | 'campaign'
@@ -200,6 +206,7 @@ export interface CombatSave {
   veil?: number;
   reflection?: number;
   blockCarryover?: number;
+  allyStrength?: number;
   allies?: {
     id: string;
     hp: number;
@@ -256,6 +263,7 @@ export interface MetaState {
   runs: number;
   artifacts: string[];        // freigeschaltete Artefakte
   resonances: string[];       // freigeschaltete Resonanzen
+  allies: string[];           // freigeschaltete Verbündete
   completedStages: string[];  // abgeschlossene Kampagnen-Stages
   completedAreas: string[];   // abgeschlossene Dungeon-Gebiete
   cards: Record<string, number>; // Kartensammlung (Karten-ID → Anzahl)

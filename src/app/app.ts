@@ -1,6 +1,7 @@
 import { Component, HostListener, effect, inject, signal } from '@angular/core';
 import { AudioService } from './audio.service';
 import { GameService } from './game/game.service';
+import { ALLY_GLOSSARY, SPECIAL_EFFECT_GLOSSARY } from './game/effect-text';
 import { TitleScreenComponent } from './screens/title-screen.component';
 import { DungeonsScreenComponent } from './screens/dungeons-screen.component';
 import { CampaignScreenComponent } from './screens/campaign-screen.component';
@@ -8,6 +9,7 @@ import { MapScreenComponent } from './screens/map-screen.component';
 import { DeckScreenComponent } from './screens/deck-screen.component';
 import { CardsScreenComponent } from './screens/cards-screen.component';
 import { ArtifactsScreenComponent } from './screens/artifacts-screen.component';
+import { AlliesScreenComponent } from './screens/allies-screen.component';
 import { ResonancesScreenComponent } from './screens/resonances-screen.component';
 import { CombatScreenComponent } from './screens/combat-screen.component';
 import { RewardScreenComponent } from './screens/reward-screen.component';
@@ -19,13 +21,15 @@ import { ConverterScreenComponent } from './screens/converter-screen.component';
 
 @Component({
   selector: 'app-root',
-  imports: [TitleScreenComponent, DungeonsScreenComponent, CampaignScreenComponent, MapScreenComponent, DeckScreenComponent, CardsScreenComponent, ArtifactsScreenComponent, ResonancesScreenComponent, CombatScreenComponent, RewardScreenComponent, RestScreenComponent, VictoryScreenComponent, DefeatScreenComponent, MetaScreenComponent, ConverterScreenComponent],
+  imports: [TitleScreenComponent, DungeonsScreenComponent, CampaignScreenComponent, MapScreenComponent, DeckScreenComponent, CardsScreenComponent, ArtifactsScreenComponent, AlliesScreenComponent, ResonancesScreenComponent, CombatScreenComponent, RewardScreenComponent, RestScreenComponent, VictoryScreenComponent, DefeatScreenComponent, MetaScreenComponent, ConverterScreenComponent],
   templateUrl: './app.html',
 })
 export class App {
   readonly game = inject(GameService);
   readonly audio = inject(AudioService);
   readonly helpOpen = signal(false);
+  readonly specialEffectGlossary = SPECIAL_EFFECT_GLOSSARY;
+  readonly allyGlossary = ALLY_GLOSSARY;
 
   constructor() {
     effect(() => this.audio.syncScreen(

@@ -60,6 +60,12 @@
               @if (game.strength() > 0) {
                 <span class="chip chip-str tip" [attr.data-tip]="tips.staerke">💪 +{{ game.strength() }}</span>
               }
+              @if (game.allyStrength() > 0) {
+                <span class="chip chip-ally-strength tip"
+                      data-tip="Erhöht jeden von Verbündeten verursachten Schadenswert bis zum Kampfende.">
+                  🤝 Verbündete +{{ game.allyStrength() }} Schaden
+                </span>
+              }
               @if (game.playerWeak() > 0) {
                 <span class="chip chip-weak tip" [attr.data-tip]="tips.schwaeche">😵 {{ game.playerWeak() }}</span>
               }
@@ -89,21 +95,24 @@
                   }
                   <div class="fighter-emoji">{{ ally.def.emoji }}</div>
                   <div class="fighter-name">{{ ally.def.name }}</div>
-                  @if (ally.def.taunt) {
-                    <div class="hp-bar ally-hp-bar">
-                      <div class="hp-fill ally-fill"
-                           [style.width.%]="barPercent(ally.hp, ally.def.maxHp)"></div>
-                      @if (allyIncomingDamage(ally) > 0) {
-                        <div class="hp-loss-preview ally-loss-preview"
-                             [style.left.%]="barPercent(projectedAllyHp(ally), ally.def.maxHp)"
-                             [style.width.%]="barPercent(allyIncomingDamage(ally), ally.def.maxHp)"></div>
-                        <span class="hp-text">{{ ally.hp }}/{{ ally.def.maxHp }} → {{ projectedAllyHp(ally) }}</span>
-                      } @else {
-                        <span class="hp-text">{{ ally.hp }}/{{ ally.def.maxHp }}</span>
-                      }
-                    </div>
-                  }
+                  <div class="hp-bar ally-hp-bar">
+                    <div class="hp-fill ally-fill"
+                         [style.width.%]="barPercent(ally.hp, ally.def.maxHp)"></div>
+                    @if (allyIncomingDamage(ally) > 0) {
+                      <div class="hp-loss-preview ally-loss-preview"
+                           [style.left.%]="barPercent(projectedAllyHp(ally), ally.def.maxHp)"
+                           [style.width.%]="barPercent(allyIncomingDamage(ally), ally.def.maxHp)"></div>
+                      <span class="hp-text">{{ ally.hp }}/{{ ally.def.maxHp }} → {{ projectedAllyHp(ally) }}</span>
+                    } @else {
+                      <span class="hp-text">{{ ally.hp }}/{{ ally.def.maxHp }}</span>
+                    }
+                  </div>
                   <div class="status-row">
+                    @if (ally.def.startTurnDamage) {
+                      <span class="chip chip-ally-damage">
+                        ⚔️ {{ ally.def.startTurnDamage + game.allyStrength() }}/Zuganfang
+                      </span>
+                    }
                     @if (ally.turnsRemaining !== null) {
                       <span class="chip chip-ally-turns">⏳ {{ ally.turnsRemaining }} Zuganfänge</span>
                     } @else {

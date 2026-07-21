@@ -145,18 +145,28 @@ export const CARDS: Record<string, CardDef> = {
   },
   risswaechter: {
     id: 'risswaechter', name: 'Risswächter', cost: 2, type: 'Macht', category: 'Schutz', price: 150,
-    text: 'Beschwöre einen Risswächter mit 12 Leben und Provokation.',
+    text: 'Beschwöre einen Risswächter mit 15 Leben und Provokation.',
     summonAlly: 'risswaechter',
   },
   funkengeist: {
     id: 'funkengeist', name: 'Funkengeist', cost: 2, type: 'Macht', category: 'Chaos', price: 150,
-    text: 'Beschwöre für 3 Zuganfänge einen Funkengeist. Er verursacht jeweils 4 Schaden.',
+    text: 'Beschwöre für 3 Zuganfänge einen Funkengeist mit 10 Leben. Er verursacht jeweils 5 Schaden.',
     summonAlly: 'funkengeist',
   },
   verbundschlag: {
     id: 'verbundschlag', name: 'Verbundschlag', cost: 1, type: 'Angriff', category: 'Kraft', price: 100,
     text: 'Füge 6 Schaden zu. +3 Schaden pro aktivem Verbündeten.',
     damage: 6, damagePerAlly: 3,
+  },
+  geteilteAegis: {
+    id: 'geteilteAegis', name: 'Geteilte Aegis', cost: 1, type: 'Verteidigung', category: 'Schutz', price: 120,
+    text: 'Erhalte 6 Schild. Heile alle Verbündeten um 4 Leben.',
+    block: 6, healAllies: 4,
+  },
+  risspakt: {
+    id: 'risspakt', name: 'Risspakt', cost: 2, type: 'Macht', category: 'Kraft', price: 150,
+    text: 'Erhalte +1 Stärke. Deine Verbündeten verursachen diesen Kampf +1 Schaden.',
+    strength: 1, allyStrength: 1,
   },
   schwaeche: {
     id: 'schwaeche', name: 'Schwäche', cost: 0, type: 'Fluch', category: 'Chaos',
@@ -174,6 +184,7 @@ export const REWARD_POOL: string[] = [
   'risssalve', 'funkenflug', 'gluecksspiel', 'ueberladung',
   'phasenschritt', 'spiegelwacht', 'bannzeichen', 'schildanker',
   'risswaechter', 'funkengeist', 'verbundschlag',
+  'geteilteAegis', 'risspakt',
 ];
 
 export const STARTER_DECK: string[] = [

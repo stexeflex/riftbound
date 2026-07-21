@@ -32,7 +32,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     moves: [
       { name: 'Steinfaust', kind: 'attack', value: 11 },
       { name: 'Verhärten', kind: 'block', value: 12 },
-      { name: 'Erdbeben', kind: 'attack', value: 14 },
+      { name: 'Erdbeben', kind: 'attack', value: 14, target: 'all' },
     ],
   },
   klingenwaechter: {
@@ -60,7 +60,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
       { name: 'Verschlingung', kind: 'attack', value: 18 },
       { name: 'Ruf der Leere', kind: 'block', value: 15 },
       { name: 'Zerfetzen', kind: 'attack', value: 6, hits: 2 },
-      { name: 'Leerenschrei', kind: 'attack_debuff', value: 8, weak: 2 },
+      { name: 'Leerenschrei', kind: 'attack_debuff', value: 8, weak: 2, target: 'all' },
     ],
   },
   sporenkobold: {
@@ -95,7 +95,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
       { name: 'Stammhieb', kind: 'attack', value: 17 },
       { name: 'Rindenwall', kind: 'block', value: 16 },
       { name: 'Sporensturm', kind: 'attack_debuff', value: 7, weak: 2 },
-      { name: 'Wurzelbeben', kind: 'attack', value: 6, hits: 3 },
+      { name: 'Wurzelbeben', kind: 'attack', value: 6, hits: 3, target: 'all' },
     ],
   },
 
@@ -131,7 +131,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
       { name: 'Spektralschnitt', kind: 'attack', value: 8, hits: 2 },
       { name: 'Vollspektrum', kind: 'buff', value: 3 },
       { name: 'Diamantmantel', kind: 'block', value: 20 },
-      { name: 'Lichtbruch', kind: 'attack_debuff', value: 11, weak: 2 },
+      { name: 'Lichtbruch', kind: 'attack_debuff', value: 11, weak: 2, target: 'all' },
     ],
   },
   sturmspaeher: {
@@ -156,7 +156,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     moves: [
       { name: 'Donnerspeer', kind: 'attack', value: 14 },
       { name: 'Sturmwall', kind: 'block', value: 16 },
-      { name: 'Kettenblitz', kind: 'attack', value: 6, hits: 3 },
+      { name: 'Kettenblitz', kind: 'attack', value: 6, hits: 3, target: 'all' },
     ],
   },
   tempestarchon: {
@@ -165,7 +165,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     moves: [
       { name: 'Himmelslanze', kind: 'attack', value: 19 },
       { name: 'Wolkenzitadelle', kind: 'block', value: 21 },
-      { name: 'Gewitterfront', kind: 'attack', value: 7, hits: 3 },
+      { name: 'Gewitterfront', kind: 'attack', value: 7, hits: 3, target: 'all' },
       { name: 'Druckabfall', kind: 'attack_debuff', value: 9, weak: 2 },
     ],
   },
@@ -201,7 +201,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
       { name: 'Sternenfall', kind: 'attack', value: 21 },
 
       { name: 'Schwarzer Spiegel', kind: 'block', value: 24 },
-      { name: 'Gravitationswelle', kind: 'attack', value: 8, hits: 3 },
+      { name: 'Gravitationswelle', kind: 'attack', value: 8, hits: 3, target: 'all' },
       { name: 'Stille des Alls', kind: 'attack_debuff', value: 12, weak: 2 },
     ],
   },
@@ -244,7 +244,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     moves: [
       { name: 'Verschlingen', kind: 'attack', value: 18 },
       { name: 'Untertauchen', kind: 'block', value: 17 },
-      { name: 'Sandsturm', kind: 'attack_debuff', value: 8, weak: 2 },
+      { name: 'Sandsturm', kind: 'attack_debuff', value: 8, weak: 2, target: 'all' },
       { name: 'Glutschuppen', kind: 'attack', value: 6, hits: 3 },
     ],
   },
@@ -278,7 +278,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     moves: [
       { name: 'Polarhieb', kind: 'attack', value: 7, hits: 2 },
       { name: 'Aurorawall', kind: 'block', value: 18 },
-      { name: 'Weißer Sturm', kind: 'attack_debuff', value: 8, weak: 2 },
+      { name: 'Weißer Sturm', kind: 'attack_debuff', value: 8, weak: 2, target: 'all' },
     ],
   },
   frostkoenigin: {
@@ -288,7 +288,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
       { name: 'Frostzepter', kind: 'attack', value: 17 },
       { name: 'Eisthron', kind: 'block', value: 20 },
       { name: 'Winteratem', kind: 'attack_debuff', value: 9, weak: 2 },
-      { name: 'Hagelkrone', kind: 'attack', value: 6, hits: 3 },
+      { name: 'Hagelkrone', kind: 'attack', value: 6, hits: 3, target: 'all' },
     ],
   },
   prismamotte: {
@@ -314,7 +314,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     moves: [
       { name: 'Prismenklaue', kind: 'attack', value: 7, hits: 2 },
       { name: 'Kristallfell', kind: 'block', value: 17 },
-      { name: 'Farbsplitter', kind: 'attack', value: 5, hits: 3 },
+      { name: 'Farbsplitter', kind: 'attack', value: 5, hits: 3, target: 'all' },
     ],
   },
   wolkenrochen: {
@@ -339,7 +339,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     moves: [
       { name: 'Gewitterbiss', kind: 'attack', value: 14 },
       { name: 'Sturmhaut', kind: 'block', value: 16 },
-      { name: 'Kettenblitz', kind: 'attack', value: 6, hits: 3 },
+      { name: 'Kettenblitz', kind: 'attack', value: 6, hits: 3, target: 'all' },
     ],
   },
   aeralis: {
@@ -349,7 +349,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
       { name: 'Himmelslanze', kind: 'attack', value: 18 },
       { name: 'Wolkenpalast', kind: 'block', value: 19 },
       { name: 'Drucksturz', kind: 'attack_debuff', value: 8, weak: 2 },
-      { name: 'Gewitterkrone', kind: 'attack', value: 6, hits: 3 },
+      { name: 'Gewitterkrone', kind: 'attack', value: 6, hits: 3, target: 'all' },
     ],
   },
   echogeist: {
@@ -374,7 +374,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     moves: [
       { name: 'Masseschlag', kind: 'attack', value: 16 },
       { name: 'Singularität', kind: 'block', value: 18 },
-      { name: 'Zeitbruch', kind: 'attack_debuff', value: 8, weak: 2 },
+      { name: 'Zeitbruch', kind: 'attack_debuff', value: 8, weak: 2, target: 'all' },
     ],
   },
   veyla: {
@@ -384,7 +384,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
       { name: 'Horizontschnitt', kind: 'attack', value: 18 },
       { name: 'Dunkle Linse', kind: 'block', value: 20 },
       { name: 'Raumfaltung', kind: 'attack_debuff', value: 9, weak: 2 },
-      { name: 'Sternenecho', kind: 'attack', value: 6, hits: 3 },
+      { name: 'Sternenecho', kind: 'attack', value: 6, hits: 3, target: 'all' },
     ],
   },
 };

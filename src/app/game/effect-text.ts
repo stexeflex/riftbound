@@ -1,4 +1,125 @@
-import { ArtifactDef, ResonanceDef } from './models';
+import { ALLIES } from './data/allies.data';
+import { AllyDef, ArtifactDef, CardDef, ResonanceDef } from './models';
+
+export interface GlossaryEntry {
+  term: string;
+  text: string;
+}
+
+const VEIL_DETAIL = 'Jede Ladung lässt einen gegnerischen Treffer gegen dich vollständig verfehlen. Mehrere Ladungen werden nacheinander verbraucht.';
+const REFLECTION_DETAIL = 'Der nächste Treffer gegen dich oder einen Verbündeten wirft den gespeicherten Schaden auf den Angreifer zurück.';
+
+export const SPECIAL_EFFECT_GLOSSARY: readonly GlossaryEntry[] = [
+  {
+    term: '✨ Verbündete',
+    text: 'Beschworene Verbündete bleiben im Kampf, bis ihre Leben auf 0 fallen oder ihre angegebene Dauer endet. Du kannst höchstens 2 unterschiedliche Verbündete gleichzeitig kontrollieren.',
+  },
+  {
+    term: '🎯 Provokation',
+    text: 'Ein Verbündeter mit Provokation fängt gezielte gegnerische Treffer für dich ab. Gruppenschaden trifft trotzdem dich und jeden lebenden Verbündeten.',
+  },
+  {
+    term: '⚔️ Gruppenschaden',
+    text: 'Trifft dich und jeden lebenden Verbündeten gleichzeitig. Provokation lenkt Gruppenschaden nicht um; Verschleierung schützt nur dich.',
+  },
+  {
+    term: '🌫️ Verschleierung',
+    text: VEIL_DETAIL,
+  },
+  {
+    term: '🪞 Reflektion',
+    text: REFLECTION_DETAIL,
+  },
+  {
+    term: '⚓ Schildtransfer',
+    text: 'Bis zum angegebenen Wert bleibt Restschild nach dem Gegnerzug erhalten und wird zu Beginn deines nächsten Zuges übertragen.',
+  },
+  {
+    term: '🤝 Verbündetenstärke',
+    text: 'Erhöht jeden von Verbündeten verursachten Schadenswert für den restlichen Kampf.',
+  },
+];
+
+export const ALLY_GLOSSARY: readonly GlossaryEntry[] = Object.values(ALLIES).map(ally => ({
+  term: `${ally.emoji} ${ally.name} (${ally.maxHp} Leben)`,
+  text: ally.text,
+}));
+
+export function allyDetails(ally: AllyDef): string {
+  return [
+    ally.text,
+    `Maximale Leben: ${ally.maxHp}. Preis: ${ally.costKerne} Kerne.`,
+    `Der Kauf schaltet den Verbündeten frei und gewährt 1 Exemplar der Beschwörungskarte.`,
+  ].join('\n');
+}
+
+/** Zentrale Zusatzregeln für Karten-Hover in Shop, Deck, Belohnung und Kampf. */
+export function cardDetails(def: CardDef): string {
+  const lines: string[] = [];
+  if (def.block) {
+    lines.push('Schild blockt eingehenden Schaden und verfällt zu Beginn deines nächsten Zuges.');
+  }
+  if (def.draw) {
+    lines.push('Ist der Nachziehstapel leer, wird der Ablagestapel gemischt und zum neuen Nachziehstapel.');
+  }
+  if (def.energy) {
+    lines.push('Die Energie wird sofort gutgeschrieben und kann noch in diesem Zug verwendet werden.');
+  }
+  if (def.heal) {
+    lines.push('Heilung kann dein maximales Leben nicht überschreiten.');
+  }
+  if (def.blockPerEnemy) {
+    lines.push('Gezählt werden alle Gegner, die beim Ausspielen der Karte noch leben.');
+  }
+  if (def.target === 'all') {
+    lines.push('Dieser Effekt trifft jeden aktuell lebenden Gegner.');
+  }
+  if (def.strength) {
+    lines.push('Stärke erhöht jeden einzelnen Angriffstreffer und bleibt bis zum Ende des Kampfes bestehen.');
+  }
+  if (def.startTurnBlock) {
+    lines.push('Als Macht bleibt dieser Effekt nach dem Ausspielen für den gesamten Kampf aktiv.');
+  }
+  if (def.veil) {
+    lines.push(VEIL_DETAIL);
+  }
+  if (def.reflection) {
+    lines.push(REFLECTION_DETAIL);
+  }
+  if (def.purgeEnemyBuffs) {
+    lines.push('Positive Effektarten sind Stärke und Schild. Eine entfernte Effektart verliert ihren gesamten aktuellen Wert.');
+  }
+  if (def.retainBlock) {
+    lines.push('Nur Schild, der nach dem Gegnerzug noch übrig ist, kann übertragen werden. Der Effekt wird danach verbraucht.');
+  }
+  if (def.summonAlly) {
+    const ally = ALLIES[def.summonAlly];
+    if (ally) lines.push(`${ally.emoji} ${ally.name}: ${ally.text}`);
+    lines.push('Du kannst höchstens 2 unterschiedliche Verbündete gleichzeitig kontrollieren. Ein bereits aktiver Verbündeter kann nicht erneut beschworen werden.');
+  }
+  if (def.damagePerAlly) {
+    lines.push('Gezählt werden deine aktuell aktiven Verbündeten, bevor der Angriff ausgeführt wird.');
+  }
+  if (def.healAllies) {
+    lines.push('Jeder lebende Verbündete wird bis zu seinen maximalen Leben geheilt. Ohne Verbündeten wirkt nur der übrige Karteneffekt.');
+  }
+  if (def.allyStrength) {
+    lines.push('Verbündetenstärke erhöht jeden von Verbündeten verursachten Schadenswert und bleibt bis zum Kampfende.');
+  }
+  if (def.weakEnemy) {
+    lines.push('Schwäche: Der Gegner verursacht 25 % weniger Schaden. Sie sinkt nach jedem Gegnerzug um 1.');
+  }
+  if (def.vulnerableEnemy) {
+    lines.push('Verwundbarkeit: Der Gegner erleidet 50 % mehr Schaden. Sie sinkt nach jedem Gegnerzug um 1.');
+  }
+  if (def.selfWeak) {
+    lines.push('Schwäche: Du verursachst 25 % weniger Schaden. Sie sinkt pro Zug um 1.');
+  }
+  if (def.randomBonus) {
+    lines.push('Zufallseffekt (je 1/3): Ziehe 1 Karte, erhalte 5 Schild oder verursache 5 zusätzlichen Schaden.');
+  }
+  return lines.join('\n');
+}
 
 export function resonanceUsesNachhall(resonance: ResonanceDef): boolean {
   return (resonance.damage ?? 0) > 0 || (resonance.block ?? 0) > 0;
