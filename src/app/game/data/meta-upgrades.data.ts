@@ -4,56 +4,56 @@ import { MetaUpgradeDef } from '../models';
 
 export const META_UPGRADES: MetaUpgradeDef[] = [
   {
-    id: 'leben', name: 'Zähigkeit', icon: '❤️', maxLevel: 5, cost: 40,
-    describeCurrent: l => l > 0 ? `Aktueller Bonus: +${l * 2} maximales Leben` : 'Noch kein Bonus',
-    describeNext: l => `+2 maximales Leben (danach insgesamt +${(l + 1) * 2})`,
+    id: 'leben', name: 'Zähigkeit', icon: '❤️', maxLevel: 10, cost: 40,
+    describeCurrent: l => l > 0 ? `Aktueller Bonus: +${l * 4} maximales Leben` : 'Aktuell noch kein Bonus',
+    describeNext: l => `+4 maximales Leben. Neuer Gesamtbonus: +${(l + 1) * 4} maximales Leben.`,
+  },
+  {
+    id: 'schildfluss', name: 'Schildfluss', icon: '💠', maxLevel: 8, cost: 50,
+    describeCurrent: l => l > 0
+      ? `Aktueller Bonus: Beginne jeden Zug mit ${l} zusätzlichem Schild`
+      : 'Aktuell noch kein Bonus',
+    describeNext: l => `+1 Schild zu Beginn jedes Zuges. Neuer Gesamtbonus: ${l + 1} Schild pro Zug.`,
+  },
+  {
+    id: 'vorbereitung', name: 'Vorbereitung', icon: '🛡️', maxLevel: 4, cost: 60,
+    describeCurrent: l => l > 0 ? `Aktueller Bonus: Beginne jeden Kampf mit ${l * 7} Schild` : 'Aktuell noch kein Bonus',
+    describeNext: l => `+7 Schild zu Beginn jedes Kampfes. Neuer Gesamtbonus: ${(l + 1) * 7} Startschild.`,
   },
   {
     id: 'erstschlag', name: 'Erstschlag', icon: '⚔️', maxLevel: 4, cost: 50,
     describeCurrent: l => l > 0
       ? `Aktueller Bonus: Der erste Angriff jedes Zuges verursacht +${l} Schaden`
-      : 'Noch kein Bonus',
-    describeNext: l => `+1 Schaden auf den ersten Angriff jedes Zuges (danach insgesamt +${l + 1})`,
+      : 'Aktuell noch kein Bonus',
+    describeNext: l => `+1 Schaden auf den ersten Angriff jedes Zuges. Neuer Gesamtbonus: +${l + 1} Schaden.`,
   },
   {
     id: 'klingenmeisterschaft', name: 'Klingenmeisterschaft', icon: '🗡️', maxLevel: 5, cost: 60,
     describeCurrent: l => l > 0
-      ? `Aktueller Bonus: Der erste Angriff jedes Kampfes verursacht +${l * 4} Schaden`
-      : 'Noch kein Bonus',
-    describeNext: l => `+4 Schaden auf den ersten Angriff jedes Kampfes (danach insgesamt +${(l + 1) * 4})`,
+      ? `Aktueller Bonus: Der erste Angriff jedes Kampfes verursacht +${l * 3} Schaden`
+      : 'Aktuell noch kein Bonus',
+    describeNext: l => `+3 Schaden auf den ersten Angriff jedes Kampfes. Neuer Gesamtbonus: +${(l + 1) * 3} Schaden.`,
   },
   {
     id: 'heilung', name: 'Rastkunde', icon: '🔥', maxLevel: 4, cost: 50,
-    describeCurrent: l => l > 0 ? `Aktueller Bonus: Heilung an Rastplätzen +${l * 5} %` : 'Noch kein Bonus',
-    describeNext: l => `+5 % Heilung an Rastplätzen (danach insgesamt +${(l + 1) * 5} %)`,
+    describeCurrent: l => l > 0 ? `Aktueller Bonus: Heilung an Rastplätzen +${l * 5} %` : 'Aktuell noch kein Bonus',
+    describeNext: l => `+5 % Heilung an Rastplätzen. Neuer Gesamtbonus: +${(l + 1) * 5} %.`,
   },
   {
     id: 'energiekern', name: 'Energiekern', icon: '🔵', maxLevel: 2, cost: 2, currency: 'kerne',
-    describeCurrent: l => l > 0 ? `Aktueller Bonus: +${l} maximale Energie pro Zug` : 'Noch kein Bonus',
-    describeNext: l => `+1 maximale Energie pro Zug (danach insgesamt +${l + 1})`,
-  },
-  {
-    id: 'vorbereitung', name: 'Vorbereitung', icon: '🛡️', maxLevel: 4, cost: 60,
-    describeCurrent: l => l > 0 ? `Aktueller Bonus: Beginne jeden Kampf mit ${l * 5} Schild` : 'Noch kein Bonus',
-    describeNext: l => `+5 Schild zu Beginn jedes Kampfes (danach insgesamt ${(l + 1) * 5})`,
+    describeCurrent: l => l > 0 ? `Aktueller Bonus: +${l} maximale Energie pro Zug` : 'Aktuell noch kein Bonus',
+    describeNext: l => `+1 maximale Energie pro Zug. Neuer Gesamtbonus: +${l + 1} Energie.`,
   },
   {
     id: 'vorausahnung', name: 'Vorausahnung', icon: '👁️', maxLevel: 2, cost: 100,
     describeCurrent: l => l > 0
       ? `Aktueller Bonus: Beginne jeden Kampf mit ${l} zusätzlichen ${l === 1 ? 'Karte' : 'Karten'} auf der Hand`
-      : 'Noch kein Bonus',
-    describeNext: l => `+1 Karte auf der Hand zu Beginn jedes Kampfes (danach insgesamt ${l + 1})`,
+      : 'Aktuell noch kein Bonus',
+    describeNext: l => `+1 Karte auf deiner ersten Hand. Neuer Gesamtbonus: ${l + 1} zusätzliche ${l + 1 === 1 ? 'Karte' : 'Karten'}.`,
   },
   {
-    id: 'schildfluss', name: 'Schildfluss', icon: '💠', maxLevel: 8, cost: 70,
-    describeCurrent: l => l > 0
-      ? `Aktueller Bonus: Beginne jeden Zug mit ${l} zusätzlichem Schild`
-      : 'Noch kein Bonus',
-    describeNext: l => `+1 Schild zu Beginn jedes Zuges (danach insgesamt ${l + 1})`,
-  },
-  {
-    id: 'nachhall', name: 'Resonanz-Nachhall', icon: '✨', maxLevel: 4, cost: 100,
-    describeCurrent: l => l > 0 ? `Aktueller Bonus: Schaden und Schild von Resonanzen +${l}` : 'Noch kein Bonus',
-    describeNext: l => `+1 Schaden und Schild auf ausgelöste Resonanzen (danach insgesamt +${l + 1})`,
+    id: 'nachhall', name: 'Resonanz-Nachhall', icon: '✨', maxLevel: 4, cost: 70,
+    describeCurrent: l => l > 0 ? `Aktueller Bonus: Schaden und Schild von Resonanzen +${l}` : 'Aktuell noch kein Bonus',
+    describeNext: l => `+1 Resonanzschaden und -schild. Neuer Gesamtbonus: +${l + 1} auf beide Werte.`,
   },
 ];

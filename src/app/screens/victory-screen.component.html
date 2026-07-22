@@ -12,7 +12,9 @@
         }
         <p class="hint">
           🔮 +{{ game.endSplitter() }} Splitter
-          @if (game.endKerne() > 0) { · 🟡 +{{ game.endKerne() }} Kern }
+          @if (game.endKerne() > 0) {
+            · 🟡 +{{ game.endKerne() }} {{ game.endKerne() === 1 ? 'Kern' : 'Kerne' }}
+          }
         </p>
         <div class="title-buttons">
           @if (game.mode() === 'campaign') {

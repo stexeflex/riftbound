@@ -8,6 +8,7 @@ export interface GlossaryEntry {
 
 const VEIL_DETAIL = 'Jede Ladung lässt einen gegnerischen Treffer gegen dich vollständig verfehlen. Mehrere Ladungen werden nacheinander verbraucht.';
 const REFLECTION_DETAIL = 'Der nächste Treffer gegen dich oder einen Verbündeten wirft den gespeicherten Schaden auf den Angreifer zurück.';
+const REDIRECTION_DETAIL = 'Zählt als sichtbarer Schild. Jeder dadurch absorbierte Schadenspunkt wird auf den Angreifer zurückgeworfen; gezielte Treffer auf Verbündete werden ebenfalls abgefangen.';
 
 export const SPECIAL_EFFECT_GLOSSARY: readonly GlossaryEntry[] = [
   {
@@ -39,6 +40,18 @@ export const SPECIAL_EFFECT_GLOSSARY: readonly GlossaryEntry[] = [
     text: REFLECTION_DETAIL,
   },
   {
+    term: '🔀 Schadensumleitung',
+    text: REDIRECTION_DETAIL,
+  },
+  {
+    term: '💥 Explosion',
+    text: 'Wird ein Verbündeter mit Explosion durch Schaden besiegt, fügt er sofort allen noch lebenden Gegnern den angegebenen Schaden zu.',
+  },
+  {
+    term: '🔋 Energieübertrag',
+    text: 'Beim Zugende verbleibende Energie wird zusätzlich zu deiner maximalen Energie in den nächsten Zug übernommen. Dadurch darf die Energie über das normale Maximum steigen.',
+  },
+  {
     term: '⚓ Schildtransfer',
     text: 'Bis zum angegebenen Wert bleibt Restschild nach dem Gegnerzug erhalten und wird zu Beginn deines nächsten Zuges übertragen.',
   },
@@ -53,12 +66,27 @@ export const ALLY_GLOSSARY: readonly GlossaryEntry[] = Object.values(ALLIES).map
   text: ally.text,
 }));
 
-export function allyDetails(ally: AllyDef): string {
-  return [
-    ally.text,
-    `Werte: ${ally.maxHp} maximale Leben und ${ally.commandDamage} Schaden bei einem befohlenen Angriff.`,
-    `Freischaltung: Kostet ${ally.costKerne} Kerne, gilt dauerhaft und wird direkt im aktiven Ausrüstungslayout ausgerüstet.`,
-  ].join('\n');
+export function allyDetails(ally: AllyDef, level = 1, nextLevel?: AllyDef): string {
+  const stats = [
+    `${ally.maxHp} maximale Leben`,
+    `${ally.commandDamage} Befehlsschaden`,
+  ];
+  if (ally.startTurnDamage) stats.push(`${ally.startTurnDamage} Einzelzielschaden pro Zuganfang`);
+  if (ally.startTurnAoeDamage) stats.push(`${ally.startTurnAoeDamage} Gruppenschaden pro Zuganfang`);
+  if (ally.deathExplosionDamage) stats.push(`${ally.deathExplosionDamage} Explosionsschaden`);
+  if (ally.startTurnBlock) stats.push(`${ally.startTurnBlock} Schild pro Zuganfang`);
+  const lines = [ally.text, `Stufe ${level}: ${stats.join(', ')}.`];
+  if (nextLevel) {
+    lines.push(
+      `Nächste Stufe: ${nextLevel.maxHp} Leben, ${nextLevel.commandDamage} Befehlsschaden`
+      + `${nextLevel.startTurnDamage ? `, ${nextLevel.startTurnDamage} Einzelzielschaden` : ''}`
+      + `${nextLevel.startTurnAoeDamage ? `, ${nextLevel.startTurnAoeDamage} Gruppenschaden` : ''}`
+      + `${nextLevel.deathExplosionDamage ? `, ${nextLevel.deathExplosionDamage} Explosionsschaden` : ''}`
+      + `${nextLevel.startTurnBlock ? `, ${nextLevel.startTurnBlock} Schild` : ''}.`,
+    );
+  }
+  lines.push(`Freischaltung: Kostet ${ally.costKerne} Kerne. Danach können Stufen dauerhaft mit Splittern gekauft werden.`);
+  return lines.join('\n');
 }
 
 /** Zentrale Zusatzregeln für Karten-Hover in Shop, Deck, Belohnung und Kampf. */
@@ -100,6 +128,12 @@ export function cardDetails(def: CardDef): string {
   }
   if (def.reflection) {
     lines.push(`Reflektion: ${REFLECTION_DETAIL}`);
+  }
+  if (def.damageRedirection) {
+    lines.push(`Schadensumleitung: Gewährt ${def.damageRedirection} Umleitungsschild. ${REDIRECTION_DETAIL}`);
+  }
+  if (def.retainEnergy) {
+    lines.push('Energieübertrag: Deine beim Zugende verbleibende Energie wird zusätzlich zur normalen Energie des nächsten Zuges gutgeschrieben.');
   }
   if (def.purgeEnemyBuffs) {
     lines.push(`Effektbann: Entfernt bis zu ${def.purgeEnemyBuffs} positive Effektarten. Stärke und Schild verlieren dabei ihren gesamten aktuellen Wert.`);
@@ -200,7 +234,7 @@ export function resonanceDetails(resonance: ResonanceDef, nachhall = 0): string 
 
 const ARTIFACT_DETAILS: Record<string, string> = {
   schildkern:
-    'Zu Beginn jedes deiner Züge erhältst du 2 Schild. Wie anderer Schild schützt er vor dem nächsten eingehenden Schaden.',
+    'Zu Beginn jedes deiner Züge erhältst du 3 Schild. Wie anderer Schild schützt er vor dem nächsten eingehenden Schaden.',
   glasherz:
     'Das maximale Leben wird beim Start des Runs um 20 % verringert. Jeder von dir verursachte Kartenschaden wird um 20 % erhöht und anschließend gerundet.',
   dornenkrone:
@@ -215,16 +249,16 @@ const ARTIFACT_DETAILS: Record<string, string> = {
   resonanzstein:
     'Nach einer Resonanz werden die Kategorien zurückgesetzt. Dadurch kannst du mit 3 weiteren verschiedenen Kategorien eine zweite Resonanz im selben Zug auslösen.',
   blutvertrag:
-    'Zu Beginn jedes Kampfes verlierst du bis zu 6 Leben, kannst dadurch aber nie unter 1 Leben fallen. Die +2 Stärke gelten für den gesamten Kampf.',
+    'Zu Beginn jedes Kampfes verlierst du bis zu 6 Leben, kannst dadurch aber nie unter 1 Leben fallen. Die +3 Stärke gelten für den gesamten Kampf.',
   funkenreif:
     'Nur im ersten Zug jedes Kampfes erhältst du 1 Energie zusätzlich zu deiner maximalen Energie.',
   'weise-feder': 'Zu Beginn jedes Kampfes ziehst du für deine erste Hand 2 zusätzliche Karten.',
   runenpanzer:
-    'Zu Beginn jedes Kampfes erhältst du einmalig 8 Schild. Weitere Startschild-Effekte werden addiert.',
+    'Zu Beginn jedes Kampfes erhältst du einmalig 40 Schild. Weitere Startschild-Effekte werden addiert.',
   jaegerauge:
     'Der erste Angriffstreffer jedes Kampfes verursacht doppelten Schaden, wenn sein Ziel noch volles Leben hat.',
   risskelch:
-    'Nach jedem gewonnenen Kampf werden sofort bis zu 8 Leben geheilt. Die Heilung überschreitet dein maximales Leben nicht.',
+    'Nach jedem gewonnenen Kampf werden sofort 15 % deines maximalen Lebens geheilt (auf ganze Leben gerundet). Die Heilung überschreitet dein Maximum nicht.',
   beutesack:
     'Nach jedem gewonnenen Kampf stehen 4 statt 3 unterschiedliche Belohnungskarten zur Auswahl.',
 };

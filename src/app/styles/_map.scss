@@ -18,6 +18,61 @@
     linear-gradient(180deg, #1c1528, #120d1c);
 }
 
+.combat-modifier-bar {
+  width: 100%;
+  height: 46px;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.65rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid rgba(117, 155, 211, 0.32);
+  border-radius: 9px;
+  background: rgba(11, 18, 31, 0.78);
+  color: #c9d8ed;
+  scrollbar-width: thin;
+  white-space: nowrap;
+
+  > strong {
+    flex: 0 0 auto;
+    color: #e8dcc0;
+    font-size: 0.8rem;
+  }
+}
+
+.modifier-chip,
+.damage-calculation,
+.modifier-empty {
+  flex: 0 0 auto;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid rgba(105, 165, 225, 0.35);
+  border-radius: 999px;
+  background: rgba(51, 94, 138, 0.18);
+  color: #bcd9f5;
+  font-size: 0.72rem;
+}
+
+.modifier-penalty {
+  border-color: rgba(194, 104, 191, 0.48);
+  background: rgba(104, 45, 105, 0.2);
+  color: #e4b7e2;
+}
+
+.damage-calculation {
+  border-color: rgba(226, 184, 85, 0.52);
+  background: rgba(102, 74, 19, 0.24);
+  color: #f1d68d;
+}
+
+.modifier-empty {
+  border-color: transparent;
+  background: transparent;
+  color: #817a91;
+  font-style: italic;
+}
+
 .fighter {
   display: flex;
   flex-direction: column;
@@ -277,6 +332,9 @@
 .chip-vuln { border-color: rgba(240, 90, 90, 0.5); }
 .chip-veil { border-color: rgba(160, 215, 230, 0.55); color: #bcebf4; }
 .chip-reflect { border-color: rgba(218, 155, 255, 0.55); color: #e4b6ff; }
+.chip-redirection { border-color: rgba(86, 207, 224, 0.58); color: #9ee7ef; }
+.chip-energy-retain { border-color: rgba(98, 169, 255, 0.58); color: #acd5ff; }
+.chip-explosion { border-color: rgba(255, 133, 83, 0.58); color: #ffc0a1; }
 .chip-carry { border-color: rgba(102, 177, 255, 0.55); color: #a9d4ff; }
 
 // Kampf-Log unten am Bildschirmrand, scrollt statt in die Hand zu wachsen.

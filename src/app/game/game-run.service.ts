@@ -35,6 +35,7 @@ export abstract class GameRunService extends GameDeckService {
       artifactId: this.artifact()?.id ?? null,
       resonanceId: this.resonance()?.id ?? null,
       allyFormation: this.runAllyFormation().map(slot => ({ ...slot })),
+      runAllyLevels: { ...this.runAllyLevels() },
       deckIds: this.deck().map(c => c.def.id),
       hp: this.playerHp(),
       maxHp: this.playerMaxHp(),
@@ -82,6 +83,10 @@ export abstract class GameRunService extends GameDeckService {
         allyId: slot.allyId,
         position: slot.position === 'back' ? 'back' : 'front',
       })));
+    this.runAllyLevels.set(Object.fromEntries(this.runAllyFormation().map(slot => [
+      slot.allyId,
+      Math.min(5, Math.max(1, Math.round(Number(save.runAllyLevels?.[slot.allyId]) || 1))),
+    ])));
     this.deck.set(
       save.deckIds.filter(id => CARDS[id]).map(id => this.makeCard(CARDS[id])),
     );
@@ -206,6 +211,10 @@ export abstract class GameRunService extends GameDeckService {
 
   areaCompleted(area: DungeonArea): boolean {
     return this.meta().completedAreas.includes(area.id);
+  }
+
+  areaDifficultyCompleted(area: DungeonArea, difficulty = this.dungeonDifficulty()): boolean {
+    return this.meta().completedDungeonLevels.includes(`${area.id}:${clampDifficulty(difficulty)}`);
   }
 
   startArea(area: DungeonArea) {
@@ -348,25 +357,28 @@ export abstract class GameRunService extends GameDeckService {
     let kerne = 0;
     let completed = m.completedStages;
     let completedAreas = m.completedAreas;
+    let completedDungeonLevels = m.completedDungeonLevels;
     let firstClear = false;
 
     if (won) {
       if (this.mode() === 'dungeon') {
         const area = this.currentArea() ?? DUNGEON_AREAS[0];
-        firstClear = !completedAreas.includes(area.id);
+        const difficultyClear = `${area.id}:${this.dungeonDifficulty()}`;
+        firstClear = !completedDungeonLevels.includes(difficultyClear);
         // Dungeon-Belohnungen bleiben bei Wiederholungen vollständig erhalten.
         earned += this.scaledAreaReward(area);
         if (firstClear) {
           if (area.kern) kerne = 1;
-          completedAreas = [...completedAreas, area.id];
+          completedDungeonLevels = [...completedDungeonLevels, difficultyClear];
         }
+        if (!completedAreas.includes(area.id)) completedAreas = [...completedAreas, area.id];
       } else {
         const stage = this.currentStage();
         if (stage) {
           firstClear = !completed.includes(stage.id);
           earned += firstClear ? stage.reward : Math.round(stage.reward * 0.25);
           if (firstClear) {
-            if (stage.kern) kerne = 1;
+            kerne = stage.kerne ?? 0;
             completed = [...completed, stage.id];
           }
         }
@@ -384,6 +396,7 @@ export abstract class GameRunService extends GameDeckService {
       wins: m.wins + (won ? 1 : 0),
       completedStages: completed,
       completedAreas,
+      completedDungeonLevels,
     });
     this.saveMeta();
     this.screen.set(won ? 'victory' : 'defeat');

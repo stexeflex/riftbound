@@ -65,6 +65,19 @@
 
 .ally-shop-icon { font-size: 2.25rem; }
 
+.ally-shop-actions {
+  display: flex;
+  min-width: 170px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.45rem;
+}
+
+.ally-max-badge {
+  color: #d8bf78;
+  font-size: 0.75rem;
+}
+
 .ally-shop-stats {
   display: flex;
   gap: 0.35rem;
@@ -86,6 +99,7 @@
     flex-wrap: wrap;
 
     .owned-badge { max-width: none; text-align: left; }
+    .ally-shop-actions { width: 100%; align-items: flex-start; }
   }
 }
 

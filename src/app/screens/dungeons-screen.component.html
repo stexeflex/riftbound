@@ -33,18 +33,24 @@
             <div class="stage-row area-row"
                  [style.--area-thumb]="'url(' + area.background + ')'"
                  [class.locked]="!game.areaUnlocked(area)"
-                 [class.completed]="game.areaCompleted(area)">
+                 [class.completed]="game.areaDifficultyCompleted(area)">
               <span class="stage-icon">{{ game.areaUnlocked(area) ? area.icon : '🔒' }}</span>
               <div class="stage-info">
                 <div class="stage-name">{{ area.name }}</div>
                 <div class="stage-desc">{{ area.desc }}</div>
                 <div class="stage-reward">
                   {{ area.stations.length }} Stationen · Jeder Run: 🔮 {{ game.scaledAreaReward(area) }}
-                  @if (area.kern && !game.areaCompleted(area)) { · Erster Sieg: 🟡 1 Kern }
+                  @if (area.kern) {
+                    @if (game.areaDifficultyCompleted(area)) {
+                      · Schwierigkeit {{ game.dungeonDifficulty() }}: 🟡 Kern bereits erhalten
+                    } @else {
+                      · Erster Sieg auf Schwierigkeit {{ game.dungeonDifficulty() }}: 🟡 1 Kern
+                    }
+                  }
                 </div>
               </div>
               <button class="btn btn-small" [disabled]="!game.areaUnlocked(area)" (click)="game.startArea(area)">
-                {{ game.areaCompleted(area) ? 'Erneut' : 'Start' }}
+                {{ game.areaDifficultyCompleted(area) ? 'Erneut' : 'Start' }}
               </button>
             </div>
           }

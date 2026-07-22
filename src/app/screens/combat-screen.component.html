@@ -59,6 +59,18 @@
                   🪞 Reflektion {{ game.reflection() }}
                 </span>
               }
+              @if (game.damageRedirection() > 0) {
+                <span class="chip chip-redirection tip"
+                      data-tip="Dieser Anteil deines sichtbaren Schilds fängt auch Treffer auf Verbündete ab und wirft jeden absorbierten Schadenspunkt zurück.">
+                  🔀 Umleitung {{ game.damageRedirection() }}
+                </span>
+              }
+              @if (game.retainEnergy()) {
+                <span class="chip chip-energy-retain tip"
+                      data-tip="Deine beim Zugende verbleibende Energie wird zusätzlich zur normalen Energie des nächsten Zuges gutgeschrieben.">
+                  🔋 Energieübertrag aktiv
+                </span>
+              }
               @if (game.blockCarryover() > 0) {
                 <span class="chip chip-carry tip"
                       data-tip="Bis zu diesem Wert deines Schilds wird nach dem Gegnerzug in den nächsten Zug übertragen.">
@@ -122,6 +134,18 @@
                         ⚔️ {{ ally.def.startTurnDamage + game.allyStrength() }}/Zuganfang
                       </span>
                     }
+                    @if (ally.def.startTurnAoeDamage) {
+                      <span class="chip chip-ally-damage">
+                        🌩️ {{ ally.def.startTurnAoeDamage + game.allyStrength() }} an alle/Zuganfang
+                      </span>
+                    }
+                    @if (ally.def.startTurnBlock) {
+                      <span class="chip chip-block">🛡️ +{{ ally.def.startTurnBlock }}/Zuganfang</span>
+                    }
+                    @if (ally.def.deathExplosionDamage) {
+                      <span class="chip chip-explosion">💥 {{ ally.def.deathExplosionDamage + game.allyStrength() }} bei Niederlage</span>
+                    }
+                    <span class="chip">📣 {{ ally.def.commandDamage + game.allyStrength() }} Befehlsschaden</span>
                     @if (ally.turnsRemaining !== null) {
                       <span class="chip chip-ally-turns">⏳ {{ ally.turnsRemaining }} Zuganfänge</span>
                     } @else {
@@ -204,6 +228,22 @@
             </button>
           }
         </div>
+
+        <section class="combat-modifier-bar" aria-label="Aktive Schadensfaktoren">
+          <strong>⚙️ Schadensfaktoren</strong>
+          @if (hoveredDamageBreakdown(); as breakdown) {
+            <span class="damage-calculation">{{ breakdown }}</span>
+          } @else {
+            @for (modifier of game.combatDamageModifiers(); track modifier.label) {
+              <span class="modifier-chip" [class.modifier-penalty]="modifier.penalty">
+                <b>{{ modifier.label }}</b> · {{ modifier.detail }}
+              </span>
+            }
+            @if (game.combatDamageModifiers().length === 0) {
+              <span class="modifier-empty">Keine zusätzlichen Schadensmodifikatoren aktiv.</span>
+            }
+          }
+        </section>
 
         <div class="resonance-bar">
           @if (game.resonance(); as resonance) {

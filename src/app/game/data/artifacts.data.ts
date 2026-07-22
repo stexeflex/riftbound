@@ -57,7 +57,7 @@ export const ARTIFACTS: ArtifactDef[] = [
   },
   {
     id: 'risskelch', name: 'Risskelch', icon: '🏺', costKerne: 1,
-    text: 'Heile nach jedem gewonnenen Kampf 20 Leben.',
+    text: 'Heile nach jedem gewonnenen Kampf 15 % deines maximalen Lebens.',
   },
   {
     id: 'beutesack', name: 'Dimensionsbeutel', icon: '🎒', costSplitter: 160,

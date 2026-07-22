@@ -23,6 +23,8 @@ export function assertGameDataIntegrity(): true {
     const requiredEffectNames: [unknown, string][] = [
       [card.veil, 'Verschleierung:'],
       [card.reflection, 'Reflektion:'],
+      [card.damageRedirection, 'Schadensumleitung:'],
+      [card.retainEnergy, 'Energieübertrag:'],
       [card.purgeEnemyBuffs, 'Effektbann:'],
       [card.retainBlock, 'Schildtransfer:'],
       [card.damagePerAlly, 'Verbundbonus:'],
@@ -57,6 +59,11 @@ export function assertGameDataIntegrity(): true {
     }
     if (!Number.isFinite(ally.commandDamage) || ally.commandDamage <= 0) {
       errors.push(`Verbündeter ${ally.id} benötigt positiven Befehlsschaden.`);
+    }
+    for (const [label, value] of Object.entries(ally.growth ?? {})) {
+      if (!Number.isFinite(value) || value < 0) {
+        errors.push(`Verbündeter ${ally.id} benötigt einen nichtnegativen Stufenbonus für ${label}.`);
+      }
     }
     if (!ally.text.trim()) {
       errors.push(`Verbündeter ${ally.id} benötigt einen Nachschlagewerk-Text.`);

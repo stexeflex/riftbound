@@ -20,12 +20,22 @@ export abstract class CombatScreenBase extends CardScreenBase {
     return this.game.previewDamage(card, e);
   }
 
+  hoveredDamageBreakdown(): string {
+    const card = this.game.hoveredCard();
+    const target = this.game.currentTarget();
+    return card?.def.damage && target ? this.game.damageBreakdown(card, target) : '';
+  }
+
   /** Vorschau: Schild, das die gehoverte Karte gibt. */
   blockPreview(): number {
     const card = this.game.hoveredCard();
     if (!card) return 0;
     return this.game.previewBlock(card)
       + (card.def.blockPerEnemy ?? 0) * this.game.aliveEnemies().length;
+  }
+
+  redirectionPreview(): number {
+    return this.game.hoveredCard()?.def.damageRedirection ?? 0;
   }
 
   barPercent(value: number, max: number): number {
@@ -83,7 +93,11 @@ export abstract class CombatScreenBase extends CardScreenBase {
 
   /** Erwarteter Lebensverlust, nachdem der Schild der gehoverten Karte angerechnet wurde. */
   previewedIncomingDamage(): number {
-    return this.simulateIncomingDamage(this.game.aliveEnemies(), this.blockPreview()).total;
+    return this.simulateIncomingDamage(
+      this.game.aliveEnemies(),
+      this.blockPreview(),
+      this.redirectionPreview(),
+    ).total;
   }
 
   preventedDamageByBlockPreview(): number {
@@ -93,8 +107,10 @@ export abstract class CombatScreenBase extends CardScreenBase {
   private simulateIncomingDamage(
     enemies: EnemyState[],
     additionalBlock = 0,
+    additionalRedirection = 0,
   ): { total: number; byEnemy: Record<number, number>; byAlly: Record<number, number> } {
     let remainingBlock = this.game.block() + Math.max(0, additionalBlock);
+    let remainingRedirection = this.game.damageRedirection() + Math.max(0, additionalRedirection);
     let remainingVeil = this.game.veil();
     const simulatedAllies = this.game.livingAllies().map(ally => ({
       uid: ally.uid,
@@ -112,11 +128,29 @@ export abstract class CombatScreenBase extends CardScreenBase {
       const per = this.game.enemyAttackPerHit(e);
       for (let h = 0; h < (i.hits ?? 1); h++) {
         if (i.target === 'all') {
+          if (remainingVeil > 0) {
+            remainingVeil--;
+          } else {
+            const redirected = Math.min(remainingRedirection, remainingBlock, per);
+            remainingRedirection -= redirected;
+            remainingBlock -= redirected;
+            const blocked = Math.min(remainingBlock, per - redirected);
+            remainingBlock -= blocked;
+            let through = per - redirected - blocked;
+            if (through > 0 && dornenkrone) through += 1;
+            hpDmg += through;
+            byEnemy[e.uid] = (byEnemy[e.uid] ?? 0) + through;
+          }
           for (const ally of simulatedAllies.filter(current => current.hp > 0)) {
-            const allyDamage = Math.min(ally.hp, per);
-            ally.hp = Math.max(0, ally.hp - per);
+            const redirected = Math.min(remainingRedirection, remainingBlock, per);
+            remainingRedirection -= redirected;
+            remainingBlock -= redirected;
+            const incoming = per - redirected;
+            const allyDamage = Math.min(ally.hp, incoming);
+            ally.hp = Math.max(0, ally.hp - incoming);
             byAlly[ally.uid] = (byAlly[ally.uid] ?? 0) + allyDamage;
           }
+          continue;
         } else {
           const allyTarget = this.game.playerTaunt()
             ? null
@@ -125,8 +159,12 @@ export abstract class CombatScreenBase extends CardScreenBase {
                 ? simulatedAllies.find(ally => ally.id === e.intentTarget && ally.hp > 0)
                 : null);
           if (allyTarget) {
-            const allyDamage = Math.min(allyTarget.hp, per);
-            allyTarget.hp = Math.max(0, allyTarget.hp - per);
+            const redirected = Math.min(remainingRedirection, remainingBlock, per);
+            remainingRedirection -= redirected;
+            remainingBlock -= redirected;
+            const incoming = per - redirected;
+            const allyDamage = Math.min(allyTarget.hp, incoming);
+            allyTarget.hp = Math.max(0, allyTarget.hp - incoming);
             byAlly[allyTarget.uid] = (byAlly[allyTarget.uid] ?? 0) + allyDamage;
             continue;
           }
@@ -135,9 +173,12 @@ export abstract class CombatScreenBase extends CardScreenBase {
           remainingVeil--;
           continue;
         }
-        const blocked = Math.min(remainingBlock, per);
+        const redirected = Math.min(remainingRedirection, remainingBlock, per);
+        remainingRedirection -= redirected;
+        remainingBlock -= redirected;
+        const blocked = Math.min(remainingBlock, per - redirected);
         remainingBlock -= blocked;
-        let through = per - blocked;
+        let through = per - redirected - blocked;
         if (through > 0 && dornenkrone) through += 1;
         hpDmg += through;
         byEnemy[e.uid] = (byEnemy[e.uid] ?? 0) + through;
@@ -147,7 +188,11 @@ export abstract class CombatScreenBase extends CardScreenBase {
   }
 
   allyIncomingDamage(ally: AllyState): number {
-    return this.simulateIncomingDamage(this.game.aliveEnemies()).byAlly[ally.uid] ?? 0;
+    return this.simulateIncomingDamage(
+      this.game.aliveEnemies(),
+      this.blockPreview(),
+      this.redirectionPreview(),
+    ).byAlly[ally.uid] ?? 0;
   }
 
   projectedAllyHp(ally: AllyState): number {
@@ -212,6 +257,9 @@ export abstract class CombatScreenBase extends CardScreenBase {
     }
     if (this.game.veil() > 0) {
       lines.push(`🌫️ Verschleierung: ${this.game.veil()} gegnerische Treffer gehen zuerst daneben.`);
+    }
+    if (this.game.damageRedirection() > 0) {
+      lines.push(`🔀 Schadensumleitung: ${this.game.damageRedirection()} Schild fängt auch Treffer auf Verbündete ab und wirft absorbierten Schaden zurück.`);
     }
     if (this.game.playerTaunt()) {
       lines.push('🎯 Provokation: Alle gezielten Gegnerangriffe treffen bis zu deinem nächsten Zug dich.');

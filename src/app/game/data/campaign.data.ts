@@ -27,7 +27,7 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
     id: 'stage5', name: 'Herz des Risses',
     desc: 'Hier wartet Vorax, der Verschlinger. Das Ende der Reise – vorerst.',
     stations: ['kampf', 'elite', 'rast', 'kampf', 'boss'], areaId: 'gebiet5',
-    bossEncounter: ['vorax'], reward: 150, kern: true,
+    bossEncounter: ['vorax'], reward: 150, kerne: 3,
   },
   {
     id: 'stage6', name: 'Echos der Ebene',
@@ -53,7 +53,7 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
     id: 'stage10', name: 'Thron der Leere',
     desc: 'Nyxara versammelt ihre Herolde. Hinter ihr endet selbst das Licht.',
     stations: ['kampf', 'elite', 'kampf', 'rast', 'kampf', 'elite', 'boss'], areaId: 'gebiet5',
-    bossEncounter: ['nyxara', 'leerenauge', 'leerenauge'], reward: 320, kern: true,
+    bossEncounter: ['nyxara', 'leerenauge', 'leerenauge'], reward: 320, kerne: 5,
   },
 ];
 

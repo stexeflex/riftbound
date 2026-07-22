@@ -6,8 +6,8 @@ import {
   Station, StationKind, ResonanceDef,
 } from './models';
 import {
-  ALLIES, ARTIFACTS, assertGameDataIntegrity, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, DUNGEON_AREAS, ENEMIES,
-  MAX_ALLIES,
+  ALLIES, ALLY_MAX_LEVEL, ALLY_UPGRADE_BASE_COST, allyAtLevel, ARTIFACTS, assertGameDataIntegrity,
+  CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, DUNGEON_AREAS, ENEMIES, MAX_ALLIES,
   MAX_CARD_COPIES, META_UPGRADES, REWARD_POOL, STARTER_COLLECTION, STARTER_DECK,
   RESONANCES,
 } from './data';
@@ -72,6 +72,7 @@ export abstract class GameMetaService {
   readonly artifact = signal<ArtifactDef | null>(null);
   readonly resonance = signal<ResonanceDef | null>(null);
   readonly runAllyFormation = signal<AllyFormationSlot[]>([]);
+  readonly runAllyLevels = signal<Record<string, number>>({});
   readonly stations = signal<Station[]>([]);
   readonly stationIndex = signal(0);
   readonly deck = signal<CardInstance[]>([]);
@@ -138,6 +139,8 @@ export abstract class GameMetaService {
   readonly startTurnBlock = signal(0);
   readonly veil = signal(0);
   readonly reflection = signal(0);
+  readonly damageRedirection = signal(0);
+  readonly retainEnergy = signal(false);
   readonly blockCarryover = signal(0);
   readonly allyStrength = signal(0);
   readonly allies = signal<AllyState[]>([]);
@@ -257,6 +260,10 @@ export abstract class GameMetaService {
       };
     });
     const activeDeckLayoutId = requestedActiveLayoutId;
+    const allyLevels = Object.fromEntries(allies.map(id => [
+      id,
+      Math.min(ALLY_MAX_LEVEL, Math.max(1, Math.round(Number(m?.allyLevels?.[id]) || 1))),
+    ]));
     return {
       splitter: m?.splitter ?? 0,
       kerne: m?.kerne ?? 0,
@@ -268,8 +275,12 @@ export abstract class GameMetaService {
         ? m.resonances.filter(id => RESONANCES.some(r => r.id === id))
         : [],
       allies,
+      allyLevels,
       completedStages: Array.isArray(m?.completedStages) ? m.completedStages : [],
       completedAreas: Array.isArray(m?.completedAreas) ? m.completedAreas : [],
+      completedDungeonLevels: Array.isArray(m?.completedDungeonLevels)
+        ? m.completedDungeonLevels.filter(value => typeof value === 'string')
+        : [],
 
       cards,
       lastDeck,
@@ -429,7 +440,43 @@ export abstract class GameMetaService {
   // ================= Verbündeten-Shop =================
 
   allyDetails(ally: AllyDef): string {
-    return buildAllyDetails(ally);
+    const level = this.ownsAlly(ally.id) ? this.allyLevel(ally.id) : 1;
+    const current = allyAtLevel(ally, level);
+    const next = this.ownsAlly(ally.id) && level < ALLY_MAX_LEVEL
+      ? allyAtLevel(ally, level + 1)
+      : undefined;
+    return buildAllyDetails(current, level, next);
+  }
+
+  readonly allyMaxLevel = ALLY_MAX_LEVEL;
+
+  allyLevel(id: string): number {
+    return this.ownsAlly(id) ? this.meta().allyLevels[id] ?? 1 : 0;
+  }
+
+  allyStats(ally: AllyDef): AllyDef {
+    return allyAtLevel(ally, Math.max(1, this.allyLevel(ally.id)));
+  }
+
+  allyUpgradeCost(id: string): number {
+    return this.allyLevel(id) * ALLY_UPGRADE_BASE_COST;
+  }
+
+  canUpgradeAlly(ally: AllyDef): boolean {
+    const level = this.allyLevel(ally.id);
+    return level > 0 && level < ALLY_MAX_LEVEL && this.meta().splitter >= this.allyUpgradeCost(ally.id);
+  }
+
+  upgradeAlly(ally: AllyDef) {
+    if (!this.canUpgradeAlly(ally)) return;
+    const m = this.meta();
+    const level = this.allyLevel(ally.id);
+    this.meta.set({
+      ...m,
+      splitter: m.splitter - this.allyUpgradeCost(ally.id),
+      allyLevels: { ...m.allyLevels, [ally.id]: level + 1 },
+    });
+    this.saveMeta();
   }
 
   /** Ist dieser Verbündete im aktiven Layout ausgerüstet? */
@@ -460,6 +507,7 @@ export abstract class GameMetaService {
       ...m,
       kerne: m.kerne - ally.costKerne,
       allies: [...m.allies, ally.id],
+      allyLevels: { ...m.allyLevels, [ally.id]: 1 },
       deckLayouts: m.deckLayouts.map(layout =>
         layout.id === m.activeDeckLayoutId
           ? { ...layout, allyFormation: equippedFormation }

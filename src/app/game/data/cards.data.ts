@@ -25,7 +25,7 @@ export const CARDS: Record<string, CardDef> = {
   },
   defensiveHaltung: {
     id: 'defensiveHaltung', name: 'Defensive Haltung', cost: 2, type: 'Verteidigung', category: 'Schutz', price: 70,
-    text: 'Erhalte 13 Schild.', block: 13,
+    text: 'Erhalte 17 Schild.', block: 17,
   },
   klingenwirbel: {
     id: 'klingenwirbel', name: 'Klingenwirbel', cost: 2, type: 'Angriff', category: 'Kraft', price: 80,
@@ -130,8 +130,18 @@ export const CARDS: Record<string, CardDef> = {
   },
   spiegelwacht: {
     id: 'spiegelwacht', name: 'Spiegelwacht', cost: 2, type: 'Verteidigung', category: 'Schutz', price: 120,
-    text: 'Erhalte 8 Schild. Der nächste gegnerische Treffer reflektiert 8 Schaden.',
+    text: 'Erhalte 8 Schild und 8 Reflektion.',
     block: 8, reflection: 8,
+  },
+  rissbatterie: {
+    id: 'rissbatterie', name: 'Rissbatterie', cost: 1, type: 'Technik', category: 'Kontrolle', price: 120,
+    text: 'Übertrage deine verbleibende Energie in den nächsten Zug.',
+    retainEnergy: true,
+  },
+  schadensumleitung: {
+    id: 'schadensumleitung', name: 'Schadensumleitung', cost: 2, type: 'Verteidigung', category: 'Kontrolle', price: 130,
+    text: 'Erhalte 10 Schadensumleitung.',
+    damageRedirection: 10,
   },
   bannzeichen: {
     id: 'bannzeichen', name: 'Bannzeichen', cost: 1, type: 'Technik', category: 'Kontrolle', price: 110,
@@ -198,6 +208,7 @@ export const REWARD_POOL: string[] = [
   'schutzkreis', 'einschuechtern', 'markieren', 'zeitfenster', 'umleitung',
   'risssalve', 'funkenflug', 'gluecksspiel', 'ueberladung',
   'phasenschritt', 'spiegelwacht', 'bannzeichen', 'schildanker',
+  'rissbatterie', 'schadensumleitung',
   'verbundschlag',
   'geteilteAegis', 'risspakt',
 ];

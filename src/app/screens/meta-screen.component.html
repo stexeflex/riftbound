@@ -8,7 +8,10 @@
           <span>Siege: {{ game.meta().wins }}</span>
         </div>
         <h3 class="meta-section">Upgrades</h3>
-        <p class="hint upgrade-hint">Jede Stufe erhöht den Bonus um denselben Betrag.</p>
+        <p class="hint upgrade-hint">
+          Der grüne Wert ist dein bereits gekaufter Bonus. Der graue Wert zeigt ausdrücklich,
+          was der Kauf der nächsten Stufe verändert. Käufe werden ab dem nächsten Run aktiv.
+        </p>
         <div class="upgrade-list">
           @for (u of game.metaUpgrades; track u.id) {
             <div class="upgrade-row">
@@ -20,7 +23,7 @@
                 </div>
                 <div class="upgrade-text upgrade-current">{{ u.describeCurrent(game.upgradeLevel(u.id)) }}</div>
                 @if (game.upgradeLevel(u.id) < u.maxLevel) {
-                  <div class="upgrade-text upgrade-next">Nächste Stufe: {{ u.describeNext(game.upgradeLevel(u.id)) }}</div>
+                  <div class="upgrade-text upgrade-next">Kauf der nächsten Stufe: {{ u.describeNext(game.upgradeLevel(u.id)) }}</div>
                   <div class="upgrade-price-note">
                     Grundpreis: {{ u.currency === 'kerne' ? '🟡' : '🔮' }} {{ u.cost }} – der Preis steigt mit jeder Stufe
                   </div>

@@ -41,7 +41,7 @@
     }
     @if (audio.musicEnabled() && (audio.menuActive() || audio.combatMusicActive())) {
       <span class="now-playing" aria-live="polite">
-        {{ audio.musicPlaying()
+        {{ audio.musicPlaying() || audio.interactionUnlocked()
           ? '♪ ' + (audio.menuActive() ? audio.currentTrackLabel() : audio.currentCombatTrackLabel())
           : 'Tippen für Musik' }}
       </span>
@@ -169,7 +169,7 @@
               <div><dt>🟡 Kerne</dt><dd>Seltene Währung für besondere Käufe wie Verbündete und ausgewählte Upgrades.</dd></div>
               <div><dt>Artefakt</dt><dd>Ein dauerhaft aktiver Begleiter für einen Run. Pro Ausrüstungslayout kannst du eines wählen.</dd></div>
               <div><dt>Rastplatz</dt><dd>Heilt 30 % deines maximalen Lebens; Rastkunde verstärkt diese Heilung.</dd></div>
-              <div><dt>Belohnung</dt><dd>Nach Kämpfen erhältst du Splitter und darfst eine Karte nehmen oder überspringen.</dd></div>
+              <div><dt>Belohnung</dt><dd>Nach Kämpfen erhältst du Splitter und darfst eine Karte nehmen oder überspringen. Nach dem letzten Kampf endet der Run direkt, weil eine neue Karte nicht mehr eingesetzt werden könnte.</dd></div>
               <div><dt>Run aufgeben</dt><dd>Beendet den aktiven Run. Alle bis dahin gesammelten Splitter werden ausgezahlt.</dd></div>
             </dl>
           </section>

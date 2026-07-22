@@ -3,10 +3,12 @@
   <h2>Verbündeten-Shop</h2>
   <div class="meta-summary">
     <span>🟡 {{ game.meta().kerne }} Kerne</span>
+    <span>🔮 {{ game.meta().splitter }} Splitter</span>
     <span>✨ {{ game.ownedAllies().length }}/{{ game.allAllies.length }} freigeschaltet</span>
   </div>
   <p class="hint ally-shop-hint">
     Jeder Kauf schaltet den Verbündeten dauerhaft frei und rüstet ihn direkt im aktiven Layout aus.
+    Danach kannst du ihn mit Splittern bis Stufe {{ game.allyMaxLevel }} verbessern. Neue Stufen gelten ab dem nächsten Run.
     Bis zu 3 ausgerüstete Verbündete werden zu Beginn jedes Kampfes neu beschworen.
   </p>
   <div class="upgrade-list">
@@ -18,23 +20,48 @@
            [attr.aria-description]="game.allyDetails(ally)">
         <span class="upgrade-icon ally-shop-icon">{{ ally.emoji }}</span>
         <div class="upgrade-info">
-          <div class="upgrade-name">{{ ally.name }}</div>
+          <div class="upgrade-name">
+            {{ ally.name }}
+            @if (game.ownsAlly(ally.id)) {
+              <span class="upgrade-level">Stufe {{ game.allyLevel(ally.id) }}/{{ game.allyMaxLevel }}</span>
+            }
+          </div>
           <div class="upgrade-text">{{ ally.text }}</div>
           <div class="ally-shop-stats">
-            <span>❤️ {{ ally.maxHp }} Leben</span>
+            <span>❤️ {{ game.allyStats(ally).maxHp }} Leben</span>
             @if (ally.taunt) { <span>🎯 Provokation</span> }
-            @if (ally.startTurnDamage) {
-              <span>⚔️ {{ ally.startTurnDamage }} Schaden/Zuganfang</span>
+            @if (game.allyStats(ally).startTurnDamage; as damage) {
+              <span>⚔️ {{ damage }} Schaden/Zuganfang</span>
             }
-            <span>📣 {{ ally.commandDamage }} Befehlsschaden</span>
+            @if (game.allyStats(ally).startTurnAoeDamage; as damage) {
+              <span>🌩️ {{ damage }} an alle/Zuganfang</span>
+            }
+            @if (game.allyStats(ally).deathExplosionDamage; as damage) {
+              <span>💥 {{ damage }} Explosion</span>
+            }
+            @if (game.allyStats(ally).startTurnBlock; as block) {
+              <span>🛡️ {{ block }} Schild/Zuganfang</span>
+            }
+            <span>📣 {{ game.allyStats(ally).commandDamage }} Befehlsschaden</span>
             @if (ally.duration) { <span>⏳ {{ ally.duration }} Zuganfänge</span> }
           </div>
         </div>
         @if (game.ownsAlly(ally.id)) {
-          <span class="owned-badge">
-            ✔ Freigeschaltet
-            @if (game.isEquippedAlly(ally.id)) { · Ausgerüstet }
-          </span>
+          <div class="ally-shop-actions">
+            <span class="owned-badge">
+              ✔ Freigeschaltet
+              @if (game.isEquippedAlly(ally.id)) { · Ausgerüstet }
+            </span>
+            @if (game.allyLevel(ally.id) < game.allyMaxLevel) {
+              <button class="btn btn-small"
+                      [disabled]="!game.canUpgradeAlly(ally)"
+                      (click)="game.requestAllyUpgrade(ally)">
+                Stufe {{ game.allyLevel(ally.id) + 1 }} · 🔮 {{ game.allyUpgradeCost(ally.id) }}
+              </button>
+            } @else {
+              <span class="ally-max-badge">Maximale Stufe</span>
+            }
+          </div>
         } @else {
           <button class="btn btn-small"
                   [disabled]="!game.canBuyAlly(ally)"

@@ -282,6 +282,10 @@ export abstract class GameDeckService extends GameMetaService {
         .slice(0, MAX_ALLIES)
         .map(slot => ({ ...slot })),
     );
+    this.runAllyLevels.set(Object.fromEntries(this.runAllyFormation().map(slot => [
+      slot.allyId,
+      this.meta().allyLevels[slot.allyId] ?? 1,
+    ])));
 
     const m = this.meta();
     this.meta.set({ ...m, runs: m.runs + 1, lastDeck: ids });
@@ -291,7 +295,7 @@ export abstract class GameDeckService extends GameMetaService {
     this.runUpgrades.set({ ...this.meta().upgrades });
     this.maxEnergy.set(3 + this.runUpgradeLevel('energiekern'));
 
-    let maxHp = BASE_HP + this.runUpgradeLevel('leben') * 2;
+    let maxHp = BASE_HP + this.runUpgradeLevel('leben') * 4;
     if (this.artifact()?.id === 'glasherz') maxHp = Math.round(maxHp * 0.8);
     this.playerMaxHp.set(maxHp);
     this.playerHp.set(maxHp);

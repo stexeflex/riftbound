@@ -103,6 +103,8 @@ function saveVolume(key: string, volume: number) {
 
 @Injectable({ providedIn: 'root' })
 export class AudioService {
+  private readonly menuMusicPlaying = signal(false);
+  private readonly combatMusicPlaying = signal(false);
   readonly musicEnabled = signal(loadSetting(MUSIC_KEY));
   readonly sfxEnabled = signal(loadSetting(SFX_KEY));
   readonly controlsCollapsed = signal(loadSetting(CONTROLS_COLLAPSED_KEY, false));
@@ -111,7 +113,10 @@ export class AudioService {
   readonly menuActive = signal(false);
   readonly combatMusicActive = signal(false);
   readonly currentCombatTrackLabel = signal('');
-  readonly musicPlaying = signal(false);
+  readonly interactionUnlocked = signal(false);
+  readonly musicPlaying = computed(() => this.menuActive()
+    ? this.menuMusicPlaying()
+    : this.combatMusicActive() && this.combatMusicPlaying());
   readonly currentTrackIndex = signal(0);
   readonly currentTrackLabel = computed(() => MENU_TRACKS[this.currentTrackIndex()].label);
 
@@ -129,16 +134,16 @@ export class AudioService {
     this.musicPlayer = new Audio();
     this.musicPlayer.preload = 'metadata';
     this.musicPlayer.volume = this.musicVolume() * MUSIC_VOLUME_SCALE;
-    this.musicPlayer.addEventListener('playing', () => this.musicPlaying.set(true));
-    this.musicPlayer.addEventListener('pause', () => this.musicPlaying.set(false));
+    this.musicPlayer.addEventListener('playing', () => this.menuMusicPlaying.set(true));
+    this.musicPlayer.addEventListener('pause', () => this.menuMusicPlaying.set(false));
     this.musicPlayer.addEventListener('ended', () => this.advanceTrack());
     this.loadTrack(0);
 
     this.combatPlayer = new Audio();
     this.combatPlayer.preload = 'metadata';
     this.combatPlayer.volume = this.musicVolume() * MUSIC_VOLUME_SCALE;
-    this.combatPlayer.addEventListener('playing', () => this.musicPlaying.set(true));
-    this.combatPlayer.addEventListener('pause', () => this.musicPlaying.set(false));
+    this.combatPlayer.addEventListener('playing', () => this.combatMusicPlaying.set(true));
+    this.combatPlayer.addEventListener('pause', () => this.combatMusicPlaying.set(false));
     this.combatPlayer.addEventListener('ended', () => this.advanceCombatTrack());
   }
 
@@ -186,6 +191,7 @@ export class AudioService {
   /** Browser erlauben Audio erst nach der ersten Berührung oder Taste. */
   unlock() {
     this.unlocked = true;
+    this.interactionUnlocked.set(true);
     const context = this.getAudioContext();
     if (context?.state === 'suspended') void context.resume();
     if (this.menuActive() && this.musicEnabled()) void this.playMenuMusic();
@@ -263,7 +269,6 @@ export class AudioService {
   nextTrack() {
     this.loadTrack((this.currentTrackIndex() + 1) % MENU_TRACKS.length);
     this.unlock();
-    if (this.menuActive() && this.musicEnabled()) void this.playMenuMusic();
   }
 
   /** Wechselt manuell zur nächsten Musik des aktuellen Dungeons. */
@@ -272,7 +277,6 @@ export class AudioService {
     this.combatTrackIndex = (this.combatTrackIndex + 1) % this.combatTracks.length;
     this.loadCombatTrack();
     this.unlock();
-    if (this.musicEnabled()) void this.playCombatMusic();
   }
 
   playEnemyHit(damage: number, blocked: boolean) {

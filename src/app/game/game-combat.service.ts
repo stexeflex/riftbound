@@ -6,7 +6,7 @@ import {
   Station, StationKind, ResonanceDef,
 } from './models';
 import {
-  ALLIES, ARTIFACTS, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, DUNGEON_AREAS, ENEMIES,
+  ALLIES, allyAtLevel, ARTIFACTS, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, DUNGEON_AREAS, ENEMIES,
   MAX_CARD_COPIES, META_UPGRADES, REWARD_POOL, STARTER_COLLECTION, STARTER_DECK,
   RESONANCES, MAX_ALLIES,
 } from './data';
@@ -41,6 +41,8 @@ export abstract class GameCombatService extends GameRunService {
       startTurnBlock: this.startTurnBlock(),
       veil: this.veil(),
       reflection: this.reflection(),
+      damageRedirection: this.damageRedirection(),
+      retainEnergy: this.retainEnergy(),
       blockCarryover: this.blockCarryover(),
       allyStrength: this.allyStrength(),
       allies: this.livingAllies().map(ally => ({
@@ -98,6 +100,8 @@ export abstract class GameCombatService extends GameRunService {
     this.startTurnBlock.set(c.startTurnBlock ?? c.endTurnBlock ?? 0);
     this.veil.set(c.veil ?? 0);
     this.reflection.set(c.reflection ?? 0);
+    this.damageRedirection.set(c.damageRedirection ?? 0);
+    this.retainEnergy.set(c.retainEnergy ?? false);
     this.blockCarryover.set(c.blockCarryover ?? 0);
     this.allyStrength.set(c.allyStrength ?? 0);
     this.allies.set((c.allies ?? [])
@@ -135,14 +139,15 @@ export abstract class GameCombatService extends GameRunService {
 
   private makeAlly(
     def: AllyDef,
-    hp = def.maxHp,
+    hp?: number,
     turnsRemaining: number | null = def.duration ?? null,
     position: AllyPosition = 'front',
   ): AllyState {
+    const combatDef = allyAtLevel(def, this.runAllyLevels()[def.id] ?? 1);
     return {
       uid: this.nextAllyUid++,
-      def,
-      hp: Math.min(def.maxHp, Math.max(1, hp)),
+      def: combatDef,
+      hp: Math.min(combatDef.maxHp, Math.max(1, hp ?? combatDef.maxHp)),
       turnsRemaining,
       position,
     };
@@ -267,6 +272,8 @@ export abstract class GameCombatService extends GameRunService {
     this.startTurnBlock.set(0);
     this.veil.set(0);
     this.reflection.set(0);
+    this.damageRedirection.set(0);
+    this.retainEnergy.set(false);
     this.blockCarryover.set(0);
     this.allyStrength.set(0);
     this.allies.set(this.runAllyFormation()
@@ -295,7 +302,10 @@ export abstract class GameCombatService extends GameRunService {
   private startPlayerTurn(first = false) {
     if (!first) this.turn.set(this.turn() + 1);
     this.playerTaunt.set(false);
-    let energy = this.maxEnergy();
+    const carriedEnergy = !first && this.retainEnergy() ? Math.max(0, this.energy()) : 0;
+    this.retainEnergy.set(false);
+    let energy = this.maxEnergy() + carriedEnergy;
+    if (carriedEnergy > 0) this.addLog(`Rissbatterie: ${carriedEnergy} Energie übertragen.`);
     if (first && this.artifact()?.id === 'funkenreif') {
       energy += 1;
       this.addLog('Funkenreif: +1 Energie im ersten Zug.');
@@ -307,11 +317,14 @@ export abstract class GameCombatService extends GameRunService {
     this.energy.set(energy);
 
     const previousBlock = this.block();
+    // Schadensumleitung verfällt wie Schild. Durch Seelenspiegel übertragener
+    // Anteil bleibt als gewöhnlicher Schild erhalten.
+    this.damageRedirection.set(0);
     let startBlock = 0;
     if (this.artifact()?.id === 'schildkern') startBlock += 3;
     startBlock += this.runUpgradeLevel('schildfluss');
     if (first) {
-      startBlock += this.runUpgradeLevel('vorbereitung') * 5;
+      startBlock += this.runUpgradeLevel('vorbereitung') * 7;
       if (this.artifact()?.id === 'runenpanzer') startBlock += 40;
     }
     let retainedBlock = 0;
@@ -361,6 +374,15 @@ export abstract class GameCombatService extends GameRunService {
         const damage = ally.def.startTurnDamage + this.allyStrength();
         this.dealDamage(target, damage, true);
         this.addLog(`${ally.def.name}: ${damage} Schaden an ${target.def.name}.`);
+      }
+      if (ally.def.startTurnAoeDamage && this.aliveEnemies().length > 0) {
+        const damage = ally.def.startTurnAoeDamage + this.allyStrength();
+        for (const target of [...this.aliveEnemies()]) this.dealDamage(target, damage, true);
+        this.addLog(`${ally.def.name}: ${damage} Schaden an allen Gegnern.`);
+      }
+      if (ally.def.startTurnBlock) {
+        this.gainBlock(ally.def.startTurnBlock);
+        this.addLog(`${ally.def.name}: +${ally.def.startTurnBlock} Schild.`);
       }
 
       if (ally.turnsRemaining === null) {
@@ -468,7 +490,7 @@ export abstract class GameCombatService extends GameRunService {
     for (let h = 0; h < hits; h++) {
       let dmg = def.damage + (def.damagePerAlly ?? 0) * this.livingAllies().length + this.strength();
       if (h === 0) {
-        if (firstAttackCard && klingenTarget) dmg += this.runUpgradeLevel('klingenmeisterschaft') * 4;
+        if (firstAttackCard && klingenTarget) dmg += this.runUpgradeLevel('klingenmeisterschaft') * 3;
         if (firstAttackTurn && klingenTarget) dmg += this.runUpgradeLevel('erstschlag');
         if (firstAttackCard && this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) dmg *= 2;
       }
@@ -483,7 +505,102 @@ export abstract class GameCombatService extends GameRunService {
   /** Wie viel Schild eine Karte tatsächlich gibt. */
 
   previewBlock(card: CardInstance): number {
-    return card.def.block ?? 0;
+    return (card.def.block ?? 0) + (card.def.damageRedirection ?? 0);
+  }
+
+  /** Kompakte, immer sichtbare Erklärung aller aktuell wirksamen Schadensquellen. */
+  combatDamageModifiers(): { label: string; detail: string; penalty?: boolean }[] {
+    const modifiers: { label: string; detail: string; penalty?: boolean }[] = [];
+    if (this.strength() > 0) {
+      modifiers.push({ label: 'Stärke', detail: `+${this.strength()} je Kartentreffer` });
+    }
+    const klingenBonus = this.runUpgradeLevel('klingenmeisterschaft') * 3;
+    if (klingenBonus > 0 && !this.firstAttackDone()) {
+      modifiers.push({ label: 'Klingenmeisterschaft', detail: `+${klingenBonus} auf den ersten Angriff dieses Kampfes` });
+    }
+    const erstschlagBonus = this.runUpgradeLevel('erstschlag');
+    if (erstschlagBonus > 0 && !this.attackPlayedThisTurn()) {
+      modifiers.push({ label: 'Erstschlag', detail: `+${erstschlagBonus} auf den ersten Angriff dieses Zuges` });
+    }
+    if (this.artifact()?.id === 'glasherz') {
+      modifiers.push({ label: 'Glasherz', detail: '+20 % Kartenschaden' });
+    }
+    if (this.artifact()?.id === 'jaegerauge' && !this.firstAttackDone()) {
+      modifiers.push({ label: 'Jägerauge', detail: '×2 gegen unverletzte Ziele beim ersten Angriff' });
+    }
+    if (this.playerWeak() > 0) {
+      modifiers.push({ label: 'Schwäche', detail: '−25 % Kartenschaden', penalty: true });
+    }
+    if (this.currentTarget()?.vulnerable) {
+      modifiers.push({ label: `${this.currentTarget()!.def.name}: Verwundbar`, detail: '+50 % erlittener Schaden' });
+    }
+    if (this.allyStrength() > 0) {
+      modifiers.push({ label: 'Verbündetenstärke', detail: `+${this.allyStrength()} auf Verbündetenschaden` });
+    }
+    return modifiers;
+  }
+
+  /** Exakte Rechenkette der gehoverten Angriffskarte gegen ein Ziel. */
+  damageBreakdown(card: CardInstance, enemy: EnemyState): string {
+    const def = card.def;
+    if (!def.damage) return '';
+    const hits = def.hits ?? 1;
+    const firstAttackCard = !this.firstAttackDone();
+    const firstAttackTurn = !this.attackPlayedThisTurn();
+    const firstTarget = def.target !== 'all' || this.aliveEnemies()[0]?.uid === enemy.uid;
+    const results: { damage: number; parts: string[] }[] = [];
+    for (let hit = 0; hit < hits; hit++) {
+      const allyBonus = (def.damagePerAlly ?? 0) * this.livingAllies().length;
+      let damage = def.damage;
+      const parts = [`${def.damage} Basis`];
+      if (allyBonus > 0) {
+        damage += allyBonus;
+        parts.push(`+ ${allyBonus} Verbund`);
+      }
+      if (this.strength() > 0) {
+        damage += this.strength();
+        parts.push(`+ ${this.strength()} Stärke`);
+      }
+      if (hit === 0 && firstTarget && firstAttackCard) {
+        const bonus = this.runUpgradeLevel('klingenmeisterschaft') * 3;
+        if (bonus > 0) {
+          damage += bonus;
+          parts.push(`+ ${bonus} Klingenmeisterschaft`);
+        }
+      }
+      if (hit === 0 && firstTarget && firstAttackTurn) {
+        const bonus = this.runUpgradeLevel('erstschlag');
+        if (bonus > 0) {
+          damage += bonus;
+          parts.push(`+ ${bonus} Erstschlag`);
+        }
+      }
+      if (hit === 0 && firstAttackCard && this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) {
+        damage *= 2;
+        parts.push('× 2 Jägerauge');
+      }
+      if (this.artifact()?.id === 'glasherz') {
+        damage = Math.round(damage * 1.2);
+        parts.push('× 1,2 Glasherz');
+      }
+      if (this.playerWeak() > 0) {
+        damage = Math.round(damage * 0.75);
+        parts.push('× 0,75 Schwäche');
+      }
+      if (enemy.vulnerable > 0) {
+        damage = Math.round(damage * 1.5);
+        parts.push('× 1,5 Verwundbarkeit');
+      }
+      results.push({ damage, parts });
+    }
+    const total = results.reduce((sum, result) => sum + result.damage, 0);
+    const calculation = results.length === 1
+      ? `${results[0].parts.join(' ')} = ${total}`
+      : results.map((result, index) => `Treffer ${index + 1}: ${result.parts.join(' ')} = ${result.damage}`).join(' · ')
+        + ` · Gesamt ${total}`;
+    const afterBlock = Math.max(0, total - enemy.block);
+    return `${def.name} → ${enemy.def.name}: ${calculation} Schaden`
+      + (enemy.block > 0 ? ` · ${afterBlock} nach Schild` : '');
   }
 
   playCard(card: CardInstance) {
@@ -557,6 +674,15 @@ export abstract class GameCombatService extends GameRunService {
     if (def.reflection) {
       this.reflection.set(this.reflection() + def.reflection);
       this.addLog(`${def.name}: ${def.reflection} Schaden sind zur Reflektion bereit.`);
+    }
+    if (def.damageRedirection) {
+      this.gainBlock(def.damageRedirection);
+      this.damageRedirection.set(this.damageRedirection() + def.damageRedirection);
+      this.addLog(`${def.name}: ${def.damageRedirection} Schadensumleitung als Schild.`);
+    }
+    if (def.retainEnergy) {
+      this.retainEnergy.set(true);
+      this.addLog(`${def.name}: Verbleibende Energie wird beim Zugende übertragen.`);
     }
     if (def.retainBlock) {
       this.blockCarryover.set(this.blockCarryover() + def.retainBlock);
@@ -744,7 +870,7 @@ export abstract class GameCombatService extends GameRunService {
     if (!pure) {
       dmg += this.strength();
       if (first?.klingen) {
-        const bonus = this.runUpgradeLevel('klingenmeisterschaft') * 4;
+        const bonus = this.runUpgradeLevel('klingenmeisterschaft') * 3;
         if (bonus > 0) {
           dmg += bonus;
           this.addLog(`Klingenmeisterschaft: +${bonus} Schaden.`);
@@ -823,6 +949,10 @@ export abstract class GameCombatService extends GameRunService {
         this.finishRun(false);
         return;
       }
+      if (this.aliveEnemies().length === 0) {
+        this.onCombatWon();
+        return;
+      }
     }
 
     // Absichten & Buffs für die nächste Runde
@@ -898,6 +1028,7 @@ export abstract class GameCombatService extends GameRunService {
       this.addLog(`Verschleierung: ${attacker.def.name} verfehlt dich.`);
       return false;
     }
+    dmg -= this.consumeDamageRedirection(dmg, attacker);
     const blocked = Math.min(this.block(), dmg);
     this.block.set(this.block() - blocked);
     let hpDmg = dmg - blocked;
@@ -921,6 +1052,12 @@ export abstract class GameCombatService extends GameRunService {
     attacker: EnemyState,
     reason: 'intercepted' | 'targeted' | 'group',
   ) {
+    dmg -= this.consumeDamageRedirection(dmg, attacker);
+    if (dmg <= 0) {
+      this.allies.set([...this.livingAllies()]);
+      this.triggerReflection(attacker);
+      return;
+    }
     const actualDamage = Math.min(ally.hp, dmg);
     ally.hp = Math.max(0, ally.hp - dmg);
     if (ally.hp > 0) {
@@ -937,8 +1074,23 @@ export abstract class GameCombatService extends GameRunService {
         : reason === 'targeted'
           ? `${attacker.def.name} besiegt ${ally.def.name}.`
           : `${ally.def.name} wird durch Gruppenschaden besiegt.`);
+      if (ally.def.deathExplosionDamage && this.aliveEnemies().length > 0) {
+        const explosion = ally.def.deathExplosionDamage + this.allyStrength();
+        for (const enemy of [...this.aliveEnemies()]) this.dealDamage(enemy, explosion, true);
+        this.addLog(`💥 ${ally.def.name} explodiert: ${explosion} Schaden an allen Gegnern!`);
+      }
     }
     this.triggerReflection(attacker);
+  }
+
+  private consumeDamageRedirection(dmg: number, attacker: EnemyState): number {
+    const redirected = Math.min(dmg, this.damageRedirection(), this.block());
+    if (redirected <= 0) return 0;
+    this.damageRedirection.set(this.damageRedirection() - redirected);
+    this.block.set(this.block() - redirected);
+    this.dealDamage(attacker, redirected, true);
+    this.addLog(`Schadensumleitung: ${redirected} Schaden absorbiert und zurückgeworfen.`);
+    return redirected;
   }
 
   private triggerReflection(attacker: EnemyState) {
@@ -966,8 +1118,17 @@ export abstract class GameCombatService extends GameRunService {
     this.rewardSplitter.set(splitter);
 
     if (this.artifact()?.id === 'risskelch') {
-      this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + 20));
-      this.addLog('Risskelch: Du heilst 20 Leben.');
+      const heal = Math.round(this.playerMaxHp() * 0.15);
+      this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + heal));
+      this.addLog(`Risskelch: Du heilst ${heal} Leben.`);
+    }
+
+    // Nach dem letzten Kampf ist der Run bereits gewonnen; eine Karte könnte
+    // nicht mehr eingesetzt werden und wird deshalb nicht mehr angeboten.
+    if (this.stationIndex() >= this.stations().length - 1) {
+      this.rewardCards.set([]);
+      this.completeStation();
+      return;
     }
 
     // Zufällige, unterschiedliche Belohnungskarten

@@ -36,6 +36,8 @@ export interface CardDef {
   startTurnBlock?: number; // Schild am Anfang des nächsten Zuges (Macht)
   veil?: number;           // so viele gegnerische Treffer gehen vollständig daneben
   reflection?: number;     // Schaden, den der nächste gegnerische Treffer zurückwirft
+  damageRedirection?: number; // Schild, der absorbierten Schaden auf den Angreifer zurückwirft
+  retainEnergy?: boolean;  // verbleibende Energie wird in den nächsten Zug übertragen
   purgeEnemyBuffs?: number; // so viele positive Effektarten vom Gegner entfernen
   retainBlock?: number;    // bis zu so viel Restschild in den nächsten Zug übertragen
   summonAlly?: string;     // ID des zu beschwörenden Verbündeten
@@ -102,8 +104,21 @@ export interface AllyDef {
   costKerne: number;
   taunt?: boolean;          // fängt gegnerische Treffer ab, solange der Verbündete lebt
   startTurnDamage?: number; // Schaden an einem zufälligen Gegner zu Beginn des Spielerzugs
+  startTurnAoeDamage?: number; // Schaden an allen Gegnern zu Beginn des Spielerzugs
+  deathExplosionDamage?: number; // Schaden an allen Gegnern, wenn der Verbündete besiegt wird
+  startTurnBlock?: number;  // Schild für den Spieler zu Beginn des Spielerzugs
   commandDamage: number;    // Schaden bei einem sofortigen Angriff durch eine Befehlskarte
   duration?: number;        // Anzahl der Zuganfänge, danach verschwindet der Verbündete
+  growth: AllyGrowth;       // Zugewinn pro Verbündetenstufe nach Stufe 1
+}
+
+export interface AllyGrowth {
+  maxHp?: number;
+  startTurnDamage?: number;
+  startTurnAoeDamage?: number;
+  deathExplosionDamage?: number;
+  startTurnBlock?: number;
+  commandDamage?: number;
 }
 
 export interface AllyState {
@@ -189,7 +204,7 @@ export interface CampaignStage {
   areaId: string;
   bossEncounter?: string[];
   reward: number;   // Splitter-Bonus beim ersten Abschluss
-  kern?: boolean;   // gibt beim ersten Abschluss zusätzlich 1 Kern
+  kerne?: number;   // Kerne beim ersten Abschluss
 }
 
 // Gespeicherter Kampfzustand (für exaktes Fortsetzen mitten im Kampf)
@@ -217,6 +232,8 @@ export interface CombatSave {
   endTurnBlock?: number; // Kompatibilität mit älteren gespeicherten Runs
   veil?: number;
   reflection?: number;
+  damageRedirection?: number;
+  retainEnergy?: boolean;
   blockCarryover?: number;
   allyStrength?: number;
   allies?: {
@@ -246,6 +263,7 @@ export interface RunSave {
   artifactId: string | null;
   resonanceId?: string | null;
   allyFormation?: AllyFormationSlot[];
+  runAllyLevels?: Record<string, number>;
   deckIds: string[];
   hp: number;
   maxHp: number;
@@ -278,8 +296,10 @@ export interface MetaState {
   artifacts: string[];        // freigeschaltete Artefakte
   resonances: string[];       // freigeschaltete Resonanzen
   allies: string[];           // freigeschaltete Verbündete
+  allyLevels: Record<string, number>; // Verbündeten-ID → dauerhafte Stufe
   completedStages: string[];  // abgeschlossene Kampagnen-Stages
   completedAreas: string[];   // abgeschlossene Dungeon-Gebiete
+  completedDungeonLevels: string[]; // Gebiet und Schwierigkeit mit bereits verdientem Kern
   cards: Record<string, number>; // Kartensammlung (Karten-ID → Anzahl)
   lastDeck: string[];         // zuletzt gewähltes Startdeck
   deckLayouts: DeckLayout[];  // dauerhaft gespeicherte Startdeck-Layouts

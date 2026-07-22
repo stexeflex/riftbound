@@ -3,7 +3,7 @@ import { GameCombatService } from './game-combat.service';
 import { AllyDef, ArtifactDef, CardDef, MetaUpgradeDef, ResonanceDef } from './models';
 
 interface PurchaseConfirmation {
-  itemType: 'Karte' | 'Artefakt' | 'Resonanz' | 'Upgrade' | 'Verbündeten';
+  itemType: 'Karte' | 'Artefakt' | 'Resonanz' | 'Upgrade' | 'Verbündeten' | 'Verbündeten-Upgrade';
   itemName: string;
   purchase: () => void;
 }
@@ -59,6 +59,15 @@ export class GameService extends GameCombatService {
       itemType: 'Verbündeten',
       itemName: ally.name,
       purchase: () => this.buyAlly(ally),
+    });
+  }
+
+  requestAllyUpgrade(ally: AllyDef) {
+    if (!this.canUpgradeAlly(ally)) return;
+    this.purchaseConfirmation.set({
+      itemType: 'Verbündeten-Upgrade',
+      itemName: `${ally.name} auf Stufe ${this.allyLevel(ally.id) + 1}`,
+      purchase: () => this.upgradeAlly(ally),
     });
   }
 

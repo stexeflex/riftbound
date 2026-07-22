@@ -33,7 +33,9 @@
   transition: all 0.15s ease;
 
   &:hover:not(.unplayable) {
-    transform: translateY(-8px) scale(1.04);
+    // Nur skalieren: Ein verschobenes Hover-Ziel konnte am Kartenrand
+    // fortlaufend mouseleave/mouseenter auslösen und dadurch flackern.
+    transform: scale(1.035);
     z-index: 2;
   }
 
