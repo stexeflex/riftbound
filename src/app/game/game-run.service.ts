@@ -34,6 +34,7 @@ export abstract class GameRunService extends GameDeckService {
       areaId: this.currentArea()?.id ?? null,
       artifactId: this.artifact()?.id ?? null,
       resonanceId: this.resonance()?.id ?? null,
+      allyFormation: this.runAllyFormation().map(slot => ({ ...slot })),
       deckIds: this.deck().map(c => c.def.id),
       hp: this.playerHp(),
       maxHp: this.playerMaxHp(),
@@ -71,6 +72,16 @@ export abstract class GameRunService extends GameDeckService {
     this.currentArea.set(DUNGEON_AREAS.find(area => area.id === savedAreaId) ?? DUNGEON_AREAS[0]);
     this.artifact.set(ARTIFACTS.find(a => a.id === save.artifactId) ?? null);
     this.resonance.set(RESONANCES.find(r => r.id === save.resonanceId) ?? null);
+    const savedFormation = save.allyFormation
+      ?? this.activeDeckLayout()?.allyFormation
+      ?? [];
+    this.runAllyFormation.set(savedFormation
+      .filter(slot => Boolean(slot && this.ownsAlly(slot.allyId)))
+      .slice(0, 3)
+      .map(slot => ({
+        allyId: slot.allyId,
+        position: slot.position === 'back' ? 'back' : 'front',
+      })));
     this.deck.set(
       save.deckIds.filter(id => CARDS[id]).map(id => this.makeCard(CARDS[id])),
     );

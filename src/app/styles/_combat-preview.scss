@@ -96,6 +96,11 @@
     border-color: rgba(201, 168, 76, 0.7);
   }
 
+  &:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+  }
+
   &.selected {
     color: #fff0bd;
     border-color: #c9a84c;
@@ -110,6 +115,52 @@
   margin: 0;
   color: #817794;
   font-size: 0.82rem;
+}
+
+.ally-formation {
+  width: min(100%, 720px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(92, 205, 190, 0.28);
+  border-radius: 10px;
+  background: rgba(13, 31, 38, 0.68);
+}
+
+.formation-axis,
+.formation-row,
+.formation-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.formation-axis {
+  justify-content: space-between;
+  color: #817794;
+  font-size: 0.76rem;
+
+  strong { color: #e8dcc0; }
+}
+
+.formation-row {
+  justify-content: space-between;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.formation-ally {
+  color: #bcece5;
+  font-weight: 700;
+}
+
+.formation-controls { flex-wrap: wrap; justify-content: flex-end; }
+
+@media (max-width: 700px) {
+  .formation-row { align-items: flex-start; flex-direction: column; }
+  .formation-controls { justify-content: flex-start; }
 }
 
 .equipment-deck-heading {

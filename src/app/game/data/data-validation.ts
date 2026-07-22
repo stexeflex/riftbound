@@ -4,44 +4,65 @@ import { CARDS } from './cards.data';
 
 /**
  * Bricht mit einer klaren Meldung ab, wenn Karten, Verbündete, Shopdaten und
- * Hover-Erklärungen auseinanderlaufen. So bleiben neue Beschwörungen automatisch
- * mit Karte, Nachschlagewerk und Verbündeten-Shop verknüpft.
+ * Hover-Erklärungen auseinanderlaufen. Dadurch fällt insbesondere sofort auf,
+ * wenn ein neuer Karteneffekt keinen benannten Tooltip-Eintrag besitzt.
  */
 export function assertGameDataIntegrity(): true {
   const errors: string[] = [];
 
   for (const card of Object.values(CARDS)) {
-    if (!card.summonAlly) continue;
-    const ally = ALLIES[card.summonAlly];
-    if (!ally) {
-      errors.push(`Karte ${card.id} verweist auf unbekannten Verbündeten ${card.summonAlly}.`);
-      continue;
-    }
-    if (ally.summonCardId !== card.id) {
-      errors.push(`Karte ${card.id} und Verbündeter ${ally.id} verweisen nicht aufeinander.`);
-    }
     const details = cardDetails(card);
-    if (!details.includes(ally.name)) {
-      errors.push(`Im Hovertext von ${card.id} fehlt die Verbündeten-Erklärung.`);
+    if (!details.trim()) {
+      errors.push(`Karte ${card.id} benötigt mindestens einen Hover-Effekt.`);
     }
-    if (ally.taunt && !details.includes('Provokation')) {
-      errors.push(`Im Hovertext von ${card.id} fehlt die Erklärung für Provokation.`);
+    for (const line of details.split('\n').filter(Boolean)) {
+      if (!/^[^:]+:\s+\S/.test(line)) {
+        errors.push(`Hovertext von ${card.id} beginnt nicht mit „Effektname:“: ${line}`);
+      }
+    }
+    const requiredEffectNames: [unknown, string][] = [
+      [card.veil, 'Verschleierung:'],
+      [card.reflection, 'Reflektion:'],
+      [card.purgeEnemyBuffs, 'Effektbann:'],
+      [card.retainBlock, 'Schildtransfer:'],
+      [card.damagePerAlly, 'Verbundbonus:'],
+      [card.healAllies, 'Verbündetenheilung:'],
+      [card.allyStrength, 'Verbündetenstärke:'],
+      [card.commandAlly, 'Verbündetenbefehl:'],
+      [card.playerTaunt, 'Provokation:'],
+      [card.weakEnemy, 'Schwäche:'],
+      [card.vulnerableEnemy, 'Verwundbarkeit:'],
+      [card.selfWeak, 'Schwäche:'],
+      [card.summonAlly, 'Beschwörung:'],
+      [card.randomBonus, 'Zufallseffekt'],
+    ];
+    for (const [active, effectName] of requiredEffectNames) {
+      if (active && !details.includes(effectName)) {
+        errors.push(`Im Hovertext von ${card.id} fehlt „${effectName}“.`);
+      }
+    }
+    if (card.summonAlly && !ALLIES[card.summonAlly]) {
+      errors.push(`Karte ${card.id} verweist auf unbekannten Verbündeten ${card.summonAlly}.`);
+    } else if (card.summonAlly && !details.includes(ALLIES[card.summonAlly].name)) {
+      errors.push(`Im Hovertext von ${card.id} fehlt der Name des beschworenen Verbündeten.`);
     }
   }
 
   for (const ally of Object.values(ALLIES)) {
-    const summonCard = CARDS[ally.summonCardId];
-    if (!summonCard || summonCard.summonAlly !== ally.id) {
-      errors.push(`Verbündeter ${ally.id} besitzt keine passend verknüpfte Beschwörungskarte.`);
-    }
     if (!Number.isInteger(ally.costKerne) || ally.costKerne < 1 || ally.costKerne > 5) {
       errors.push(`Verbündeter ${ally.id} benötigt Kernkosten zwischen 1 und 5.`);
     }
     if (!Number.isFinite(ally.maxHp) || ally.maxHp <= 0) {
       errors.push(`Verbündeter ${ally.id} benötigt positive maximale Leben.`);
     }
+    if (!Number.isFinite(ally.commandDamage) || ally.commandDamage <= 0) {
+      errors.push(`Verbündeter ${ally.id} benötigt positiven Befehlsschaden.`);
+    }
     if (!ally.text.trim()) {
       errors.push(`Verbündeter ${ally.id} benötigt einen Nachschlagewerk-Text.`);
+    }
+    if (!/^[^:]+:\s+\S/.test(ally.text)) {
+      errors.push(`Verbündeten-Text von ${ally.id} beginnt nicht mit „Effektname:“.`);
     }
   }
 

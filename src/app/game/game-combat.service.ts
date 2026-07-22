@@ -1,7 +1,7 @@
 import { computed, inject, signal } from '@angular/core';
 import { AudioService } from '../audio.service';
 import {
-  AllyDef, AllyState, ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
+  AllyDef, AllyPosition, AllyState, ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
   DeckLayout, DungeonArea, EnemyDef, EnemyState, GameMode, MetaState, RunSave, Screen,
   Station, StationKind, ResonanceDef,
 } from './models';
@@ -28,6 +28,7 @@ export abstract class GameCombatService extends GameRunService {
         weak: e.weak,
         vulnerable: e.vulnerable,
         moveIndex: e.moveIndex,
+        intentTarget: e.intentTarget,
       })),
       handIds: this.hand().map(c => c.def.id),
       drawIds: this.drawPile().map(c => c.def.id),
@@ -36,6 +37,7 @@ export abstract class GameCombatService extends GameRunService {
       block: this.block(),
       strength: this.strength(),
       playerWeak: this.playerWeak(),
+      playerTaunt: this.playerTaunt(),
       startTurnBlock: this.startTurnBlock(),
       veil: this.veil(),
       reflection: this.reflection(),
@@ -45,6 +47,7 @@ export abstract class GameCombatService extends GameRunService {
         id: ally.def.id,
         hp: ally.hp,
         turnsRemaining: ally.turnsRemaining,
+        position: ally.position,
       })),
       turn: this.turn(),
       playedCategories: this.playedCategories(),
@@ -74,6 +77,7 @@ export abstract class GameCombatService extends GameRunService {
           state.vulnerable = e.vulnerable;
           state.moveIndex = e.moveIndex;
           state.intent = def.moves[e.moveIndex % def.moves.length];
+          state.intentTarget = e.intentTarget ?? 'player';
           return state;
         }),
     );
@@ -90,6 +94,7 @@ export abstract class GameCombatService extends GameRunService {
     this.block.set(c.block);
     this.strength.set(c.strength);
     this.playerWeak.set(c.playerWeak);
+    this.playerTaunt.set(c.playerTaunt ?? false);
     this.startTurnBlock.set(c.startTurnBlock ?? c.endTurnBlock ?? 0);
     this.veil.set(c.veil ?? 0);
     this.reflection.set(c.reflection ?? 0);
@@ -102,6 +107,7 @@ export abstract class GameCombatService extends GameRunService {
         ALLIES[ally.id],
         ally.hp,
         ally.turnsRemaining,
+        ally.position ?? this.runAllyFormation().find(slot => slot.allyId === ally.id)?.position ?? 'front',
       )));
     this.turn.set(c.turn);
     this.playedCategories.set(c.playedCategories);
@@ -131,12 +137,14 @@ export abstract class GameCombatService extends GameRunService {
     def: AllyDef,
     hp = def.maxHp,
     turnsRemaining: number | null = def.duration ?? null,
+    position: AllyPosition = 'front',
   ): AllyState {
     return {
       uid: this.nextAllyUid++,
       def,
       hp: Math.min(def.maxHp, Math.max(1, hp)),
       turnsRemaining,
+      position,
     };
   }
 
@@ -157,6 +165,7 @@ export abstract class GameCombatService extends GameRunService {
       vulnerable: 0,
       moveIndex: 0,
       intent: def.moves[0],
+      intentTarget: 'player',
     };
 
   }
@@ -173,6 +182,42 @@ export abstract class GameCombatService extends GameRunService {
 
   private pickCombat<T>(values: T[]): T {
     return pick(values, () => this.nextCombatRandom());
+  }
+
+  private rollEnemyIntentTarget(enemy: EnemyState) {
+    if (
+      (enemy.intent.kind !== 'attack' && enemy.intent.kind !== 'attack_debuff')
+      || enemy.intent.target === 'all'
+    ) {
+      enemy.intentTarget = 'player';
+      return;
+    }
+    enemy.intentTarget = this.pickCombat([
+      'player',
+      ...this.livingAllies().map(ally => ally.def.id),
+    ]);
+  }
+
+  private rollEnemyIntentTargets() {
+    for (const enemy of this.aliveEnemies()) this.rollEnemyIntentTarget(enemy);
+    this.enemies.set([...this.enemies()]);
+  }
+
+  private resolvedEnemyTarget(enemy: EnemyState, allies = this.livingAllies()): 'player' | AllyState {
+    if (this.playerTaunt()) return 'player';
+    const provokingAlly = allies.find(ally => ally.def.taunt && ally.hp > 0);
+    if (provokingAlly) return provokingAlly;
+    if (enemy.intentTarget !== 'player') {
+      const chosenAlly = allies.find(ally => ally.def.id === enemy.intentTarget && ally.hp > 0);
+      if (chosenAlly) return chosenAlly;
+    }
+    return 'player';
+  }
+
+  enemyIntentTargetName(enemy: EnemyState): string {
+    if (enemy.intent.target === 'all') return 'Du und alle Verbündeten';
+    const target = this.resolvedEnemyTarget(enemy);
+    return target === 'player' ? 'Du' : target.def.name;
   }
 
   enemyIntentValue(enemy: EnemyState): number {
@@ -218,16 +263,24 @@ export abstract class GameCombatService extends GameRunService {
     this.block.set(0);
     this.strength.set(0);
     this.playerWeak.set(0);
+    this.playerTaunt.set(false);
     this.startTurnBlock.set(0);
     this.veil.set(0);
     this.reflection.set(0);
     this.blockCarryover.set(0);
     this.allyStrength.set(0);
-    this.allies.set([]);
+    this.allies.set(this.runAllyFormation()
+      .filter(slot => ALLIES[slot.allyId])
+      .slice(0, MAX_ALLIES)
+      .map(slot => this.makeAlly(ALLIES[slot.allyId], undefined, undefined, slot.position)));
     this.turn.set(1);
     this.firstAttackDone.set(false);
     this.log.set([]);
     this.combatUndoStack.set([]);
+    for (const ally of this.livingAllies()) {
+      this.addLog(`${ally.def.name} tritt deiner Formation bei.`);
+    }
+    this.rollEnemyIntentTargets();
     if (this.artifact()?.id === 'blutvertrag') {
       this.playerHp.set(Math.max(1, this.playerHp() - 6));
       this.strength.set(3);
@@ -241,6 +294,7 @@ export abstract class GameCombatService extends GameRunService {
 
   private startPlayerTurn(first = false) {
     if (!first) this.turn.set(this.turn() + 1);
+    this.playerTaunt.set(false);
     let energy = this.maxEnergy();
     if (first && this.artifact()?.id === 'funkenreif') {
       energy += 1;
@@ -362,8 +416,9 @@ export abstract class GameCombatService extends GameRunService {
   canPlay(card: CardInstance): boolean {
     const def = card.def;
     const needsEnemy = Boolean(
-      def.damage || def.weakEnemy || def.vulnerableEnemy || def.purgeEnemyBuffs,
+      def.damage || def.weakEnemy || def.vulnerableEnemy || def.purgeEnemyBuffs || def.commandAlly,
     );
+    const commandBlocked = Boolean(def.commandAlly) && this.livingAllies().length === 0;
     const summonBlocked = Boolean(def.summonAlly) && (
       !ALLIES[def.summonAlly!]
       || this.livingAllies().length >= MAX_ALLIES
@@ -372,6 +427,7 @@ export abstract class GameCombatService extends GameRunService {
     return !card.def.unplayable
       && this.costOf(card) <= this.energy()
       && (!needsEnemy || this.aliveEnemies().length > 0)
+      && !commandBlocked
       && !summonBlocked;
   }
 
@@ -511,6 +567,10 @@ export abstract class GameCombatService extends GameRunService {
       this.allyStrength.set(this.allyStrength() + def.allyStrength);
       this.addLog(`${def.name}: Verbündete verursachen +${def.allyStrength} Schaden.`);
     }
+    if (def.playerTaunt) {
+      this.playerTaunt.set(true);
+      this.addLog(`${def.name}: Du provozierst alle Gegner bis zu deinem nächsten Zug.`);
+    }
     if (def.weakEnemy) {
       for (const target of targets) target.weak += def.weakEnemy;
       this.enemies.set([...this.enemies()]);
@@ -522,6 +582,7 @@ export abstract class GameCombatService extends GameRunService {
     if (def.purgeEnemyBuffs) {
       for (const target of targets) this.purgeEnemyBuffs(target, def.purgeEnemyBuffs, def.name);
     }
+    if (def.commandAlly) this.commandAllyAttack(def.commandAlly, def.name);
     if (def.summonAlly) this.summonAlly(def.summonAlly, def.name);
     if (def.selfWeak) this.playerWeak.set(this.playerWeak() + def.selfWeak);
     if (def.randomBonus) this.applyRandomBonus(def.name);
@@ -576,8 +637,18 @@ export abstract class GameCombatService extends GameRunService {
     if (!def
       || this.livingAllies().length >= MAX_ALLIES
       || this.livingAllies().some(ally => ally.def.id === allyId)) return;
-    this.allies.set([...this.livingAllies(), this.makeAlly(def)]);
+    this.allies.set([...this.livingAllies(), this.makeAlly(def, undefined, undefined, 'front')]);
     this.addLog(`${sourceName}: ${def.name} wurde beschworen.`);
+  }
+
+  private commandAllyAttack(position: 'front' | 'back', sourceName: string) {
+    const allies = this.livingAllies();
+    const ally = position === 'front' ? allies[allies.length - 1] : allies[0];
+    const target = this.currentTarget();
+    if (!ally || !target) return;
+    const damage = ally.def.commandDamage + this.allyStrength();
+    this.dealDamage(target, damage, true);
+    this.addLog(`${sourceName}: ${ally.def.name} greift ${target.def.name} für ${damage} Schaden an.`);
   }
 
   private healAllies(amount: number, sourceName: string) {
@@ -766,6 +837,7 @@ export abstract class GameCombatService extends GameRunService {
         enemy.strength += 2;
         this.addLog(`${enemy.def.name} wird stärker! (+2 Stärke)`);
       }
+      this.rollEnemyIntentTarget(enemy);
     }
     this.enemies.set([...this.enemies()]);
 
@@ -790,12 +862,17 @@ export abstract class GameCombatService extends GameRunService {
         if (move.target === 'all') {
           playerWasHit = this.damagePlayer(dmg, enemy) || playerWasHit;
           for (const ally of [...this.livingAllies()]) {
-            this.damageAlly(ally, dmg, enemy, false);
+            this.damageAlly(ally, dmg, enemy, 'group');
           }
         } else {
-          const tauntAlly = this.livingAllies().find(ally => ally.def.taunt);
-          if (tauntAlly) {
-            this.damageAlly(tauntAlly, dmg, enemy, true);
+          const target = this.resolvedEnemyTarget(enemy);
+          if (target !== 'player') {
+            this.damageAlly(
+              target,
+              dmg,
+              enemy,
+              target.def.taunt ? 'intercepted' : 'targeted',
+            );
           } else {
             playerWasHit = this.damagePlayer(dmg, enemy) || playerWasHit;
           }
@@ -842,20 +919,24 @@ export abstract class GameCombatService extends GameRunService {
     ally: AllyState,
     dmg: number,
     attacker: EnemyState,
-    intercepted: boolean,
+    reason: 'intercepted' | 'targeted' | 'group',
   ) {
     const actualDamage = Math.min(ally.hp, dmg);
     ally.hp = Math.max(0, ally.hp - dmg);
     if (ally.hp > 0) {
       this.allies.set([...this.livingAllies()]);
-      this.addLog(intercepted
+      this.addLog(reason === 'intercepted'
         ? `${ally.def.name} fängt ${actualDamage} Schaden von ${attacker.def.name} ab.`
-        : `${ally.def.name} erleidet ${actualDamage} Gruppenschaden.`);
+        : reason === 'targeted'
+          ? `${attacker.def.name} trifft ${ally.def.name} für ${actualDamage} Schaden.`
+          : `${ally.def.name} erleidet ${actualDamage} Gruppenschaden.`);
     } else {
       this.allies.set(this.livingAllies().filter(current => current.uid !== ally.uid));
-      this.addLog(intercepted
+      this.addLog(reason === 'intercepted'
         ? `${ally.def.name} fängt den Treffer ab und wird besiegt.`
-        : `${ally.def.name} wird durch Gruppenschaden besiegt.`);
+        : reason === 'targeted'
+          ? `${attacker.def.name} besiegt ${ally.def.name}.`
+          : `${ally.def.name} wird durch Gruppenschaden besiegt.`);
     }
     this.triggerReflection(attacker);
   }

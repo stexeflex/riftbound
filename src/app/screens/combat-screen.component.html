@@ -1,6 +1,7 @@
 <div class="screen combat-screen">
         <div class="combat-top">
-          <div class="fighter player">
+          <div class="player-party">
+          <div class="fighter player" [style.order]="0">
             <div class="fighter-emoji">🧙‍♂️</div>
             <div class="fighter-name">Du</div>
             <div class="hp-bar-wrap tip tip-pre"
@@ -41,8 +42,15 @@
               }
               @if (game.veil() > 0) {
                 <span class="chip chip-veil tip"
-                      data-tip="Jede Ladung lässt einen gegnerischen Treffer gegen dich vollständig verfehlen.">
-                  🌫️ Verschleierung {{ game.veil() }}
+                      [attr.data-tip]="'Verschleierung: ' + game.veil() + ' gegnerische Treffer gegen dich verfehlen vollständig.'"
+                      [attr.aria-label]="game.veil() + ' Verschleierung'">
+                  🌫️
+                </span>
+              }
+              @if (game.playerTaunt()) {
+                <span class="chip chip-taunt tip"
+                      data-tip="Provokation: Bis zu deinem nächsten Zug treffen alle gezielten Gegnerangriffe dich.">
+                  🎯
                 </span>
               }
               @if (game.reflection() > 0) {
@@ -83,10 +91,11 @@
             </div>
           </div>
 
-          @if (game.livingAllies().length > 0) {
-            <div class="allies-group" aria-label="Verbündete">
-              @for (ally of game.livingAllies(); track ally.uid) {
-                <div class="fighter ally tip tip-pre" [attr.data-tip]="ally.def.text">
+          @for (ally of game.livingAllies(); track ally.uid) {
+                <div class="fighter ally tip tip-pre"
+                     [style.order]="allyCombatOrder(ally)"
+                     [attr.data-tip]="ally.def.text">
+                  <div class="ally-position">{{ ally.position === 'front' ? 'Vor dir' : 'Hinter dir' }}</div>
                   <div class="ally-role" [class.ally-taunt]="ally.def.taunt">
                     @if (ally.def.taunt) { 🎯 Provokation } @else { ✨ Verbündeter }
                   </div>
@@ -120,9 +129,8 @@
                     }
                   </div>
                 </div>
-              }
-            </div>
           }
+          </div>
 
           <div class="vs">⚡</div>
 
@@ -140,6 +148,9 @@
               }
               <div class="intent tip" [attr.data-tip]="enemyIntentDetails(e)">
                 {{ intentText(e) }}
+                @if ((e.intent.kind === 'attack' || e.intent.kind === 'attack_debuff') && e.intent.target !== 'all') {
+                  <span class="intent-target">→ Ziel: {{ game.enemyIntentTargetName(e) }}</span>
+                }
                 @if (incomingDamage(e) > 0 && e.hp > 0) {
                   <span class="intent-real">→ du verlierst {{ incomingDamage(e) }} ❤️</span>
                 }

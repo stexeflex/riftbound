@@ -1,12 +1,13 @@
 import { computed, inject, signal } from '@angular/core';
 import { AudioService } from '../audio.service';
 import {
-  ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
+  AllyDef, AllyFormationSlot, AllyPosition, ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
   DeckLayout, DungeonArea, EnemyDef, EnemyState, GameMode, MetaState, RunSave, Screen,
   Station, StationKind, ResonanceDef,
 } from './models';
 import {
-  ARTIFACTS, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, DUNGEON_AREAS, ENEMIES,
+  ALLIES, ARTIFACTS, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, DUNGEON_AREAS, ENEMIES,
+  MAX_ALLIES,
   MAX_CARD_COPIES, META_UPGRADES, REWARD_POOL, STARTER_COLLECTION, STARTER_DECK,
   RESONANCES,
 } from './data';
@@ -83,6 +84,75 @@ export abstract class GameDeckService extends GameMetaService {
     if (id && !this.ownsResonance(id)) return;
     this.updateActiveLayout({ resonanceId: id });
 
+  }
+
+  layoutAllyFormation(layout: DeckLayout | undefined = this.activeDeckLayout()): AllyFormationSlot[] {
+    return layout?.allyFormation ?? [];
+  }
+
+  layoutAllies(layout: DeckLayout | undefined = this.activeDeckLayout()): AllyDef[] {
+    return this.layoutAllyFormation(layout)
+      .map(slot => ALLIES[slot.allyId])
+      .filter(Boolean);
+  }
+
+  allyById(id: string): AllyDef | null {
+    return ALLIES[id] ?? null;
+  }
+
+  layoutAllyPosition(allyId: string): AllyPosition | null {
+    return this.layoutAllyFormation().find(slot => slot.allyId === allyId)?.position ?? null;
+  }
+
+  canEquipLayoutAlly(allyId: string): boolean {
+    return this.ownsAlly(allyId) && (
+      this.layoutAllyPosition(allyId) !== null
+      || this.layoutAllyFormation().length < MAX_ALLIES
+    );
+  }
+
+  toggleLayoutAlly(allyId: string) {
+    if (!this.ownsAlly(allyId)) return;
+    const formation = this.layoutAllyFormation();
+    const equipped = formation.some(slot => slot.allyId === allyId);
+    if (!equipped && formation.length >= MAX_ALLIES) return;
+    this.updateActiveLayout({
+      allyFormation: equipped
+        ? formation.filter(slot => slot.allyId !== allyId)
+        : [...formation, { allyId, position: 'front' }],
+    });
+  }
+
+  setLayoutAllyPosition(allyId: string, position: AllyPosition) {
+    const formation = this.layoutAllyFormation();
+    const slot = formation.find(item => item.allyId === allyId);
+    if (!slot || slot.position === position) return;
+    const changed = formation.map(item => item.allyId === allyId ? { ...item, position } : item);
+    this.updateActiveLayout({
+      allyFormation: [
+        ...changed.filter(item => item.position === 'back'),
+        ...changed.filter(item => item.position === 'front'),
+      ],
+    });
+  }
+
+  moveLayoutAlly(allyId: string, direction: 'back' | 'front') {
+    const formation = [...this.layoutAllyFormation()];
+    const index = formation.findIndex(slot => slot.allyId === allyId);
+    if (index < 0) return;
+    const neighbourIndex = direction === 'back' ? index - 1 : index + 1;
+    const neighbour = formation[neighbourIndex];
+    if (!neighbour || neighbour.position !== formation[index].position) return;
+    [formation[index], formation[neighbourIndex]] = [formation[neighbourIndex], formation[index]];
+    this.updateActiveLayout({ allyFormation: formation });
+  }
+
+  canMoveLayoutAlly(allyId: string, direction: 'back' | 'front'): boolean {
+    const formation = this.layoutAllyFormation();
+    const index = formation.findIndex(slot => slot.allyId === allyId);
+    if (index < 0) return false;
+    const neighbour = formation[direction === 'back' ? index - 1 : index + 1];
+    return Boolean(neighbour && neighbour.position === formation[index].position);
   }
 
   private updateActiveLayout(change: Partial<DeckLayout>) {
@@ -205,6 +275,12 @@ export abstract class GameDeckService extends GameMetaService {
         ? RESONANCES.find(r => r.id === layout.resonanceId) ?? null
 
         : null,
+    );
+    this.runAllyFormation.set(
+      (layout?.allyFormation ?? [])
+        .filter(slot => this.ownsAlly(slot.allyId) && ALLIES[slot.allyId])
+        .slice(0, MAX_ALLIES)
+        .map(slot => ({ ...slot })),
     );
 
     const m = this.meta();

@@ -42,6 +42,8 @@ export interface CardDef {
   damagePerAlly?: number;  // zusätzlicher Schaden pro aktivem Verbündeten
   healAllies?: number;     // heilt alle aktiven Verbündeten
   allyStrength?: number;   // dauerhafter Schadensbonus für Verbündete in diesem Kampf
+  commandAlly?: 'front' | 'back'; // vordersten/hintersten Verbündeten sofort angreifen lassen
+  playerTaunt?: boolean;   // gezielte Gegnerangriffe bis zum nächsten Zug auf den Spieler ziehen
   randomBonus?: boolean;   // Chaoswoge: zufälliger Zusatzeffekt
   unplayable?: boolean;
 }
@@ -81,6 +83,14 @@ export interface EnemyState {
   vulnerable: number;
   moveIndex: number;
   intent: EnemyMove;
+  intentTarget: 'player' | string; // Spieler oder Verbündeten-ID für die nächste Einzelziel-Aktion
+}
+
+export type AllyPosition = 'front' | 'back';
+
+export interface AllyFormationSlot {
+  allyId: string;
+  position: AllyPosition;
 }
 
 export interface AllyDef {
@@ -90,9 +100,9 @@ export interface AllyDef {
   maxHp: number;
   text: string;
   costKerne: number;
-  summonCardId: string;
   taunt?: boolean;          // fängt gegnerische Treffer ab, solange der Verbündete lebt
   startTurnDamage?: number; // Schaden an einem zufälligen Gegner zu Beginn des Spielerzugs
+  commandDamage: number;    // Schaden bei einem sofortigen Angriff durch eine Befehlskarte
   duration?: number;        // Anzahl der Zuganfänge, danach verschwindet der Verbündete
 }
 
@@ -101,6 +111,7 @@ export interface AllyState {
   def: AllyDef;
   hp: number;
   turnsRemaining: number | null;
+  position: AllyPosition;
 }
 
 export type StationKind = 'kampf' | 'elite' | 'rast' | 'boss';
@@ -192,6 +203,7 @@ export interface CombatSave {
     weak: number;
     vulnerable: number;
     moveIndex: number;
+    intentTarget?: 'player' | string;
   }[];
   handIds: string[];
   drawIds: string[];
@@ -200,6 +212,7 @@ export interface CombatSave {
   block: number;
   strength: number;
   playerWeak: number;
+  playerTaunt?: boolean;
   startTurnBlock?: number;
   endTurnBlock?: number; // Kompatibilität mit älteren gespeicherten Runs
   veil?: number;
@@ -210,6 +223,7 @@ export interface CombatSave {
     id: string;
     hp: number;
     turnsRemaining: number | null;
+    position?: AllyPosition;
   }[];
   turn: number;
   playedCategories: Category[];
@@ -231,6 +245,7 @@ export interface RunSave {
   areaId?: string | null;
   artifactId: string | null;
   resonanceId?: string | null;
+  allyFormation?: AllyFormationSlot[];
   deckIds: string[];
   hp: number;
   maxHp: number;
@@ -277,4 +292,5 @@ export interface DeckLayout {
   cardIds: string[];
   artifactId: string | null;
   resonanceId: string | null;
+  allyFormation: AllyFormationSlot[];
 }

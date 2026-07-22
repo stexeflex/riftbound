@@ -1,12 +1,13 @@
 import { computed, inject, signal } from '@angular/core';
 import { AudioService } from '../audio.service';
 import {
-  AllyDef, AllyState, ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
+  AllyDef, AllyFormationSlot, AllyState, ArtifactDef, CampaignStage, CardDef, CardInstance, CardSort, Category, CombatSave,
   DeckLayout, DungeonArea, EnemyDef, EnemyState, GameMode, MetaState, RunSave, Screen,
   Station, StationKind, ResonanceDef,
 } from './models';
 import {
   ALLIES, ARTIFACTS, assertGameDataIntegrity, CAMPAIGN_STAGES, CARDS, DECK_MAX, DECK_MIN, DUNGEON_AREAS, ENEMIES,
+  MAX_ALLIES,
   MAX_CARD_COPIES, META_UPGRADES, REWARD_POOL, STARTER_COLLECTION, STARTER_DECK,
   RESONANCES,
 } from './data';
@@ -46,7 +47,9 @@ export abstract class GameMetaService {
   readonly allAllies = Object.values(ALLIES);
   readonly campaignStages = CAMPAIGN_STAGES;
   readonly dungeonAreas = DUNGEON_AREAS;
-  readonly allCards: CardDef[] = Object.values(CARDS).filter(c => c.price !== undefined);
+  // Beschwörungskarten werden nicht mehr angeboten: Verbündete sind jetzt Ausrüstung.
+  // Nur ein bereits laufender alter Run kann sie noch bis zu seinem Ende enthalten.
+  readonly allCards: CardDef[] = Object.values(CARDS).filter(c => c.price !== undefined && !c.summonAlly);
   readonly deckMin = DECK_MIN;
   readonly deckMax = DECK_MAX;
   readonly maxCopies = MAX_CARD_COPIES;
@@ -68,6 +71,7 @@ export abstract class GameMetaService {
   // ---------- Run ----------
   readonly artifact = signal<ArtifactDef | null>(null);
   readonly resonance = signal<ResonanceDef | null>(null);
+  readonly runAllyFormation = signal<AllyFormationSlot[]>([]);
   readonly stations = signal<Station[]>([]);
   readonly stationIndex = signal(0);
   readonly deck = signal<CardInstance[]>([]);
@@ -130,6 +134,7 @@ export abstract class GameMetaService {
   readonly block = signal(0);
   readonly strength = signal(0);
   readonly playerWeak = signal(0);
+  readonly playerTaunt = signal(false);
   readonly startTurnBlock = signal(0);
   readonly veil = signal(0);
   readonly reflection = signal(0);
@@ -195,23 +200,49 @@ export abstract class GameMetaService {
     const allies = Array.isArray(m?.allies)
       ? m.allies.filter(id => Boolean(ALLIES[id]))
       : [];
-    // Karten aus der Version vor dem Verbündeten-Shop bleiben vollständig nutzbar.
+    // Beschwörungskarten aus älteren Versionen gelten weiterhin als Freischaltung.
     for (const ally of Object.values(ALLIES)) {
-      if ((cards[ally.summonCardId] ?? 0) > 0 && !allies.includes(ally.id)) {
+      if ((cards[ally.id] ?? 0) > 0 && !allies.includes(ally.id)) {
         allies.push(ally.id);
       }
     }
-    const lastDeck = Array.isArray(m?.lastDeck) ? m.lastDeck : [];
+    // Verbündete ersetzen ihre alten Beschwörungskarten vollständig.
+    cards = { ...cards };
+    for (const card of Object.values(CARDS)) {
+      if (card.summonAlly) delete cards[card.id];
+    }
+    const lastDeck = Array.isArray(m?.lastDeck)
+      ? m.lastDeck.filter(cardId => !CARDS[cardId]?.summonAlly)
+      : [];
     const storedLayouts = Array.isArray(m?.deckLayouts) ? m.deckLayouts : [];
+    const requestedActiveLayoutId = DECK_LAYOUT_IDS.includes(m?.activeDeckLayoutId ?? '')
+      ? m!.activeDeckLayoutId!
+      : DECK_LAYOUT_IDS[0];
     const deckLayouts: DeckLayout[] = DECK_LAYOUT_IDS.map((id, index) => {
       const stored = storedLayouts.find(layout => layout?.id === id);
+      const storedFormation = Array.isArray(stored?.allyFormation)
+        ? stored.allyFormation
+          .filter(slot => slot && allies.includes(slot.allyId))
+          .filter((slot, slotIndex, slots) => slots.findIndex(other => other.allyId === slot.allyId) === slotIndex)
+          .slice(0, MAX_ALLIES)
+          .map(slot => ({
+            allyId: slot.allyId,
+            position: slot.position === 'back' ? 'back' as const : 'front' as const,
+          }))
+        : id === requestedActiveLayoutId
+          ? allies.slice(0, MAX_ALLIES).map(allyId => ({ allyId, position: 'front' as const }))
+          : [];
+      const allyFormation = [
+        ...storedFormation.filter(slot => slot.position === 'back'),
+        ...storedFormation.filter(slot => slot.position === 'front'),
+      ];
       return {
         id,
         name: typeof stored?.name === 'string' && stored.name.trim()
           ? stored.name.trim().slice(0, 24)
           : `Layout ${index + 1}`,
         cardIds: Array.isArray(stored?.cardIds)
-          ? stored.cardIds.filter(cardId => typeof cardId === 'string')
+          ? stored.cardIds.filter(cardId => typeof cardId === 'string' && !CARDS[cardId]?.summonAlly)
           : index === 0 ? (lastDeck.length > 0 ? [...lastDeck] : [...STARTER_DECK]) : [],
         artifactId: typeof stored?.artifactId === 'string'
           && artifacts.includes(stored.artifactId)
@@ -222,12 +253,10 @@ export abstract class GameMetaService {
           && m.resonances.includes(stored.resonanceId)
           ? stored.resonanceId
           : null,
+        allyFormation,
       };
     });
-    const activeDeckLayoutId = deckLayouts.some(layout => layout.id === m?.activeDeckLayoutId)
-
-      ? m!.activeDeckLayoutId!
-      : deckLayouts[0].id;
+    const activeDeckLayoutId = requestedActiveLayoutId;
     return {
       splitter: m?.splitter ?? 0,
       kerne: m?.kerne ?? 0,
@@ -403,6 +432,13 @@ export abstract class GameMetaService {
     return buildAllyDetails(ally);
   }
 
+  /** Ist dieser Verbündete im aktiven Layout ausgerüstet? */
+  isEquippedAlly(id: string): boolean {
+    const m = this.meta();
+    return Boolean(m.deckLayouts.find(l => l.id === m.activeDeckLayoutId)
+      ?.allyFormation.some(slot => slot.allyId === id));
+  }
+
   ownsAlly(id: string): boolean {
     return this.meta().allies.includes(id);
   }
@@ -414,15 +450,21 @@ export abstract class GameMetaService {
   buyAlly(ally: AllyDef) {
     if (!this.canBuyAlly(ally)) return;
     const m = this.meta();
-    const currentCopies = m.cards[ally.summonCardId] ?? 0;
+    const activeFormation = m.deckLayouts.find(layout => layout.id === m.activeDeckLayoutId)
+      ?.allyFormation.filter(slot => slot.allyId !== ally.id) ?? [];
+    const equippedFormation: AllyFormationSlot[] = [
+      ...activeFormation.slice(0, MAX_ALLIES - 1),
+      { allyId: ally.id, position: 'front' },
+    ];
     this.meta.set({
       ...m,
       kerne: m.kerne - ally.costKerne,
       allies: [...m.allies, ally.id],
-      cards: {
-        ...m.cards,
-        [ally.summonCardId]: Math.min(MAX_CARD_COPIES, currentCopies + 1),
-      },
+      deckLayouts: m.deckLayouts.map(layout =>
+        layout.id === m.activeDeckLayoutId
+          ? { ...layout, allyFormation: equippedFormation }
+          : layout,
+      ),
     });
     this.saveMeta();
   }

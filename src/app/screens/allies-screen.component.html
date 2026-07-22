@@ -6,8 +6,8 @@
     <span>✨ {{ game.ownedAllies().length }}/{{ game.allAllies.length }} freigeschaltet</span>
   </div>
   <p class="hint ally-shop-hint">
-    Jeder Kauf schaltet den Verbündeten dauerhaft frei und gibt dir 1 Exemplar seiner
-    Beschwörungskarte. Danach kannst du im Karten-Shop weitere Exemplare kaufen.
+    Jeder Kauf schaltet den Verbündeten dauerhaft frei und rüstet ihn direkt im aktiven Layout aus.
+    Bis zu 3 ausgerüstete Verbündete werden zu Beginn jedes Kampfes neu beschworen.
   </p>
   <div class="upgrade-list">
     @for (ally of game.allAllies; track ally.id) {
@@ -26,11 +26,15 @@
             @if (ally.startTurnDamage) {
               <span>⚔️ {{ ally.startTurnDamage }} Schaden/Zuganfang</span>
             }
+            <span>📣 {{ ally.commandDamage }} Befehlsschaden</span>
             @if (ally.duration) { <span>⏳ {{ ally.duration }} Zuganfänge</span> }
           </div>
         </div>
         @if (game.ownsAlly(ally.id)) {
-          <span class="owned-badge">✔ Freigeschaltet · Karte {{ game.cardCount(ally.summonCardId) }}×</span>
+          <span class="owned-badge">
+            ✔ Freigeschaltet
+            @if (game.isEquippedAlly(ally.id)) { · Ausgerüstet }
+          </span>
         } @else {
           <button class="btn btn-small"
                   [disabled]="!game.canBuyAlly(ally)"

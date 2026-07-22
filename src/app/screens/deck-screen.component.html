@@ -4,7 +4,7 @@
         }
         <h2>{{ game.deckEditorMode() === 'menu' ? 'Ausrüstung' : 'Ausrüstung vervollständigen' }}</h2>
         <p class="hint">
-          Jedes Layout speichert Deck, Artefakt und Resonanz gemeinsam. Änderungen werden automatisch gespeichert.
+          Jedes Layout speichert Deck, Artefakt, Resonanz und Verbündetenformation gemeinsam. Änderungen werden automatisch gespeichert.
         </p>
         <div class="deck-layouts" aria-label="Deck-Layouts">
           @for (layout of game.deckLayouts(); track layout.id) {
@@ -19,6 +19,7 @@
                 {{ game.layoutCardCount(layout) === 1 ? 'Karte' : 'Karten' }}
                 · {{ game.layoutArtifact(layout)?.icon ?? '◇' }}
                 · {{ game.layoutResonance(layout)?.icon ?? '◇' }}
+                · {{ game.layoutAllies(layout).length > 0 ? game.layoutAllies(layout).length + '✨' : '◇' }}
               </small>
             </button>
           }
@@ -83,6 +84,60 @@
           </div>
           @if (game.ownedResonances().length === 0) {
             <p class="loadout-note">Noch keine Resonanz freigeschaltet – erhältlich im Resonanz-Shop.</p>
+          }
+        </section>
+
+        <section class="loadout-section ally-loadout-section">
+          <h3>Verbündete ({{ game.layoutAllyFormation().length }}/3)</h3>
+          <p class="loadout-note">
+            Ausgerüstete Verbündete starten jeden Kampf neu. Lege außerdem ihre Position und Reihenfolge fest.
+          </p>
+          <div class="loadout-options">
+            @for (ally of game.ownedAllies(); track ally.id) {
+              <button class="loadout-choice"
+                      [class.selected]="game.layoutAllyPosition(ally.id) !== null"
+                      [disabled]="!game.canEquipLayoutAlly(ally.id)"
+                      [attr.title]="game.allyDetails(ally)"
+                      (click)="game.toggleLayoutAlly(ally.id)">
+                <span class="loadout-icon">{{ ally.emoji }}</span>
+                <span>{{ ally.name }}</span>
+              </button>
+            }
+          </div>
+          @if (game.ownedAllies().length === 0) {
+            <p class="loadout-note">Noch keine Verbündeten freigeschaltet – erhältlich im Verbündeten-Shop.</p>
+          }
+          @if (game.layoutAllyFormation().length > 0) {
+            <div class="ally-formation" aria-label="Verbündetenformation von hinten nach vorne">
+              <div class="formation-axis">
+                <span>← Ganz hinten</span>
+                <strong>🧙 Du</strong>
+                <span>Ganz vorne →</span>
+              </div>
+              @for (slot of game.layoutAllyFormation(); track slot.allyId) {
+                @if (game.allyById(slot.allyId); as ally) {
+                  <div class="formation-row">
+                    <span class="formation-ally">{{ ally.emoji }} {{ ally.name }}</span>
+                    <div class="formation-controls">
+                      <button class="btn btn-small"
+                              [class.btn-primary]="slot.position === 'back'"
+                              (click)="game.setLayoutAllyPosition(ally.id, 'back')">Hinter dir</button>
+                      <button class="btn btn-small"
+                              [class.btn-primary]="slot.position === 'front'"
+                              (click)="game.setLayoutAllyPosition(ally.id, 'front')">Vor dir</button>
+                      <button class="btn btn-small"
+                              title="Innerhalb dieser Seite weiter nach hinten"
+                              [disabled]="!game.canMoveLayoutAlly(ally.id, 'back')"
+                              (click)="game.moveLayoutAlly(ally.id, 'back')">←</button>
+                      <button class="btn btn-small"
+                              title="Innerhalb dieser Seite weiter nach vorne"
+                              [disabled]="!game.canMoveLayoutAlly(ally.id, 'front')"
+                              (click)="game.moveLayoutAlly(ally.id, 'front')">→</button>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
           }
         </section>
 

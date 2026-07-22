@@ -12,11 +12,19 @@ const REFLECTION_DETAIL = 'Der nächste Treffer gegen dich oder einen Verbündet
 export const SPECIAL_EFFECT_GLOSSARY: readonly GlossaryEntry[] = [
   {
     term: '✨ Verbündete',
-    text: 'Beschworene Verbündete bleiben im Kampf, bis ihre Leben auf 0 fallen oder ihre angegebene Dauer endet. Du kannst höchstens 2 unterschiedliche Verbündete gleichzeitig kontrollieren.',
+    text: 'Im Ausrüstungslayout kannst du bis zu 3 freigeschaltete Verbündete wählen. Sie werden zu Beginn jedes Kampfes mit vollen Leben neu beschworen und bleiben bis zu ihrer Niederlage oder dem Ende ihrer Dauer.',
   },
   {
     term: '🎯 Provokation',
-    text: 'Ein Verbündeter mit Provokation fängt gezielte gegnerische Treffer für dich ab. Gruppenschaden trifft trotzdem dich und jeden lebenden Verbündeten.',
+    text: 'Provokation bestimmt das Ziel gezielter Gegnerangriffe. Deine eigene Provokation hat Vorrang, danach ein provozierender Verbündeter. Gruppenschaden wird nicht umgelenkt.',
+  },
+  {
+    term: '🎲 Gegnerische Zielwahl',
+    text: 'Ohne Provokation wählt jeder gezielte Gegnerangriff zufällig dich oder einen lebenden Verbündeten. Das angekündigte Ziel steht bei der Gegnerabsicht.',
+  },
+  {
+    term: '↔️ Verbündetenformation',
+    text: 'In der Ausrüstung legst du fest, wer vor oder hinter dir steht und wer der vorderste beziehungsweise hinterste Verbündete ist. Befehlskarten verwenden diese Reihenfolge.',
   },
   {
     term: '⚔️ Gruppenschaden',
@@ -48,63 +56,77 @@ export const ALLY_GLOSSARY: readonly GlossaryEntry[] = Object.values(ALLIES).map
 export function allyDetails(ally: AllyDef): string {
   return [
     ally.text,
-    `Maximale Leben: ${ally.maxHp}. Preis: ${ally.costKerne} Kerne.`,
-    `Der Kauf schaltet den Verbündeten frei und gewährt 1 Exemplar der Beschwörungskarte.`,
+    `Werte: ${ally.maxHp} maximale Leben und ${ally.commandDamage} Schaden bei einem befohlenen Angriff.`,
+    `Freischaltung: Kostet ${ally.costKerne} Kerne, gilt dauerhaft und wird direkt im aktiven Ausrüstungslayout ausgerüstet.`,
   ].join('\n');
 }
 
 /** Zentrale Zusatzregeln für Karten-Hover in Shop, Deck, Belohnung und Kampf. */
 export function cardDetails(def: CardDef): string {
   const lines: string[] = [];
+  if (def.damage) {
+    const target = def.target === 'all' ? 'allen lebenden Gegnern' : 'dem gewählten Gegner';
+    const hits = def.hits ?? 1;
+    lines.push(hits > 1
+      ? `Schaden: Fügt ${target} ${hits}-mal ${def.damage} Basisschaden zu.`
+      : `Schaden: Fügt ${target} ${def.damage} Basisschaden zu.`);
+  }
   if (def.block) {
-    lines.push('Schild blockt eingehenden Schaden und verfällt zu Beginn deines nächsten Zuges.');
+    lines.push(`Schild: Gewährt sofort ${def.block} Schild. Restschild verfällt grundsätzlich zu Beginn deines nächsten Zuges.`);
   }
   if (def.draw) {
-    lines.push('Ist der Nachziehstapel leer, wird der Ablagestapel gemischt und zum neuen Nachziehstapel.');
+    lines.push(`Nachziehen: Ziehe ${def.draw} ${def.draw === 1 ? 'Karte' : 'Karten'}. Ist der Nachziehstapel leer, wird die Ablage gemischt.`);
   }
   if (def.energy) {
-    lines.push('Die Energie wird sofort gutgeschrieben und kann noch in diesem Zug verwendet werden.');
+    lines.push(`Energie: Gewährt sofort ${def.energy} Energie, die noch in diesem Zug verwendet werden kann.`);
   }
   if (def.heal) {
-    lines.push('Heilung kann dein maximales Leben nicht überschreiten.');
+    lines.push(`Heilung: Heilt ${def.heal} Leben, aber nie über dein maximales Leben hinaus.`);
   }
   if (def.blockPerEnemy) {
-    lines.push('Gezählt werden alle Gegner, die beim Ausspielen der Karte noch leben.');
+    lines.push(`Schild pro Gegner: Gewährt ${def.blockPerEnemy} Schild für jeden beim Ausspielen noch lebenden Gegner.`);
   }
   if (def.target === 'all') {
-    lines.push('Dieser Effekt trifft jeden aktuell lebenden Gegner.');
+    lines.push('Flächeneffekt: Trifft jeden aktuell lebenden Gegner.');
   }
   if (def.strength) {
-    lines.push('Stärke erhöht jeden einzelnen Angriffstreffer und bleibt bis zum Ende des Kampfes bestehen.');
+    lines.push(`Stärke: Erhöht jeden eigenen Angriffstreffer um ${def.strength} und bleibt bis zum Kampfende.`);
   }
   if (def.startTurnBlock) {
-    lines.push('Als Macht bleibt dieser Effekt nach dem Ausspielen für den gesamten Kampf aktiv.');
+    lines.push(`Zuganfangsschild: Gewährt ab deinem nächsten Zug am Anfang jedes Zuges ${def.startTurnBlock} Schild.`);
   }
   if (def.veil) {
-    lines.push(VEIL_DETAIL);
+    lines.push(`Verschleierung: ${VEIL_DETAIL}`);
   }
   if (def.reflection) {
-    lines.push(REFLECTION_DETAIL);
+    lines.push(`Reflektion: ${REFLECTION_DETAIL}`);
   }
   if (def.purgeEnemyBuffs) {
-    lines.push('Positive Effektarten sind Stärke und Schild. Eine entfernte Effektart verliert ihren gesamten aktuellen Wert.');
+    lines.push(`Effektbann: Entfernt bis zu ${def.purgeEnemyBuffs} positive Effektarten. Stärke und Schild verlieren dabei ihren gesamten aktuellen Wert.`);
   }
   if (def.retainBlock) {
-    lines.push('Nur Schild, der nach dem Gegnerzug noch übrig ist, kann übertragen werden. Der Effekt wird danach verbraucht.');
+    lines.push(`Schildtransfer: Überträgt bis zu ${def.retainBlock} Schild, der nach dem Gegnerzug übrig ist, in deinen nächsten Zug.`);
   }
   if (def.summonAlly) {
     const ally = ALLIES[def.summonAlly];
-    if (ally) lines.push(`${ally.emoji} ${ally.name}: ${ally.text}`);
-    lines.push('Du kannst höchstens 2 unterschiedliche Verbündete gleichzeitig kontrollieren. Ein bereits aktiver Verbündeter kann nicht erneut beschworen werden.');
+    if (ally) lines.push(`${ally.name}: ${ally.text}`);
+    lines.push('Beschwörung: Du kannst höchstens 3 unterschiedliche Verbündete gleichzeitig kontrollieren. Ein aktiver Verbündeter kann nicht erneut beschworen werden.');
   }
   if (def.damagePerAlly) {
-    lines.push('Gezählt werden deine aktuell aktiven Verbündeten, bevor der Angriff ausgeführt wird.');
+    lines.push(`Verbundbonus: Gewährt ${def.damagePerAlly} zusätzlichen Schaden pro aktivem Verbündeten.`);
   }
   if (def.healAllies) {
-    lines.push('Jeder lebende Verbündete wird bis zu seinen maximalen Leben geheilt. Ohne Verbündeten wirkt nur der übrige Karteneffekt.');
+    lines.push(`Verbündetenheilung: Heilt jeden lebenden Verbündeten um ${def.healAllies} Leben bis zu seinem Maximum.`);
   }
   if (def.allyStrength) {
-    lines.push('Verbündetenstärke erhöht jeden von Verbündeten verursachten Schadenswert und bleibt bis zum Kampfende.');
+    lines.push(`Verbündetenstärke: Erhöht jeden von Verbündeten verursachten Schadenswert um ${def.allyStrength} bis zum Kampfende.`);
+  }
+  if (def.commandAlly) {
+    const position = def.commandAlly === 'front' ? 'vorderste' : 'hinterste';
+    lines.push(`Verbündetenbefehl: Der ${position} lebende Verbündete greift dein gewähltes Ziel sofort mit seinem Angriffswert an.`);
+  }
+  if (def.playerTaunt) {
+    lines.push('Provokation: Bis zu deinem nächsten Zug treffen alle gezielten Gegnerangriffe dich. Gruppenschaden bleibt unverändert.');
   }
   if (def.weakEnemy) {
     lines.push('Schwäche: Der Gegner verursacht 25 % weniger Schaden. Sie sinkt nach jedem Gegnerzug um 1.');
@@ -117,6 +139,9 @@ export function cardDetails(def: CardDef): string {
   }
   if (def.randomBonus) {
     lines.push('Zufallseffekt (je 1/3): Ziehe 1 Karte, erhalte 5 Schild oder verursache 5 zusätzlichen Schaden.');
+  }
+  if (def.unplayable) {
+    lines.push('Nicht spielbar: Diese Karte blockiert einen Platz auf deiner Hand und kann nicht ausgespielt werden.');
   }
   return lines.join('\n');
 }

@@ -28,6 +28,14 @@
   &.dead { opacity: 0.25; filter: grayscale(1); }
 }
 
+.player-party {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
 .allies-group {
   display: flex;
   align-items: flex-end;
@@ -63,6 +71,14 @@
     border-color: rgba(255, 196, 92, 0.45);
     background: rgba(112, 71, 17, 0.34);
   }
+}
+
+.ally-position {
+  color: #779f9f;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .ally-hp-bar { width: 130px; }
@@ -338,6 +354,19 @@
   &.cat-schutz.active { color: #a8d4ff; border-color: #6db9ff; box-shadow: 0 0 10px rgba(109, 185, 255, 0.45); }
   &.cat-kontrolle.active { color: #aef0c5; border-color: #7ee0a0; box-shadow: 0 0 10px rgba(126, 224, 160, 0.45); }
   &.cat-chaos.active { color: #e9b6ff; border-color: #d98aff; box-shadow: 0 0 10px rgba(217, 138, 255, 0.45); }
+}
+
+.intent-target,
+.intent-real {
+  display: block;
+  margin-top: 0.12rem;
+  font-size: 0.7rem;
+  color: #ffd0a8;
+}
+
+.chip-taunt {
+  border-color: rgba(255, 196, 92, 0.55);
+  color: #ffd58a;
 }
 
 .resonance-progress {

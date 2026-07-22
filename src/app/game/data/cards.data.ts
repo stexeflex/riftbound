@@ -168,6 +168,21 @@ export const CARDS: Record<string, CardDef> = {
     text: 'Erhalte +1 Stärke. Deine Verbündeten verursachen diesen Kampf +1 Schaden.',
     strength: 1, allyStrength: 1,
   },
+  herausforderung: {
+    id: 'herausforderung', name: 'Herausforderung', cost: 1, type: 'Verteidigung', category: 'Schutz', price: 120,
+    text: 'Erhalte 10 Schild. Ziehe mit Provokation alle gezielten Angriffe bis zu deinem nächsten Zug auf dich.',
+    block: 10, playerTaunt: true,
+  },
+  vorhutbefehl: {
+    id: 'vorhutbefehl', name: 'Vorhutbefehl', cost: 0, type: 'Technik', category: 'Kraft', price: 100,
+    text: 'Der vorderste Verbündete greift dein Ziel sofort an.',
+    commandAlly: 'front',
+  },
+  nachhutbefehl: {
+    id: 'nachhutbefehl', name: 'Nachhutbefehl', cost: 0, type: 'Technik', category: 'Kontrolle', price: 100,
+    text: 'Der hinterste Verbündete greift dein Ziel sofort an.',
+    commandAlly: 'back',
+  },
   schwaeche: {
     id: 'schwaeche', name: 'Schwäche', cost: 0, type: 'Fluch', category: 'Chaos',
     text: 'Nicht spielbar. Blockiert einen Platz in deiner Hand.', unplayable: true,
@@ -183,7 +198,7 @@ export const REWARD_POOL: string[] = [
   'schutzkreis', 'einschuechtern', 'markieren', 'zeitfenster', 'umleitung',
   'risssalve', 'funkenflug', 'gluecksspiel', 'ueberladung',
   'phasenschritt', 'spiegelwacht', 'bannzeichen', 'schildanker',
-  'risswaechter', 'funkengeist', 'verbundschlag',
+  'verbundschlag',
   'geteilteAegis', 'risspakt',
 ];
 

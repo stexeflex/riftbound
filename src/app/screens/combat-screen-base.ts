@@ -32,6 +32,12 @@ export abstract class CombatScreenBase extends CardScreenBase {
     return max > 0 ? (Math.max(0, value) / max) * 100 : 0;
   }
 
+  /** Stellt die gespeicherte Formation relativ zum Spieler dar. */
+  allyCombatOrder(ally: AllyState): number {
+    const index = this.game.livingAllies().findIndex(current => current.uid === ally.uid);
+    return ally.position === 'back' ? -100 + index : 100 + index;
+  }
+
   /** Skaliert Leben und Schild gemeinsam, damit alle Segmente in die Leiste passen. */
   playerHpBarMax(): number {
     return Math.max(
@@ -90,8 +96,12 @@ export abstract class CombatScreenBase extends CardScreenBase {
   ): { total: number; byEnemy: Record<number, number>; byAlly: Record<number, number> } {
     let remainingBlock = this.game.block() + Math.max(0, additionalBlock);
     let remainingVeil = this.game.veil();
-    const simulatedAllies = this.game.livingAllies()
-      .map(ally => ({ uid: ally.uid, hp: ally.hp, taunt: Boolean(ally.def.taunt) }));
+    const simulatedAllies = this.game.livingAllies().map(ally => ({
+      uid: ally.uid,
+      id: ally.def.id,
+      hp: ally.hp,
+      taunt: Boolean(ally.def.taunt),
+    }));
     let hpDmg = 0;
     const byEnemy: Record<number, number> = {};
     const byAlly: Record<number, number> = {};
@@ -108,11 +118,16 @@ export abstract class CombatScreenBase extends CardScreenBase {
             byAlly[ally.uid] = (byAlly[ally.uid] ?? 0) + allyDamage;
           }
         } else {
-          const tauntAlly = simulatedAllies.find(ally => ally.taunt && ally.hp > 0);
-          if (tauntAlly) {
-            const allyDamage = Math.min(tauntAlly.hp, per);
-            tauntAlly.hp = Math.max(0, tauntAlly.hp - per);
-            byAlly[tauntAlly.uid] = (byAlly[tauntAlly.uid] ?? 0) + allyDamage;
+          const allyTarget = this.game.playerTaunt()
+            ? null
+            : simulatedAllies.find(ally => ally.taunt && ally.hp > 0)
+              ?? (e.intentTarget !== 'player'
+                ? simulatedAllies.find(ally => ally.id === e.intentTarget && ally.hp > 0)
+                : null);
+          if (allyTarget) {
+            const allyDamage = Math.min(allyTarget.hp, per);
+            allyTarget.hp = Math.max(0, allyTarget.hp - per);
+            byAlly[allyTarget.uid] = (byAlly[allyTarget.uid] ?? 0) + allyDamage;
             continue;
           }
         }
@@ -152,7 +167,7 @@ export abstract class CombatScreenBase extends CardScreenBase {
     const hits = i.hits ?? 1;
     const lines = [
       `${i.name}: ${hits > 1 ? `${hits} Treffer mit je ${per}` : `${per}`} Schaden vor deinem Schild.`,
-      `Dein aktueller Schild: ${this.game.block()}. Tatsächlicher Lebensverlust: ${this.incomingDamage(e)}.`,
+      `Ziel: ${this.game.enemyIntentTargetName(e)}. Dein erwarteter Lebensverlust: ${this.incomingDamage(e)}.`,
     ];
     if (i.target === 'all') {
       lines.push('Gruppenschaden trifft dich und jeden lebenden Verbündeten; Provokation lenkt ihn nicht um.');
@@ -197,6 +212,9 @@ export abstract class CombatScreenBase extends CardScreenBase {
     }
     if (this.game.veil() > 0) {
       lines.push(`🌫️ Verschleierung: ${this.game.veil()} gegnerische Treffer gehen zuerst daneben.`);
+    }
+    if (this.game.playerTaunt()) {
+      lines.push('🎯 Provokation: Alle gezielten Gegnerangriffe treffen bis zu deinem nächsten Zug dich.');
     }
     const tauntAlly = this.game.livingAllies().find(ally => ally.def.taunt);
     if (tauntAlly) {
