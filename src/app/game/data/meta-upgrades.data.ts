@@ -21,13 +21,6 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
     describeNext: l => `+7 Schild zu Beginn jedes Kampfes. Neuer Gesamtbonus: ${(l + 1) * 7} Startschild.`,
   },
   {
-    id: 'erstschlag', name: 'Erstschlag', icon: '⚔️', maxLevel: 4, cost: 50,
-    describeCurrent: l => l > 0
-      ? `Aktueller Bonus: Der erste Angriff jedes Zuges verursacht +${l} Schaden`
-      : 'Aktuell noch kein Bonus',
-    describeNext: l => `+1 Schaden auf den ersten Angriff jedes Zuges. Neuer Gesamtbonus: +${l + 1} Schaden.`,
-  },
-  {
     id: 'klingenmeisterschaft', name: 'Klingenmeisterschaft', icon: '🗡️', maxLevel: 5, cost: 60,
     describeCurrent: l => l > 0
       ? `Aktueller Bonus: Der erste Angriff jedes Kampfes verursacht +${l * 3} Schaden`
@@ -40,7 +33,7 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
     describeNext: l => `+5 % Heilung an Rastplätzen. Neuer Gesamtbonus: +${(l + 1) * 5} %.`,
   },
   {
-    id: 'energiekern', name: 'Energiekern', icon: '🔵', maxLevel: 2, cost: 2, currency: 'kerne',
+    id: 'energiekern', name: 'Energiekern', icon: '🔵', maxLevel: 2, cost: 3, currency: 'kerne',
     describeCurrent: l => l > 0 ? `Aktueller Bonus: +${l} maximale Energie pro Zug` : 'Aktuell noch kein Bonus',
     describeNext: l => `+1 maximale Energie pro Zug. Neuer Gesamtbonus: +${l + 1} Energie.`,
   },

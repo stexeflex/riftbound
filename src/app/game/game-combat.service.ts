@@ -27,6 +27,7 @@ export abstract class GameCombatService extends GameRunService {
         strength: e.strength,
         weak: e.weak,
         vulnerable: e.vulnerable,
+        veil: e.veil,
         moveIndex: e.moveIndex,
         intentTarget: e.intentTarget,
       })),
@@ -37,6 +38,7 @@ export abstract class GameCombatService extends GameRunService {
       block: this.block(),
       strength: this.strength(),
       playerWeak: this.playerWeak(),
+      playerVulnerable: this.playerVulnerable(),
       playerTaunt: this.playerTaunt(),
       startTurnBlock: this.startTurnBlock(),
       veil: this.veil(),
@@ -77,6 +79,7 @@ export abstract class GameCombatService extends GameRunService {
           state.strength = e.strength;
           state.weak = e.weak;
           state.vulnerable = e.vulnerable;
+          state.veil = e.veil ?? 0;
           state.moveIndex = e.moveIndex;
           state.intent = def.moves[e.moveIndex % def.moves.length];
           state.intentTarget = e.intentTarget ?? 'player';
@@ -96,6 +99,7 @@ export abstract class GameCombatService extends GameRunService {
     this.block.set(c.block);
     this.strength.set(c.strength);
     this.playerWeak.set(c.playerWeak);
+    this.playerVulnerable.set(c.playerVulnerable ?? 0);
     this.playerTaunt.set(c.playerTaunt ?? false);
     this.startTurnBlock.set(c.startTurnBlock ?? c.endTurnBlock ?? 0);
     this.veil.set(c.veil ?? 0);
@@ -168,6 +172,7 @@ export abstract class GameCombatService extends GameRunService {
       strength: 0,
       weak: 0,
       vulnerable: 0,
+      veil: 0,
       moveIndex: 0,
       intent: def.moves[0],
       intentTarget: 'player',
@@ -239,9 +244,10 @@ export abstract class GameCombatService extends GameRunService {
     return Math.max(1, Math.round(move.value * powerMultiplier));
   }
 
-  enemyAttackPerHit(enemy: EnemyState): number {
+  enemyAttackPerHit(enemy: EnemyState, target: 'player' | 'ally' = 'player'): number {
     let damage = this.enemyIntentValue(enemy) + enemy.strength;
     if (enemy.weak > 0) damage = Math.round(damage * 0.75);
+    if (target === 'player' && this.playerVulnerable() > 0) damage = Math.round(damage * 1.5);
     return damage;
   }
 
@@ -268,6 +274,7 @@ export abstract class GameCombatService extends GameRunService {
     this.block.set(0);
     this.strength.set(0);
     this.playerWeak.set(0);
+    this.playerVulnerable.set(0);
     this.playerTaunt.set(false);
     this.startTurnBlock.set(0);
     this.veil.set(0);
@@ -364,6 +371,7 @@ export abstract class GameCombatService extends GameRunService {
     }
     this.drawCards(draw);
     if (this.playerWeak() > 0) this.playerWeak.set(this.playerWeak() - 1);
+    if (this.playerVulnerable() > 0) this.playerVulnerable.set(this.playerVulnerable() - 1);
   }
 
   private triggerAlliesAtStartTurn() {
@@ -438,9 +446,11 @@ export abstract class GameCombatService extends GameRunService {
   canPlay(card: CardInstance): boolean {
     const def = card.def;
     const needsEnemy = Boolean(
-      def.damage || def.weakEnemy || def.vulnerableEnemy || def.purgeEnemyBuffs || def.commandAlly,
+      def.damage || def.weakEnemy || def.vulnerableEnemy || def.purgeEnemyBuffs
+      || def.commandAlly || def.commandAllAllies,
     );
-    const commandBlocked = Boolean(def.commandAlly) && this.livingAllies().length === 0;
+    const commandBlocked = Boolean(def.commandAlly || def.commandAllAllies)
+      && this.livingAllies().length === 0;
     const summonBlocked = Boolean(def.summonAlly) && (
       !ALLIES[def.summonAlly!]
       || this.livingAllies().length >= MAX_ALLIES
@@ -482,16 +492,18 @@ export abstract class GameCombatService extends GameRunService {
     const hits = def.hits ?? 1;
     let total = 0;
     const firstAttackCard = !this.firstAttackDone();
-    const firstAttackTurn = !this.attackPlayedThisTurn();
-    // Klingenmeisterschaft (pro Kampf) und Erstschlag (pro Zug) treffen nur den
-    // ersten Treffer des ersten Ziels; Jägerauge verdoppelt beim ersten Angriff
-    // gegen jedes Ziel mit vollen Leben.
+    let remainingVeil = enemy.veil;
+    // Klingenmeisterschaft trifft nur den ersten Treffer des ersten Ziels;
+    // Jägerauge verdoppelt beim ersten Angriff gegen jedes Ziel mit vollen Leben.
     const klingenTarget = def.target !== 'all' || this.aliveEnemies()[0]?.uid === enemy.uid;
     for (let h = 0; h < hits; h++) {
+      if (remainingVeil > 0) {
+        remainingVeil--;
+        continue;
+      }
       let dmg = def.damage + (def.damagePerAlly ?? 0) * this.livingAllies().length + this.strength();
       if (h === 0) {
         if (firstAttackCard && klingenTarget) dmg += this.runUpgradeLevel('klingenmeisterschaft') * 3;
-        if (firstAttackTurn && klingenTarget) dmg += this.runUpgradeLevel('erstschlag');
         if (firstAttackCard && this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) dmg *= 2;
       }
       if (this.artifact()?.id === 'glasherz') dmg = Math.round(dmg * 1.2);
@@ -518,21 +530,33 @@ export abstract class GameCombatService extends GameRunService {
     if (klingenBonus > 0 && !this.firstAttackDone()) {
       modifiers.push({ label: 'Klingenmeisterschaft', detail: `+${klingenBonus} auf den ersten Angriff dieses Kampfes` });
     }
-    const erstschlagBonus = this.runUpgradeLevel('erstschlag');
-    if (erstschlagBonus > 0 && !this.attackPlayedThisTurn()) {
-      modifiers.push({ label: 'Erstschlag', detail: `+${erstschlagBonus} auf den ersten Angriff dieses Zuges` });
-    }
     if (this.artifact()?.id === 'glasherz') {
-      modifiers.push({ label: 'Glasherz', detail: '+20 % Kartenschaden' });
+      modifiers.push({ label: '❤️‍🔥 Glasherz', detail: 'Artefakt · +20 % Kartenschaden' });
     }
     if (this.artifact()?.id === 'jaegerauge' && !this.firstAttackDone()) {
-      modifiers.push({ label: 'Jägerauge', detail: '×2 gegen unverletzte Ziele beim ersten Angriff' });
+      modifiers.push({ label: '🎯 Jägerauge', detail: 'Artefakt · ×2 gegen unverletzte Ziele beim ersten Angriff' });
+    }
+    if (this.artifact()?.id === 'dornenkrone') {
+      modifiers.push({
+        label: '👑 Dornenkrone',
+        detail: `Artefakt · ${4 + this.strength()} Gegenschaden, wenn ein Treffer Leben kostet`,
+      });
+    }
+    if (this.artifact()?.id === 'blutvertrag') {
+      modifiers.push({ label: '📜 Blutvertrag', detail: 'Artefakt · +3 Stärke ist im Schadenswert eingerechnet' });
     }
     if (this.playerWeak() > 0) {
       modifiers.push({ label: 'Schwäche', detail: '−25 % Kartenschaden', penalty: true });
     }
     if (this.currentTarget()?.vulnerable) {
       modifiers.push({ label: `${this.currentTarget()!.def.name}: Verwundbar`, detail: '+50 % erlittener Schaden' });
+    }
+    if (this.currentTarget()?.veil) {
+      modifiers.push({
+        label: `${this.currentTarget()!.def.name}: Verschleiert`,
+        detail: `${this.currentTarget()!.veil} nächste Treffer verfehlen`,
+        penalty: true,
+      });
     }
     if (this.allyStrength() > 0) {
       modifiers.push({ label: 'Verbündetenstärke', detail: `+${this.allyStrength()} auf Verbündetenschaden` });
@@ -546,10 +570,15 @@ export abstract class GameCombatService extends GameRunService {
     if (!def.damage) return '';
     const hits = def.hits ?? 1;
     const firstAttackCard = !this.firstAttackDone();
-    const firstAttackTurn = !this.attackPlayedThisTurn();
     const firstTarget = def.target !== 'all' || this.aliveEnemies()[0]?.uid === enemy.uid;
     const results: { damage: number; parts: string[] }[] = [];
+    let remainingVeil = enemy.veil;
     for (let hit = 0; hit < hits; hit++) {
+      if (remainingVeil > 0) {
+        remainingVeil--;
+        results.push({ damage: 0, parts: ['Verschleierung lässt den Treffer verfehlen'] });
+        continue;
+      }
       const allyBonus = (def.damagePerAlly ?? 0) * this.livingAllies().length;
       let damage = def.damage;
       const parts = [`${def.damage} Basis`];
@@ -566,13 +595,6 @@ export abstract class GameCombatService extends GameRunService {
         if (bonus > 0) {
           damage += bonus;
           parts.push(`+ ${bonus} Klingenmeisterschaft`);
-        }
-      }
-      if (hit === 0 && firstTarget && firstAttackTurn) {
-        const bonus = this.runUpgradeLevel('erstschlag');
-        if (bonus > 0) {
-          damage += bonus;
-          parts.push(`+ ${bonus} Erstschlag`);
         }
       }
       if (hit === 0 && firstAttackCard && this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) {
@@ -634,7 +656,6 @@ export abstract class GameCombatService extends GameRunService {
       this.attackPlayedThisTurn.set(true);
       const firstAttackCard = !this.firstAttackDone();
       let klingenAvailable = firstAttackCard;
-      let erstschlagAvailable = firstAttackTurn;
       for (const target of targets) {
         const hits = def.hits ?? 1;
         for (let h = 0; h < hits; h++) {
@@ -645,11 +666,9 @@ export abstract class GameCombatService extends GameRunService {
             {
               klingen: klingenAvailable,
               jaeger: firstAttackCard && h === 0,
-              erstschlag: erstschlagAvailable,
             },
           );
           klingenAvailable = false;
-          erstschlagAvailable = false;
         }
       }
       if (firstAttackCard) this.firstAttackDone.set(true);
@@ -689,6 +708,7 @@ export abstract class GameCombatService extends GameRunService {
       this.addLog(`${def.name}: Bis zu ${def.retainBlock} Restschild werden übertragen.`);
     }
     if (def.healAllies) this.healAllies(def.healAllies, def.name);
+    if (def.healLowestAlly) this.healLowestAlly(def.healLowestAlly, def.name);
     if (def.allyStrength) {
       this.allyStrength.set(this.allyStrength() + def.allyStrength);
       this.addLog(`${def.name}: Verbündete verursachen +${def.allyStrength} Schaden.`);
@@ -709,6 +729,7 @@ export abstract class GameCombatService extends GameRunService {
       for (const target of targets) this.purgeEnemyBuffs(target, def.purgeEnemyBuffs, def.name);
     }
     if (def.commandAlly) this.commandAllyAttack(def.commandAlly, def.name);
+    if (def.commandAllAllies) this.commandAllAllies(def.name);
     if (def.summonAlly) this.summonAlly(def.summonAlly, def.name);
     if (def.selfWeak) this.playerWeak.set(this.playerWeak() + def.selfWeak);
     if (def.randomBonus) this.applyRandomBonus(def.name);
@@ -752,6 +773,10 @@ export abstract class GameCombatService extends GameRunService {
       enemy.block = 0;
       removed.push('Schild');
     }
+    if (enemy.veil > 0 && removed.length < limit) {
+      enemy.veil = 0;
+      removed.push('Verschleierung');
+    }
     this.enemies.set([...this.enemies()]);
     this.addLog(removed.length > 0
       ? `${sourceName}: ${enemy.def.name} verliert ${removed.join(' und ')}.`
@@ -777,6 +802,27 @@ export abstract class GameCombatService extends GameRunService {
     this.addLog(`${sourceName}: ${ally.def.name} greift ${target.def.name} für ${damage} Schaden an.`);
   }
 
+  private commandAllAllies(sourceName: string) {
+    const target = this.currentTarget();
+    if (!target) return;
+    const attackers = [...this.livingAllies()];
+    if (attackers.length === 0) {
+      this.addLog(`${sourceName}: Kein Verbündeter kann angreifen.`);
+      return;
+    }
+    let attacks = 0;
+    for (const ally of attackers) {
+      if (target.hp <= 0) break;
+      const damage = ally.def.commandDamage + this.allyStrength();
+      this.dealDamage(target, damage, true);
+      attacks++;
+      this.addLog(`${sourceName}: ${ally.def.name} greift für ${damage} Schaden an.`);
+    }
+    if (attacks < attackers.length) {
+      this.addLog(`${sourceName}: Das Ziel wurde besiegt; die übrigen Befehle entfallen.`);
+    }
+  }
+
   private healAllies(amount: number, sourceName: string) {
     let healed = 0;
     const allies = this.livingAllies();
@@ -789,6 +835,19 @@ export abstract class GameCombatService extends GameRunService {
     this.addLog(allies.length > 0
       ? `${sourceName}: Verbündete heilen insgesamt ${healed} Leben.`
       : `${sourceName}: Kein Verbündeter zum Heilen.`);
+  }
+
+  private healLowestAlly(amount: number, sourceName: string) {
+    const target = [...this.livingAllies()]
+      .sort((a, b) => (b.def.maxHp - b.hp) - (a.def.maxHp - a.hp))[0];
+    if (!target) {
+      this.addLog(`${sourceName}: Kein Verbündeter zum Heilen.`);
+      return;
+    }
+    const before = target.hp;
+    target.hp = Math.min(target.def.maxHp, target.hp + amount);
+    this.allies.set([...this.livingAllies()]);
+    this.addLog(`${sourceName}: ${target.def.name} heilt ${target.hp - before} Leben.`);
   }
 
   private maxResonancePerTurn(): number {
@@ -863,8 +922,14 @@ export abstract class GameCombatService extends GameRunService {
     enemy: EnemyState,
     base: number,
     pure = false,
-    first?: { klingen: boolean; jaeger: boolean; erstschlag: boolean },
+    first?: { klingen: boolean; jaeger: boolean },
   ) {
+    if (enemy.hp > 0 && enemy.veil > 0) {
+      enemy.veil--;
+      this.enemies.set([...this.enemies()]);
+      this.addLog(`Verschleierung: ${enemy.def.name} entgeht dem Treffer.`);
+      return;
+    }
     const wasAlive = enemy.hp > 0;
     let dmg = base;
     if (!pure) {
@@ -874,13 +939,6 @@ export abstract class GameCombatService extends GameRunService {
         if (bonus > 0) {
           dmg += bonus;
           this.addLog(`Klingenmeisterschaft: +${bonus} Schaden.`);
-        }
-      }
-      if (first?.erstschlag) {
-        const bonus = this.runUpgradeLevel('erstschlag');
-        if (bonus > 0) {
-          dmg += bonus;
-          this.addLog(`Erstschlag: +${bonus} Schaden.`);
         }
       }
       if (first?.jaeger && this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) {
@@ -988,23 +1046,22 @@ export abstract class GameCombatService extends GameRunService {
       const hits = move.hits ?? 1;
       let playerWasHit = false;
       for (let h = 0; h < hits; h++) {
-        const dmg = this.enemyAttackPerHit(enemy);
         if (move.target === 'all') {
-          playerWasHit = this.damagePlayer(dmg, enemy) || playerWasHit;
+          playerWasHit = this.damagePlayer(this.enemyAttackPerHit(enemy, 'player'), enemy) || playerWasHit;
           for (const ally of [...this.livingAllies()]) {
-            this.damageAlly(ally, dmg, enemy, 'group');
+            this.damageAlly(ally, this.enemyAttackPerHit(enemy, 'ally'), enemy, 'group');
           }
         } else {
           const target = this.resolvedEnemyTarget(enemy);
           if (target !== 'player') {
             this.damageAlly(
               target,
-              dmg,
+              this.enemyAttackPerHit(enemy, 'ally'),
               enemy,
               target.def.taunt ? 'intercepted' : 'targeted',
             );
           } else {
-            playerWasHit = this.damagePlayer(dmg, enemy) || playerWasHit;
+            playerWasHit = this.damagePlayer(this.enemyAttackPerHit(enemy, 'player'), enemy) || playerWasHit;
           }
         }
         if (this.playerHp() <= 0) return;
@@ -1013,13 +1070,37 @@ export abstract class GameCombatService extends GameRunService {
         this.playerWeak.set(this.playerWeak() + move.weak);
         this.addLog(`${enemy.def.name} schwächt dich (${move.weak} Schwäche).`);
       }
+      if (move.kind === 'attack_debuff' && move.vulnerable && playerWasHit) {
+        this.playerVulnerable.set(this.playerVulnerable() + move.vulnerable);
+        this.addLog(`${enemy.def.name} macht dich verwundbar (${move.vulnerable} Verwundbarkeit).`);
+      }
     } else if (move.kind === 'block') {
       enemy.block += moveValue;
     } else if (move.kind === 'buff') {
       enemy.strength += moveValue;
       this.addLog(`${enemy.def.name} verstärkt sich (+${moveValue} Stärke).`);
     }
+    if (move.veil) {
+      enemy.veil += move.veil;
+      this.addLog(`${enemy.def.name} erhält ${move.veil} Verschleierung.`);
+    }
+    if (move.cleanse) this.cleanseEnemyDebuffs(enemy, move.cleanse);
     this.enemies.set([...this.enemies()]);
+  }
+
+  private cleanseEnemyDebuffs(enemy: EnemyState, limit: number) {
+    const removed: string[] = [];
+    if (enemy.vulnerable > 0 && removed.length < limit) {
+      enemy.vulnerable = 0;
+      removed.push('Verwundbarkeit');
+    }
+    if (enemy.weak > 0 && removed.length < limit) {
+      enemy.weak = 0;
+      removed.push('Schwäche');
+    }
+    if (removed.length > 0) {
+      this.addLog(`${enemy.def.name} bannt ${removed.join(' und ')}.`);
+    }
   }
 
   private damagePlayer(dmg: number, attacker: EnemyState): boolean {
@@ -1052,12 +1133,6 @@ export abstract class GameCombatService extends GameRunService {
     attacker: EnemyState,
     reason: 'intercepted' | 'targeted' | 'group',
   ) {
-    dmg -= this.consumeDamageRedirection(dmg, attacker);
-    if (dmg <= 0) {
-      this.allies.set([...this.livingAllies()]);
-      this.triggerReflection(attacker);
-      return;
-    }
     const actualDamage = Math.min(ally.hp, dmg);
     ally.hp = Math.max(0, ally.hp - dmg);
     if (ally.hp > 0) {

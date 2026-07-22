@@ -6,15 +6,11 @@ export interface GlossaryEntry {
   text: string;
 }
 
-const VEIL_DETAIL = 'Jede Ladung lässt einen gegnerischen Treffer gegen dich vollständig verfehlen. Mehrere Ladungen werden nacheinander verbraucht.';
+const VEIL_DETAIL = 'Jede Ladung lässt den nächsten gegnerischen Treffer gegen das betroffene Ziel vollständig verfehlen. Mehrere Ladungen werden nacheinander verbraucht.';
 const REFLECTION_DETAIL = 'Der nächste Treffer gegen dich oder einen Verbündeten wirft den gespeicherten Schaden auf den Angreifer zurück.';
-const REDIRECTION_DETAIL = 'Zählt als sichtbarer Schild. Jeder dadurch absorbierte Schadenspunkt wird auf den Angreifer zurückgeworfen; gezielte Treffer auf Verbündete werden ebenfalls abgefangen.';
+const REDIRECTION_DETAIL = 'Zählt als sichtbarer Schild. Jeder dadurch bei dir absorbierte Schadenspunkt wird auf den Angreifer zurückgeworfen. Treffer auf Verbündete werden nicht abgefangen.';
 
 export const SPECIAL_EFFECT_GLOSSARY: readonly GlossaryEntry[] = [
-  {
-    term: '✨ Verbündete',
-    text: 'Im Ausrüstungslayout kannst du bis zu 3 freigeschaltete Verbündete wählen. Sie werden zu Beginn jedes Kampfes mit vollen Leben neu beschworen und bleiben bis zu ihrer Niederlage oder dem Ende ihrer Dauer.',
-  },
   {
     term: '🎯 Provokation',
     text: 'Provokation bestimmt das Ziel gezielter Gegnerangriffe. Deine eigene Provokation hat Vorrang, danach ein provozierender Verbündeter. Gruppenschaden wird nicht umgelenkt.',
@@ -24,16 +20,16 @@ export const SPECIAL_EFFECT_GLOSSARY: readonly GlossaryEntry[] = [
     text: 'Ohne Provokation wählt jeder gezielte Gegnerangriff zufällig dich oder einen lebenden Verbündeten. Das angekündigte Ziel steht bei der Gegnerabsicht.',
   },
   {
-    term: '↔️ Verbündetenformation',
-    text: 'In der Ausrüstung legst du fest, wer vor oder hinter dir steht und wer der vorderste beziehungsweise hinterste Verbündete ist. Befehlskarten verwenden diese Reihenfolge.',
-  },
-  {
     term: '⚔️ Gruppenschaden',
     text: 'Trifft dich und jeden lebenden Verbündeten gleichzeitig. Provokation lenkt Gruppenschaden nicht um; Verschleierung schützt nur dich.',
   },
   {
     term: '🌫️ Verschleierung',
     text: VEIL_DETAIL,
+  },
+  {
+    term: '✨ Effektbann',
+    text: 'Entfernt vollständige Effektarten statt einzelner Ladungen. Bei Gegnern werden zuerst Verwundbarkeit und danach Schwäche entfernt.',
   },
   {
     term: '🪞 Reflektion',
@@ -60,11 +56,6 @@ export const SPECIAL_EFFECT_GLOSSARY: readonly GlossaryEntry[] = [
     text: 'Erhöht jeden von Verbündeten verursachten Schadenswert für den restlichen Kampf.',
   },
 ];
-
-export const ALLY_GLOSSARY: readonly GlossaryEntry[] = Object.values(ALLIES).map(ally => ({
-  term: `${ally.emoji} ${ally.name} (${ally.maxHp} Leben)`,
-  text: ally.text,
-}));
 
 export function allyDetails(ally: AllyDef, level = 1, nextLevel?: AllyDef): string {
   const stats = [
@@ -152,12 +143,18 @@ export function cardDetails(def: CardDef): string {
   if (def.healAllies) {
     lines.push(`Verbündetenheilung: Heilt jeden lebenden Verbündeten um ${def.healAllies} Leben bis zu seinem Maximum.`);
   }
+  if (def.healLowestAlly) {
+    lines.push(`Gezielte Verbündetenheilung: Heilt den lebenden Verbündeten mit den meisten fehlenden Leben um ${def.healLowestAlly} Leben bis zu seinem Maximum.`);
+  }
   if (def.allyStrength) {
     lines.push(`Verbündetenstärke: Erhöht jeden von Verbündeten verursachten Schadenswert um ${def.allyStrength} bis zum Kampfende.`);
   }
   if (def.commandAlly) {
     const position = def.commandAlly === 'front' ? 'vorderste' : 'hinterste';
     lines.push(`Verbündetenbefehl: Der ${position} lebende Verbündete greift dein gewähltes Ziel sofort mit seinem Angriffswert an.`);
+  }
+  if (def.commandAllAllies) {
+    lines.push('Gruppenbefehl: Jeder lebende Verbündete greift das gewählte Ziel einmal mit seinem aktuellen Befehlsschaden an. Besiegt ein früher Angriff das Ziel, enden die übrigen Angriffe.');
   }
   if (def.playerTaunt) {
     lines.push('Provokation: Bis zu deinem nächsten Zug treffen alle gezielten Gegnerangriffe dich. Gruppenschaden bleibt unverändert.');

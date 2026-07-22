@@ -60,7 +60,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
       { name: 'Verschlingung', kind: 'attack', value: 18 },
       { name: 'Ruf der Leere', kind: 'block', value: 15 },
       { name: 'Zerfetzen', kind: 'attack', value: 6, hits: 2 },
-      { name: 'Leerenschrei', kind: 'attack_debuff', value: 8, weak: 2, target: 'all' },
+      { name: 'Leerenschrei', kind: 'attack_debuff', value: 8, weak: 2, vulnerable: 2, target: 'all' },
     ],
   },
   sporenkobold: {
@@ -130,7 +130,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     moves: [
       { name: 'Spektralschnitt', kind: 'attack', value: 8, hits: 2 },
       { name: 'Vollspektrum', kind: 'buff', value: 3 },
-      { name: 'Diamantmantel', kind: 'block', value: 20 },
+      { name: 'Diamantmantel', kind: 'block', value: 20, cleanse: 2 },
       { name: 'Lichtbruch', kind: 'attack_debuff', value: 11, weak: 2, target: 'all' },
     ],
   },
@@ -181,7 +181,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     id: 'rissassassine', name: 'Rissassassine', maxHp: 47, emoji: '🥷',
     moves: [
       { name: 'Phasenklinge', kind: 'attack', value: 6, hits: 2 },
-      { name: 'Verschwinden', kind: 'block', value: 10 },
+      { name: 'Verschwinden', kind: 'block', value: 10, veil: 1 },
       { name: 'Todesmarke', kind: 'buff', value: 3 },
     ],
   },
@@ -202,7 +202,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
 
       { name: 'Schwarzer Spiegel', kind: 'block', value: 24 },
       { name: 'Gravitationswelle', kind: 'attack', value: 8, hits: 3, target: 'all' },
-      { name: 'Stille des Alls', kind: 'attack_debuff', value: 12, weak: 2 },
+      { name: 'Stille des Alls', kind: 'attack_debuff', value: 12, weak: 2, vulnerable: 2 },
     ],
   },
   duenenskarabaeus: {
@@ -234,7 +234,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     passive: 'Elite: Wechselt zwischen Hitzedruck, Schutz und schweren Schlägen.',
     moves: [
       { name: 'Glutfaust', kind: 'attack', value: 14 },
-      { name: 'Schwarzer Sand', kind: 'attack_debuff', value: 7, weak: 2 },
+      { name: 'Schwarzer Sand', kind: 'attack_debuff', value: 7, weak: 2, vulnerable: 2 },
       { name: 'Obsidianhaut', kind: 'block', value: 16 },
     ],
   },
@@ -244,7 +244,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     moves: [
       { name: 'Verschlingen', kind: 'attack', value: 18 },
       { name: 'Untertauchen', kind: 'block', value: 17 },
-      { name: 'Sandsturm', kind: 'attack_debuff', value: 8, weak: 2, target: 'all' },
+      { name: 'Sandsturm', kind: 'attack_debuff', value: 8, weak: 2, vulnerable: 2, target: 'all' },
       { name: 'Glutschuppen', kind: 'attack', value: 6, hits: 3 },
     ],
   },
@@ -286,7 +286,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     passive: 'Boss: Erhält nach jedem 3. Zug +2 Stärke.',
     moves: [
       { name: 'Frostzepter', kind: 'attack', value: 17 },
-      { name: 'Eisthron', kind: 'block', value: 20 },
+      { name: 'Eisthron', kind: 'block', value: 20, cleanse: 1 },
       { name: 'Winteratem', kind: 'attack_debuff', value: 9, weak: 2 },
       { name: 'Hagelkrone', kind: 'attack', value: 6, hits: 3, target: 'all' },
     ],
@@ -313,7 +313,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     passive: 'Elite: Bricht Angriffe in wechselnde Mehrfachtreffer.',
     moves: [
       { name: 'Prismenklaue', kind: 'attack', value: 7, hits: 2 },
-      { name: 'Kristallfell', kind: 'block', value: 17 },
+      { name: 'Kristallfell', kind: 'block', value: 17, cleanse: 1 },
       { name: 'Farbsplitter', kind: 'attack', value: 5, hits: 3, target: 'all' },
     ],
   },
@@ -338,7 +338,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     passive: 'Elite: Lädt Kettenblitze auf und schützt sich im Sturm.',
     moves: [
       { name: 'Gewitterbiss', kind: 'attack', value: 14 },
-      { name: 'Sturmhaut', kind: 'block', value: 16 },
+      { name: 'Sturmhaut', kind: 'block', value: 16, veil: 1 },
       { name: 'Kettenblitz', kind: 'attack', value: 6, hits: 3, target: 'all' },
     ],
   },
@@ -347,7 +347,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     passive: 'Boss: Erhält nach jedem 3. Zug +2 Stärke.',
     moves: [
       { name: 'Himmelslanze', kind: 'attack', value: 18 },
-      { name: 'Wolkenpalast', kind: 'block', value: 19 },
+      { name: 'Wolkenpalast', kind: 'block', value: 19, veil: 2 },
       { name: 'Drucksturz', kind: 'attack_debuff', value: 8, weak: 2 },
       { name: 'Gewitterkrone', kind: 'attack', value: 6, hits: 3, target: 'all' },
     ],
@@ -373,7 +373,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     passive: 'Elite: Verbindet schwere Einzelhiebe mit lähmender Leerenmagie.',
     moves: [
       { name: 'Masseschlag', kind: 'attack', value: 16 },
-      { name: 'Singularität', kind: 'block', value: 18 },
+      { name: 'Singularität', kind: 'block', value: 18, veil: 1 },
       { name: 'Zeitbruch', kind: 'attack_debuff', value: 8, weak: 2, target: 'all' },
     ],
   },
@@ -382,7 +382,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     passive: 'Boss: Erhält nach jedem 3. Zug +2 Stärke.',
     moves: [
       { name: 'Horizontschnitt', kind: 'attack', value: 18 },
-      { name: 'Dunkle Linse', kind: 'block', value: 20 },
+      { name: 'Dunkle Linse', kind: 'block', value: 20, veil: 2 },
       { name: 'Raumfaltung', kind: 'attack_debuff', value: 9, weak: 2 },
       { name: 'Sternenecho', kind: 'attack', value: 6, hits: 3, target: 'all' },
     ],

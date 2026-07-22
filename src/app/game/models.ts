@@ -43,8 +43,10 @@ export interface CardDef {
   summonAlly?: string;     // ID des zu beschwörenden Verbündeten
   damagePerAlly?: number;  // zusätzlicher Schaden pro aktivem Verbündeten
   healAllies?: number;     // heilt alle aktiven Verbündeten
+  healLowestAlly?: number; // heilt den am stärksten verletzten Verbündeten
   allyStrength?: number;   // dauerhafter Schadensbonus für Verbündete in diesem Kampf
   commandAlly?: 'front' | 'back'; // vordersten/hintersten Verbündeten sofort angreifen lassen
+  commandAllAllies?: boolean; // alle lebenden Verbündeten sofort angreifen lassen
   playerTaunt?: boolean;   // gezielte Gegnerangriffe bis zum nächsten Zug auf den Spieler ziehen
   randomBonus?: boolean;   // Chaoswoge: zufälliger Zusatzeffekt
   unplayable?: boolean;
@@ -61,6 +63,9 @@ export interface EnemyMove {
   value: number;
   hits?: number;
   weak?: number;
+  vulnerable?: number; // Verwundbarkeit auf den Spieler, sofern er getroffen wird
+  veil?: number;       // Verschleierung für den Gegner
+  cleanse?: number;    // so viele negative Effektarten vom Gegner entfernen
   target?: 'player' | 'all'; // Gruppenschaden trifft Spieler und alle Verbündeten
 }
 
@@ -83,6 +88,7 @@ export interface EnemyState {
   strength: number;
   weak: number;
   vulnerable: number;
+  veil: number;
   moveIndex: number;
   intent: EnemyMove;
   intentTarget: 'player' | string; // Spieler oder Verbündeten-ID für die nächste Einzelziel-Aktion
@@ -217,6 +223,7 @@ export interface CombatSave {
     strength: number;
     weak: number;
     vulnerable: number;
+    veil?: number;
     moveIndex: number;
     intentTarget?: 'player' | string;
   }[];
@@ -227,6 +234,7 @@ export interface CombatSave {
   block: number;
   strength: number;
   playerWeak: number;
+  playerVulnerable?: number;
   playerTaunt?: boolean;
   startTurnBlock?: number;
   endTurnBlock?: number; // Kompatibilität mit älteren gespeicherten Runs

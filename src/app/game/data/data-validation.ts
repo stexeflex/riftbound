@@ -1,6 +1,7 @@
 import { cardDetails } from '../effect-text';
 import { ALLIES } from './allies.data';
 import { CARDS } from './cards.data';
+import { ENEMIES } from './enemies.data';
 
 /**
  * Bricht mit einer klaren Meldung ab, wenn Karten, Verbündete, Shopdaten und
@@ -29,8 +30,10 @@ export function assertGameDataIntegrity(): true {
       [card.retainBlock, 'Schildtransfer:'],
       [card.damagePerAlly, 'Verbundbonus:'],
       [card.healAllies, 'Verbündetenheilung:'],
+      [card.healLowestAlly, 'Gezielte Verbündetenheilung:'],
       [card.allyStrength, 'Verbündetenstärke:'],
       [card.commandAlly, 'Verbündetenbefehl:'],
+      [card.commandAllAllies, 'Gruppenbefehl:'],
       [card.playerTaunt, 'Provokation:'],
       [card.weakEnemy, 'Schwäche:'],
       [card.vulnerableEnemy, 'Verwundbarkeit:'],
@@ -70,6 +73,20 @@ export function assertGameDataIntegrity(): true {
     }
     if (!/^[^:]+:\s+\S/.test(ally.text)) {
       errors.push(`Verbündeten-Text von ${ally.id} beginnt nicht mit „Effektname:“.`);
+    }
+  }
+
+  for (const enemy of Object.values(ENEMIES)) {
+    for (const move of enemy.moves) {
+      for (const [label, value] of [
+        ['Verwundbarkeit', move.vulnerable],
+        ['Verschleierung', move.veil],
+        ['Effektbann', move.cleanse],
+      ] as const) {
+        if (value !== undefined && (!Number.isInteger(value) || value <= 0)) {
+          errors.push(`${enemy.id}/${move.name}: ${label} benötigt einen positiven ganzzahligen Wert.`);
+        }
+      }
     }
   }
 

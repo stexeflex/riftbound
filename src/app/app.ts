@@ -1,7 +1,7 @@
 import { Component, HostListener, effect, inject, signal } from '@angular/core';
 import { AudioService } from './audio.service';
 import { GameService } from './game/game.service';
-import { ALLY_GLOSSARY, SPECIAL_EFFECT_GLOSSARY } from './game/effect-text';
+import { SPECIAL_EFFECT_GLOSSARY } from './game/effect-text';
 import { TitleScreenComponent } from './screens/title-screen.component';
 import { DungeonsScreenComponent } from './screens/dungeons-screen.component';
 import { CampaignScreenComponent } from './screens/campaign-screen.component';
@@ -28,7 +28,6 @@ export class App {
   readonly audio = inject(AudioService);
   readonly helpOpen = signal(false);
   readonly specialEffectGlossary = SPECIAL_EFFECT_GLOSSARY;
-  readonly allyGlossary = ALLY_GLOSSARY;
 
   constructor() {
     effect(() => this.audio.syncScreen(

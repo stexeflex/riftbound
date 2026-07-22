@@ -135,6 +135,7 @@ export abstract class GameMetaService {
   readonly block = signal(0);
   readonly strength = signal(0);
   readonly playerWeak = signal(0);
+  readonly playerVulnerable = signal(0);
   readonly playerTaunt = signal(false);
   readonly startTurnBlock = signal(0);
   readonly veil = signal(0);

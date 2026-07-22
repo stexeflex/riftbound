@@ -130,7 +130,7 @@ export const CARDS: Record<string, CardDef> = {
   },
   spiegelwacht: {
     id: 'spiegelwacht', name: 'Spiegelwacht', cost: 2, type: 'Verteidigung', category: 'Schutz', price: 120,
-    text: 'Erhalte 8 Schild und 8 Reflektion.',
+    text: 'Erhalte 8 Schild. Erhalte 8 Reflektion.',
     block: 8, reflection: 8,
   },
   rissbatterie: {
@@ -173,6 +173,16 @@ export const CARDS: Record<string, CardDef> = {
     text: 'Erhalte 6 Schild. Heile alle Verbündeten um 4 Leben.',
     block: 6, healAllies: 4,
   },
+  lebensfunke: {
+    id: 'lebensfunke', name: 'Lebensfunke', cost: 1, type: 'Technik', category: 'Kontrolle', price: 110,
+    text: 'Heile den am stärksten verletzten Verbündeten um 10 Leben. Ziehe 1 Karte.',
+    healLowestAlly: 10, draw: 1,
+  },
+  risskommando: {
+    id: 'risskommando', name: 'Risskommando', cost: 2, type: 'Technik', category: 'Kraft', price: 140,
+    text: 'Jeder lebende Verbündete greift dein Ziel sofort an.',
+    commandAllAllies: true,
+  },
   risspakt: {
     id: 'risspakt', name: 'Risspakt', cost: 2, type: 'Macht', category: 'Kraft', price: 150,
     text: 'Erhalte +1 Stärke. Deine Verbündeten verursachen diesen Kampf +1 Schaden.',
@@ -180,7 +190,7 @@ export const CARDS: Record<string, CardDef> = {
   },
   herausforderung: {
     id: 'herausforderung', name: 'Herausforderung', cost: 1, type: 'Verteidigung', category: 'Schutz', price: 120,
-    text: 'Erhalte 10 Schild. Ziehe mit Provokation alle gezielten Angriffe bis zu deinem nächsten Zug auf dich.',
+    text: 'Erhalte 10 Schild. Erhalte Provokation.',
     block: 10, playerTaunt: true,
   },
   vorhutbefehl: {
@@ -210,7 +220,7 @@ export const REWARD_POOL: string[] = [
   'phasenschritt', 'spiegelwacht', 'bannzeichen', 'schildanker',
   'rissbatterie', 'schadensumleitung',
   'verbundschlag',
-  'geteilteAegis', 'risspakt',
+  'geteilteAegis', 'lebensfunke', 'risskommando', 'risspakt',
 ];
 
 export const STARTER_DECK: string[] = [

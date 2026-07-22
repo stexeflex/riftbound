@@ -151,12 +151,9 @@
           </section>
 
           <section class="help-section">
-            <h3>Verbündete & Spezialeffekte</h3>
+            <h3>Spezialeffekte</h3>
             <dl class="glossary-grid">
               @for (entry of specialEffectGlossary; track entry.term) {
-                <div><dt>{{ entry.term }}</dt><dd>{{ entry.text }}</dd></div>
-              }
-              @for (entry of allyGlossary; track entry.term) {
                 <div><dt>{{ entry.term }}</dt><dd>{{ entry.text }}</dd></div>
               }
             </dl>

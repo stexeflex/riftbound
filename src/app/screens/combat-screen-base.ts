@@ -65,19 +65,28 @@ export abstract class CombatScreenBase extends CardScreenBase {
     const value = this.game.enemyIntentValue(e);
     const dmg = this.game.enemyAttackPerHit(e);
     const damageLabel = i.target === 'all' ? 'Gruppenschaden' : 'Schaden';
+    let text: string;
     switch (i.kind) {
       case 'attack':
-        return i.hits ? `⚔️ ${dmg} × ${i.hits} ${damageLabel}` : `⚔️ ${dmg} ${damageLabel}`;
+        text = i.hits ? `⚔️ ${dmg} × ${i.hits} ${damageLabel}` : `⚔️ ${dmg} ${damageLabel}`;
+        break;
       case 'attack_debuff':
-        return `⚔️ ${dmg} ${damageLabel} + 😵 ${i.weak ?? 1} Schwäche`;
+        text = `⚔️ ${dmg} ${damageLabel}`;
+        if (i.weak) text += ` + 😵 ${i.weak} Schwäche`;
+        break;
       case 'block':
-        return `🛡️ ${value} Schild`;
+        text = `🛡️ ${value} Schild`;
+        break;
       case 'buff':
-
-        return `💪 +${value} Stärke`;
+        text = `💪 +${value} Stärke`;
+        break;
       default:
         return '❓';
     }
+    if (i.vulnerable) text += ` + 💔 ${i.vulnerable} Verwundbarkeit`;
+    if (i.veil) text += ` + 🌫️ ${i.veil} Verschleierung`;
+    if (i.cleanse) text += ` + ✨ ${i.cleanse} Effektbann`;
+    return text;
   }
 
   /** Wie viel Leben der Spieler vom angezeigten Gegnerzug wirklich verlieren würde. */
@@ -112,6 +121,7 @@ export abstract class CombatScreenBase extends CardScreenBase {
     let remainingBlock = this.game.block() + Math.max(0, additionalBlock);
     let remainingRedirection = this.game.damageRedirection() + Math.max(0, additionalRedirection);
     let remainingVeil = this.game.veil();
+    let simulatedVulnerability = this.game.playerVulnerable();
     const simulatedAllies = this.game.livingAllies().map(ally => ({
       uid: ally.uid,
       id: ally.def.id,
@@ -125,30 +135,31 @@ export abstract class CombatScreenBase extends CardScreenBase {
     for (const e of enemies) {
       const i = e.intent;
       if (i.kind !== 'attack' && i.kind !== 'attack_debuff') continue;
-      const per = this.game.enemyAttackPerHit(e);
+      const allyDamage = this.game.enemyAttackPerHit(e, 'ally');
+      const playerDamage = simulatedVulnerability > 0
+        ? Math.round(allyDamage * 1.5)
+        : allyDamage;
+      let playerWasHit = false;
       for (let h = 0; h < (i.hits ?? 1); h++) {
         if (i.target === 'all') {
           if (remainingVeil > 0) {
             remainingVeil--;
           } else {
-            const redirected = Math.min(remainingRedirection, remainingBlock, per);
+            playerWasHit = true;
+            const redirected = Math.min(remainingRedirection, remainingBlock, playerDamage);
             remainingRedirection -= redirected;
             remainingBlock -= redirected;
-            const blocked = Math.min(remainingBlock, per - redirected);
+            const blocked = Math.min(remainingBlock, playerDamage - redirected);
             remainingBlock -= blocked;
-            let through = per - redirected - blocked;
+            let through = playerDamage - redirected - blocked;
             if (through > 0 && dornenkrone) through += 1;
             hpDmg += through;
             byEnemy[e.uid] = (byEnemy[e.uid] ?? 0) + through;
           }
           for (const ally of simulatedAllies.filter(current => current.hp > 0)) {
-            const redirected = Math.min(remainingRedirection, remainingBlock, per);
-            remainingRedirection -= redirected;
-            remainingBlock -= redirected;
-            const incoming = per - redirected;
-            const allyDamage = Math.min(ally.hp, incoming);
-            ally.hp = Math.max(0, ally.hp - incoming);
-            byAlly[ally.uid] = (byAlly[ally.uid] ?? 0) + allyDamage;
+            const actualAllyDamage = Math.min(ally.hp, allyDamage);
+            ally.hp = Math.max(0, ally.hp - allyDamage);
+            byAlly[ally.uid] = (byAlly[ally.uid] ?? 0) + actualAllyDamage;
           }
           continue;
         } else {
@@ -159,13 +170,9 @@ export abstract class CombatScreenBase extends CardScreenBase {
                 ? simulatedAllies.find(ally => ally.id === e.intentTarget && ally.hp > 0)
                 : null);
           if (allyTarget) {
-            const redirected = Math.min(remainingRedirection, remainingBlock, per);
-            remainingRedirection -= redirected;
-            remainingBlock -= redirected;
-            const incoming = per - redirected;
-            const allyDamage = Math.min(allyTarget.hp, incoming);
-            allyTarget.hp = Math.max(0, allyTarget.hp - incoming);
-            byAlly[allyTarget.uid] = (byAlly[allyTarget.uid] ?? 0) + allyDamage;
+            const actualAllyDamage = Math.min(allyTarget.hp, allyDamage);
+            allyTarget.hp = Math.max(0, allyTarget.hp - allyDamage);
+            byAlly[allyTarget.uid] = (byAlly[allyTarget.uid] ?? 0) + actualAllyDamage;
             continue;
           }
         }
@@ -173,15 +180,19 @@ export abstract class CombatScreenBase extends CardScreenBase {
           remainingVeil--;
           continue;
         }
-        const redirected = Math.min(remainingRedirection, remainingBlock, per);
+        playerWasHit = true;
+        const redirected = Math.min(remainingRedirection, remainingBlock, playerDamage);
         remainingRedirection -= redirected;
         remainingBlock -= redirected;
-        const blocked = Math.min(remainingBlock, per - redirected);
+        const blocked = Math.min(remainingBlock, playerDamage - redirected);
         remainingBlock -= blocked;
-        let through = per - redirected - blocked;
+        let through = playerDamage - redirected - blocked;
         if (through > 0 && dornenkrone) through += 1;
         hpDmg += through;
         byEnemy[e.uid] = (byEnemy[e.uid] ?? 0) + through;
+      }
+      if (i.kind === 'attack_debuff' && i.vulnerable && playerWasHit) {
+        simulatedVulnerability += i.vulnerable;
       }
     }
     return { total: hpDmg, byEnemy, byAlly };
@@ -201,11 +212,27 @@ export abstract class CombatScreenBase extends CardScreenBase {
 
   enemyIntentDetails(e: EnemyState): string {
     const i = e.intent;
+    const effectLines: string[] = [];
+    if (i.vulnerable) {
+      effectLines.push(`Wenn du getroffen wirst, erhältst du ${i.vulnerable} Verwundbarkeit. Sie erhöht den Schaden des nächsten Gegnerzuges gegen dich um 50 %.`);
+    }
+    if (i.veil) {
+      effectLines.push(`Der Gegner erhält ${i.veil} Verschleierung. Jede Ladung lässt den nächsten Treffer gegen ihn verfehlen.`);
+    }
+    if (i.cleanse) {
+      effectLines.push(`Der Gegner bannt bis zu ${i.cleanse} negative Effektarten von sich: zuerst Verwundbarkeit, dann Schwäche.`);
+    }
     if (i.kind === 'block') {
-      return `${i.name}: Der Gegner erhält ${this.game.enemyIntentValue(e)} Schild. Schild blockt deine Angriffe bis zum nächsten Gegnerzug.`;
+      return [
+        `${i.name}: Der Gegner erhält ${this.game.enemyIntentValue(e)} Schild. Schild blockt deine Angriffe bis zum nächsten Gegnerzug.`,
+        ...effectLines,
+      ].join('\n');
     }
     if (i.kind === 'buff') {
-      return `${i.name}: Der Gegner erhält +${this.game.enemyIntentValue(e)} Stärke. Jeder folgende Angriffstreffer verursacht in diesem Kampf entsprechend mehr Schaden.`;
+      return [
+        `${i.name}: Der Gegner erhält +${this.game.enemyIntentValue(e)} Stärke. Jeder folgende Angriffstreffer verursacht in diesem Kampf entsprechend mehr Schaden.`,
+        ...effectLines,
+      ].join('\n');
     }
 
     const per = this.game.enemyAttackPerHit(e);
@@ -219,11 +246,13 @@ export abstract class CombatScreenBase extends CardScreenBase {
     }
     if (e.strength > 0) lines.push(`Gegnerische Stärke: +${e.strength} Schaden pro Treffer ist bereits eingerechnet.`);
     if (e.weak > 0) lines.push('Gegnerische Schwäche: 25 % weniger Schaden ist bereits eingerechnet.');
+    if (this.game.playerVulnerable() > 0) lines.push('Deine Verwundbarkeit: 50 % mehr Schaden gegen dich ist bereits eingerechnet.');
     if (i.kind === 'attack_debuff') {
-      lines.push(
-        `Danach erhältst du ${i.weak ?? 1} Schwäche: Deine Angriffe verursachen 25 % weniger Schaden; der Wert sinkt pro Zug um 1.`,
-      );
+      if (i.weak) {
+        lines.push(`Danach erhältst du ${i.weak} Schwäche: Deine Angriffe verursachen 25 % weniger Schaden; der Wert sinkt pro Zug um 1.`);
+      }
     }
+    lines.push(...effectLines);
     return lines.join('\n');
   }
 
@@ -259,7 +288,7 @@ export abstract class CombatScreenBase extends CardScreenBase {
       lines.push(`🌫️ Verschleierung: ${this.game.veil()} gegnerische Treffer gehen zuerst daneben.`);
     }
     if (this.game.damageRedirection() > 0) {
-      lines.push(`🔀 Schadensumleitung: ${this.game.damageRedirection()} Schild fängt auch Treffer auf Verbündete ab und wirft absorbierten Schaden zurück.`);
+      lines.push(`🔀 Schadensumleitung: ${this.game.damageRedirection()} Schild schützt nur dich und wirft dadurch absorbierten Schaden zurück.`);
     }
     if (this.game.playerTaunt()) {
       lines.push('🎯 Provokation: Alle gezielten Gegnerangriffe treffen bis zu deinem nächsten Zug dich.');
@@ -286,6 +315,9 @@ export abstract class CombatScreenBase extends CardScreenBase {
     }
     if (/Mehrfachtreffer|Serien|Kettenblitze|Treffer auf/i.test(text)) {
       lines.push('Mehrfachtreffer: Jeder Treffer wird einzeln gegen dein Schild gerechnet.');
+    }
+    if (/Verschwinden|Sturmhaut|Wolkenpalast|Singularität|Linse/i.test(text)) {
+      lines.push('Verschleierung: Jede Ladung lässt den nächsten Treffer gegen diesen Gegner verfehlen.');
     }
     if (e.strength > 0) lines.push(`Aktuelle Stärke: +${e.strength} Schaden pro Treffer.`);
     if (lines.length === 0) return 'Passiver Effekt dieses Gegners.';

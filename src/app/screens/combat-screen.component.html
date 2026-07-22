@@ -61,7 +61,7 @@
               }
               @if (game.damageRedirection() > 0) {
                 <span class="chip chip-redirection tip"
-                      data-tip="Dieser Anteil deines sichtbaren Schilds fängt auch Treffer auf Verbündete ab und wirft jeden absorbierten Schadenspunkt zurück.">
+                      data-tip="Dieser Anteil deines sichtbaren Schilds schützt nur dich und wirft jeden dadurch absorbierten Schadenspunkt zurück. Treffer auf Verbündete werden nicht umgeleitet.">
                   🔀 Umleitung {{ game.damageRedirection() }}
                 </span>
               }
@@ -88,6 +88,9 @@
               }
               @if (game.playerWeak() > 0) {
                 <span class="chip chip-weak tip" [attr.data-tip]="tips.schwaeche">😵 {{ game.playerWeak() }}</span>
+              }
+              @if (game.playerVulnerable() > 0) {
+                <span class="chip chip-vuln tip" [attr.data-tip]="tips.verwundbar">💔 {{ game.playerVulnerable() }}</span>
               }
               @if (game.artifact(); as art) {
                 <span class="chip tip" [attr.data-tip]="art.name + ': ' + art.text">{{ art.icon }}</span>
@@ -220,6 +223,12 @@
                 }
                 @if (e.vulnerable > 0) {
                   <span class="chip chip-vuln tip" [attr.data-tip]="tips.verwundbar">💔 {{ e.vulnerable }}</span>
+                }
+                @if (e.veil > 0) {
+                  <span class="chip chip-veil tip"
+                        [attr.data-tip]="e.veil + ' Verschleierung: So viele Treffer gegen diesen Gegner verfehlen vollständig.'">
+                    🌫️ {{ e.veil }}
+                  </span>
                 }
               </div>
               @if (e.def.passive) {
