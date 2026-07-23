@@ -90,6 +90,10 @@ export function cardDetails(def: CardDef): string {
       ? `Schaden: Fügt ${target} ${hits}-mal ${def.damage} Basisschaden zu.`
       : `Schaden: Fügt ${target} ${def.damage} Basisschaden zu.`);
   }
+  if (def.damageFromBlock) {
+    const multiplier = def.damageFromBlock === 1 ? '' : ` × ${def.damageFromBlock}`;
+    lines.push(`Schildschaden: Verursacht Schaden in Höhe deines beim Ausspielen sichtbaren Schilds${multiplier}. Der Schild wird dabei nicht verbraucht.`);
+  }
   if (def.block) {
     lines.push(`Schild: Gewährt sofort ${def.block} Schild. Restschild verfällt grundsätzlich zu Beginn deines nächsten Zuges.`);
   }

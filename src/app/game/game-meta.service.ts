@@ -187,6 +187,42 @@ export abstract class GameMetaService {
   readonly ownedAllies = computed(() =>
     Object.values(ALLIES).filter(ally => this.meta().allies.includes(ally.id)),
   );
+  readonly profileStats = computed(() => {
+    const meta = this.meta();
+    const validDungeonClears = new Set(
+      meta.completedDungeonLevels.filter(clear => {
+        const [areaId, difficulty] = clear.split(':');
+        return DUNGEON_AREAS.some(area => area.id === areaId)
+          && this.difficultyLevels.includes(Number(difficulty));
+      }),
+    );
+    const upgradeLevels = META_UPGRADES.reduce(
+      (sum, upgrade) => sum + Math.min(upgrade.maxLevel, Math.max(0, meta.upgrades[upgrade.id] ?? 0)),
+      0,
+    );
+    return {
+      winRate: meta.runs > 0 ? Math.round((meta.wins / meta.runs) * 100) : 0,
+      completedStages: CAMPAIGN_STAGES.filter(stage => meta.completedStages.includes(stage.id)).length,
+      totalStages: CAMPAIGN_STAGES.length,
+      completedAreas: DUNGEON_AREAS.filter(area => meta.completedAreas.includes(area.id)).length,
+      totalAreas: DUNGEON_AREAS.length,
+      dungeonCores: validDungeonClears.size,
+      totalDungeonCores: DUNGEON_AREAS.length * this.difficultyLevels.length,
+      uniqueCards: this.allCards.filter(card => (meta.cards[card.id] ?? 0) > 0).length,
+      totalCards: this.allCards.length,
+      cardCopies: Object.entries(meta.cards)
+        .filter(([id]) => this.allCards.some(card => card.id === id))
+        .reduce((sum, [, count]) => sum + Math.max(0, Number(count) || 0), 0),
+      artifacts: meta.artifacts.length,
+      totalArtifacts: ARTIFACTS.length,
+      resonances: meta.resonances.length,
+      totalResonances: RESONANCES.length,
+      allies: meta.allies.length,
+      totalAllies: Object.keys(ALLIES).length,
+      upgradeLevels,
+      totalUpgradeLevels: META_UPGRADES.reduce((sum, upgrade) => sum + upgrade.maxLevel, 0),
+    };
+  });
 
   // ================= Meta =================
 

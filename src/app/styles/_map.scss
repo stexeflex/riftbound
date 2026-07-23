@@ -3,12 +3,10 @@
 .combat-screen { gap: 0.8rem; }
 
 .combat-top {
-
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: 1.5rem;
   align-items: flex-end;
-  justify-content: center;
-  flex-wrap: wrap;
   width: 100%;
   min-height: 220px;
   padding: 1rem;
@@ -89,9 +87,12 @@
   justify-content: center;
   gap: 0.65rem;
   flex-wrap: wrap;
+  width: 100%;
+  min-width: 0;
 }
 
-.allies-group {
+.allies-group,
+.enemy-party {
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -99,9 +100,22 @@
   flex-wrap: wrap;
 }
 
+.enemy-party {
+  width: 100%;
+  min-width: 0;
+}
+
+.fighter.player {
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px;
+}
+
 .fighter.ally {
   position: relative;
+  width: 150px;
   min-width: 140px;
+  max-width: 150px;
   padding: 0.65rem;
   border: 1px solid rgba(92, 205, 190, 0.38);
   border-radius: 12px;
@@ -159,6 +173,9 @@
 
 .fighter.enemy {
   position: relative;
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px;
   padding: 0.65rem;
   border: 1px solid transparent;
   border-radius: 12px;
@@ -309,11 +326,22 @@
 }
 
 .status-row {
+  width: 100%;
   display: flex;
   gap: 0.35rem;
   flex-wrap: wrap;
   justify-content: center;
   min-height: 1.5rem;
+}
+
+@media (max-width: 700px) {
+  .combat-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .enemy-party {
+    width: 100%;
+  }
 }
 
 .chip {

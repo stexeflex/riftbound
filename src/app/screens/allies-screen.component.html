@@ -1,6 +1,12 @@
 <div class="screen meta-screen ally-shop-screen">
   <button class="btn btn-small screen-back" (click)="game.backToTitle()">← Zurück</button>
   <h2>Verbündeten-Shop</h2>
+  <label class="shop-confirmation-option" title="Diese Einstellung gilt für alle Shops.">
+    <input type="checkbox"
+           [checked]="game.purchaseConfirmationEnabled()"
+           (change)="game.setPurchaseConfirmationEnabled($any($event.target).checked)" />
+    <span>Bestätigung vor Käufen</span>
+  </label>
   <div class="meta-summary">
     <span>🟡 {{ game.meta().kerne }} Kerne</span>
     <span>🔮 {{ game.meta().splitter }} Splitter</span>

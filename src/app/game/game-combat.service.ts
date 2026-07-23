@@ -446,7 +446,7 @@ export abstract class GameCombatService extends GameRunService {
   canPlay(card: CardInstance): boolean {
     const def = card.def;
     const needsEnemy = Boolean(
-      def.damage || def.weakEnemy || def.vulnerableEnemy || def.purgeEnemyBuffs
+      this.cardHasDamage(def) || def.weakEnemy || def.vulnerableEnemy || def.purgeEnemyBuffs
       || def.commandAlly || def.commandAllAllies,
     );
     const commandBlocked = Boolean(def.commandAlly || def.commandAllAllies)
@@ -482,13 +482,21 @@ export abstract class GameCombatService extends GameRunService {
 
   // ---------- Schadens-/Schild-Vorschau (für Hover) ----------
 
+  cardHasDamage(def: CardDef): boolean {
+    return Boolean((def.damage ?? 0) > 0 || (def.damageFromBlock ?? 0) > 0);
+  }
+
+  private cardBaseDamage(def: CardDef): number {
+    return (def.damage ?? 0) + (def.damageFromBlock ?? 0) * this.block();
+  }
+
   /**
    * Berechnet den tatsächlichen Schaden einer Karte gegen einen Gegner,
    * mit exakt derselben Rechenreihenfolge wie dealDamage.
    */
   previewDamage(card: CardInstance, enemy: EnemyState): { total: number; afterBlock: number } {
     const def = card.def;
-    if (!def.damage) return { total: 0, afterBlock: 0 };
+    if (!this.cardHasDamage(def)) return { total: 0, afterBlock: 0 };
     const hits = def.hits ?? 1;
     let total = 0;
     const firstAttackCard = !this.firstAttackDone();
@@ -501,7 +509,7 @@ export abstract class GameCombatService extends GameRunService {
         remainingVeil--;
         continue;
       }
-      let dmg = def.damage + (def.damagePerAlly ?? 0) * this.livingAllies().length + this.strength();
+      let dmg = this.cardBaseDamage(def) + (def.damagePerAlly ?? 0) * this.livingAllies().length + this.strength();
       if (h === 0) {
         if (firstAttackCard && klingenTarget) dmg += this.runUpgradeLevel('klingenmeisterschaft') * 3;
         if (firstAttackCard && this.artifact()?.id === 'jaegerauge' && enemy.hp === enemy.maxHp) dmg *= 2;
@@ -567,7 +575,7 @@ export abstract class GameCombatService extends GameRunService {
   /** Exakte Rechenkette der gehoverten Angriffskarte gegen ein Ziel. */
   damageBreakdown(card: CardInstance, enemy: EnemyState): string {
     const def = card.def;
-    if (!def.damage) return '';
+    if (!this.cardHasDamage(def)) return '';
     const hits = def.hits ?? 1;
     const firstAttackCard = !this.firstAttackDone();
     const firstTarget = def.target !== 'all' || this.aliveEnemies()[0]?.uid === enemy.uid;
@@ -580,8 +588,13 @@ export abstract class GameCombatService extends GameRunService {
         continue;
       }
       const allyBonus = (def.damagePerAlly ?? 0) * this.livingAllies().length;
-      let damage = def.damage;
-      const parts = [`${def.damage} Basis`];
+      let damage = def.damage ?? 0;
+      const parts: string[] = def.damage ? [`${def.damage} Basis`] : [];
+      if (def.damageFromBlock) {
+        const shieldDamage = this.block() * def.damageFromBlock;
+        damage += shieldDamage;
+        parts.push(`${shieldDamage} aus ${this.block()} Schild`);
+      }
       if (allyBonus > 0) {
         damage += allyBonus;
         parts.push(`+ ${allyBonus} Verbund`);
@@ -647,7 +660,7 @@ export abstract class GameCombatService extends GameRunService {
       ? [...this.aliveEnemies()]
       : this.currentTarget() ? [this.currentTarget()!] : [];
 
-    if (def.damage && targets.length > 0) {
+    if (this.cardHasDamage(def) && targets.length > 0) {
       const firstAttackTurn = !this.attackPlayedThisTurn();
       if (firstAttackTurn && this.artifact()?.id === 'vampirfang') {
         this.playerHp.set(Math.min(this.playerMaxHp(), this.playerHp() + 2));
@@ -661,7 +674,7 @@ export abstract class GameCombatService extends GameRunService {
         for (let h = 0; h < hits; h++) {
           this.dealDamage(
             target,
-            def.damage + (def.damagePerAlly ?? 0) * this.livingAllies().length,
+            this.cardBaseDamage(def) + (def.damagePerAlly ?? 0) * this.livingAllies().length,
             false,
             {
               klingen: klingenAvailable,

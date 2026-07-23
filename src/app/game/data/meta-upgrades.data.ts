@@ -33,7 +33,7 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
     describeNext: l => `+5 % Heilung an Rastplätzen. Neuer Gesamtbonus: +${(l + 1) * 5} %.`,
   },
   {
-    id: 'energiekern', name: 'Energiekern', icon: '🔵', maxLevel: 2, cost: 3, currency: 'kerne',
+    id: 'energiekern', name: 'Energiekern', icon: '🔵', maxLevel: 2, cost: 8, currency: 'kerne',
     describeCurrent: l => l > 0 ? `Aktueller Bonus: +${l} maximale Energie pro Zug` : 'Aktuell noch kein Bonus',
     describeNext: l => `+1 maximale Energie pro Zug. Neuer Gesamtbonus: +${l + 1} Energie.`,
   },

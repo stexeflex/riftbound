@@ -17,13 +17,12 @@
           }
         </p>
         <div class="title-buttons">
+          <button class="btn btn-primary" (click)="game.backToTitle()">Zum Titel</button>
           @if (game.mode() === 'campaign') {
-            <button class="btn btn-primary" (click)="game.goTo('campaign')">Zur Kampagne</button>
+            <button class="btn" (click)="game.goTo('campaign')">Zur Kampagne</button>
           } @else {
-            <button class="btn btn-primary" (click)="game.openDungeons()">Zu den Gebieten</button>
+            <button class="btn" (click)="game.openDungeons()">Zu den Gebieten</button>
           }
-          <button class="btn" (click)="game.goTo('meta')">Upgrade-Shop</button>
-          <button class="btn" (click)="game.backToTitle()">Zum Titel</button>
         </div>
       </div>
 

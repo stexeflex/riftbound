@@ -54,7 +54,7 @@ const COMBAT_THEME_LABELS: Record<DungeonTheme, string> = {
 };
 
 const MENU_SCREENS = new Set<Screen>([
-  'title', 'dungeons', 'campaign', 'artifacts', 'allies', 'resonances', 'deck', 'meta', 'cards',
+  'title', 'profile', 'dungeons', 'campaign', 'artifacts', 'allies', 'resonances', 'deck', 'meta', 'cards',
 ]);
 
 const RUN_SCREENS = new Set<Screen>(['map', 'combat', 'reward', 'rest']);

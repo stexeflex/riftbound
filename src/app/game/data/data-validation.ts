@@ -1,6 +1,8 @@
 import { cardDetails } from '../effect-text';
 import { ALLIES } from './allies.data';
 import { CARDS } from './cards.data';
+import { CAMPAIGN_STAGES } from './campaign.data';
+import { DUNGEON_AREAS } from './dungeon-areas.data';
 import { ENEMIES } from './enemies.data';
 
 /**
@@ -29,6 +31,7 @@ export function assertGameDataIntegrity(): true {
       [card.purgeEnemyBuffs, 'Effektbann:'],
       [card.retainBlock, 'Schildtransfer:'],
       [card.damagePerAlly, 'Verbundbonus:'],
+      [card.damageFromBlock, 'Schildschaden:'],
       [card.healAllies, 'Verbündetenheilung:'],
       [card.healLowestAlly, 'Gezielte Verbündetenheilung:'],
       [card.allyStrength, 'Verbündetenstärke:'],
@@ -50,6 +53,26 @@ export function assertGameDataIntegrity(): true {
       errors.push(`Karte ${card.id} verweist auf unbekannten Verbündeten ${card.summonAlly}.`);
     } else if (card.summonAlly && !details.includes(ALLIES[card.summonAlly].name)) {
       errors.push(`Im Hovertext von ${card.id} fehlt der Name des beschworenen Verbündeten.`);
+    }
+  }
+
+  if (CAMPAIGN_STAGES.length !== 20) {
+    errors.push(`Die Kampagne benötigt genau 20 Stages, vorhanden sind ${CAMPAIGN_STAGES.length}.`);
+  }
+  const campaignIds = new Set<string>();
+  for (const stage of CAMPAIGN_STAGES) {
+    if (campaignIds.has(stage.id)) errors.push(`Doppelte Kampagnen-ID: ${stage.id}.`);
+    campaignIds.add(stage.id);
+    if (!DUNGEON_AREAS.some(area => area.id === stage.areaId)) {
+      errors.push(`Kampagnen-Stage ${stage.id} verweist auf unbekanntes Gebiet ${stage.areaId}.`);
+    }
+    if (!Number.isInteger(stage.kerne) || (stage.kerne ?? 0) < 1) {
+      errors.push(`Kampagnen-Stage ${stage.id} benötigt mindestens 1 Kern.`);
+    }
+    for (const enemyId of stage.bossEncounter ?? []) {
+      if (!ENEMIES[enemyId]) {
+        errors.push(`Kampagnen-Stage ${stage.id} verweist auf unbekannten Boss ${enemyId}.`);
+      }
     }
   }
 

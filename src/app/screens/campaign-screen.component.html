@@ -18,7 +18,9 @@
                 <div class="stage-reward">
                   {{ s.stations.length }} Stationen ·
                   Belohnung: 🔮 {{ game.stageCompleted(s) ? s.reward * 0.25 : s.reward }}
-                  @if (s.kerne && !game.stageCompleted(s)) { + 🟡 {{ s.kerne }} Kerne }
+                  @if (s.kerne && !game.stageCompleted(s)) {
+                    + 🟡 {{ s.kerne }} {{ s.kerne === 1 ? 'Kern' : 'Kerne' }}
+                  }
                 </div>
                 <div class="stage-scaling">
                   ❤️ Gegner +{{ game.campaignHpBonus(s) }} % ·

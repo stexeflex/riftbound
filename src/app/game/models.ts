@@ -22,6 +22,7 @@ export interface CardDef {
   text: string;
   price?: number;          // Kaufpreis in Splittern (ohne Preis: nicht kaufbar)
   damage?: number;
+  damageFromBlock?: number; // Schaden pro aktuell vorhandenem Schild
   hits?: number;
   block?: number;
   draw?: number;
@@ -169,6 +170,7 @@ export interface ResonanceDef {
 
 export type Screen =
   | 'title'
+  | 'profile'
   | 'dungeons'
   | 'artifacts'
   | 'allies'

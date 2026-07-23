@@ -1,6 +1,9 @@
 import { Injectable, signal } from '@angular/core';
 import { GameCombatService } from './game-combat.service';
 import { AllyDef, ArtifactDef, CardDef, MetaUpgradeDef, ResonanceDef } from './models';
+import { secureLoad, secureSave } from './storage';
+
+const PURCHASE_CONFIRMATION_KEY = 'riftbound-purchase-confirmation-v1';
 
 interface PurchaseConfirmation {
   itemType: 'Karte' | 'Artefakt' | 'Resonanz' | 'Upgrade' | 'Verbündeten' | 'Verbündeten-Upgrade';
@@ -16,10 +19,27 @@ interface PurchaseConfirmation {
 @Injectable({ providedIn: 'root' })
 export class GameService extends GameCombatService {
   readonly purchaseConfirmation = signal<PurchaseConfirmation | null>(null);
+  readonly purchaseConfirmationEnabled = signal(
+    secureLoad<boolean>(PURCHASE_CONFIRMATION_KEY) ?? true,
+  );
+
+  setPurchaseConfirmationEnabled(enabled: boolean) {
+    this.purchaseConfirmationEnabled.set(enabled);
+    secureSave(PURCHASE_CONFIRMATION_KEY, enabled);
+    if (!enabled) this.cancelPurchase();
+  }
+
+  private requestPurchase(purchase: PurchaseConfirmation) {
+    if (!this.purchaseConfirmationEnabled()) {
+      purchase.purchase();
+      return;
+    }
+    this.purchaseConfirmation.set(purchase);
+  }
 
   requestCardPurchase(card: CardDef) {
     if (!this.canBuyCard(card)) return;
-    this.purchaseConfirmation.set({
+    this.requestPurchase({
       itemType: 'Karte',
       itemName: card.name,
       purchase: () => this.buyCard(card),
@@ -28,7 +48,7 @@ export class GameService extends GameCombatService {
 
   requestArtifactPurchase(artifact: ArtifactDef) {
     if (!this.canBuyArtifact(artifact)) return;
-    this.purchaseConfirmation.set({
+    this.requestPurchase({
       itemType: 'Artefakt',
       itemName: artifact.name,
       purchase: () => this.buyArtifact(artifact),
@@ -37,7 +57,7 @@ export class GameService extends GameCombatService {
 
   requestResonancePurchase(resonance: ResonanceDef) {
     if (!this.canBuyResonance(resonance)) return;
-    this.purchaseConfirmation.set({
+    this.requestPurchase({
       itemType: 'Resonanz',
       itemName: resonance.name,
       purchase: () => this.buyResonance(resonance),
@@ -46,7 +66,7 @@ export class GameService extends GameCombatService {
 
   requestUpgradePurchase(upgrade: MetaUpgradeDef) {
     if (!this.canBuyUpgrade(upgrade.id)) return;
-    this.purchaseConfirmation.set({
+    this.requestPurchase({
       itemType: 'Upgrade',
       itemName: upgrade.name,
       purchase: () => this.buyUpgrade(upgrade.id),
@@ -55,7 +75,7 @@ export class GameService extends GameCombatService {
 
   requestAllyPurchase(ally: AllyDef) {
     if (!this.canBuyAlly(ally)) return;
-    this.purchaseConfirmation.set({
+    this.requestPurchase({
       itemType: 'Verbündeten',
       itemName: ally.name,
       purchase: () => this.buyAlly(ally),
@@ -64,7 +84,7 @@ export class GameService extends GameCombatService {
 
   requestAllyUpgrade(ally: AllyDef) {
     if (!this.canUpgradeAlly(ally)) return;
-    this.purchaseConfirmation.set({
+    this.requestPurchase({
       itemType: 'Verbündeten-Upgrade',
       itemName: `${ally.name} auf Stufe ${this.allyLevel(ally.id) + 1}`,
       purchase: () => this.upgradeAlly(ally),

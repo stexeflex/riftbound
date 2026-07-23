@@ -40,12 +40,8 @@
                 <div class="stage-desc">{{ area.desc }}</div>
                 <div class="stage-reward">
                   {{ area.stations.length }} Stationen · Jeder Run: 🔮 {{ game.scaledAreaReward(area) }}
-                  @if (area.kern) {
-                    @if (game.areaDifficultyCompleted(area)) {
-                      · Schwierigkeit {{ game.dungeonDifficulty() }}: 🟡 Kern bereits erhalten
-                    } @else {
-                      · Erster Sieg auf Schwierigkeit {{ game.dungeonDifficulty() }}: 🟡 1 Kern
-                    }
+                  @if (area.kern && !game.areaDifficultyCompleted(area)) {
+                    · Erster Sieg auf Schwierigkeit {{ game.dungeonDifficulty() }}: 🟡 1 Kern
                   }
                 </div>
               </div>

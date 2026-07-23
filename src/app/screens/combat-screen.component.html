@@ -161,6 +161,7 @@
 
           <div class="vs">⚡</div>
 
+          <div class="enemy-party">
           @for (e of game.enemies(); track e.uid) {
             <button type="button" class="fighter enemy"
                     [class.dead]="e.hp <= 0"
@@ -236,6 +237,7 @@
               }
             </button>
           }
+          </div>
         </div>
 
         <section class="combat-modifier-bar" aria-label="Aktive Schadensfaktoren">

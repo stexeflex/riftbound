@@ -162,14 +162,16 @@ export abstract class GameRunService extends GameDeckService {
   /**
    * Kampagnen-Skalierung als Dungeon-Vergleichswert.
    * Stage 1 startet bei Schwierigkeit 1, Stage 5 entspricht exakt Schwierigkeit 10.
-   * Danach steigt die Kampagne kontrolliert über den höchsten Dungeon-Wert hinaus.
+   * Bis Stage 10 bleibt die bestehende Kurve erhalten. Die zweite Hälfte steigt
+   * langsamer weiter, damit die zusätzlichen Stages trotz höherer Gegnerdichte
+   * und Boss-Duos spielbar bleiben.
    */
   campaignEquivalentDifficulty(stage: CampaignStage | null = this.currentStage()): number {
     if (!stage) return 1;
     const stageNumber = Math.max(1, CAMPAIGN_STAGES.indexOf(stage) + 1);
-    return stageNumber <= 5
-      ? 1 + (stageNumber - 1) * 2.25
-      : 10 + (stageNumber - 5) * 0.75;
+    if (stageNumber <= 5) return 1 + (stageNumber - 1) * 2.25;
+    if (stageNumber <= 10) return 10 + (stageNumber - 5) * 0.75;
+    return 13.75 + (stageNumber - 10) * 0.2;
   }
 
   campaignHpMultiplier(stage: CampaignStage | null = this.currentStage()): number {

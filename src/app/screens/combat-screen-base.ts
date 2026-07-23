@@ -15,7 +15,7 @@ export abstract class CombatScreenBase extends CardScreenBase {
   /** Vorschau: tatsächlicher Schaden der gehoverten Karte gegen diesen Gegner. */
   damagePreview(e: EnemyState): { total: number; afterBlock: number } | null {
     const card = this.game.hoveredCard();
-    if (!card || !card.def.damage || e.hp <= 0) return null;
+    if (!card || !this.game.cardHasDamage(card.def) || e.hp <= 0) return null;
     if (!this.game.cardTargetsEnemy(card, e)) return null;
     return this.game.previewDamage(card, e);
   }
@@ -23,7 +23,9 @@ export abstract class CombatScreenBase extends CardScreenBase {
   hoveredDamageBreakdown(): string {
     const card = this.game.hoveredCard();
     const target = this.game.currentTarget();
-    return card?.def.damage && target ? this.game.damageBreakdown(card, target) : '';
+    return card && this.game.cardHasDamage(card.def) && target
+      ? this.game.damageBreakdown(card, target)
+      : '';
   }
 
   /** Vorschau: Schild, das die gehoverte Karte gibt. */

@@ -91,6 +91,10 @@ export const CARDS: Record<string, CardDef> = {
     id: 'schutzkreis', name: 'Schutzkreis', cost: 1, type: 'Verteidigung', category: 'Schutz', price: 100,
     text: 'Erhalte 5 Schild pro lebendem Gegner.', blockPerEnemy: 5,
   },
+  aegisbrecher: {
+    id: 'aegisbrecher', name: 'Aegisbrecher', cost: 2, type: 'Angriff', category: 'Schutz', price: 130,
+    text: 'Füge Schaden in Höhe deines aktuellen Schilds zu.', damageFromBlock: 1,
+  },
   einschuechtern: {
     id: 'einschuechtern', name: 'Einschüchtern', cost: 1, type: 'Technik', category: 'Kontrolle', price: 90,
     text: 'Verursache bei allen Gegnern 2 Schwäche.', weakEnemy: 2, target: 'all',
@@ -215,7 +219,7 @@ export const REWARD_POOL: string[] = [
   'gezielterSchlag', 'zerreissen', 'magischeBarriere', 'praezision',
   'eiserneHaut', 'nachladen', 'instabilerSchlag', 'brecher', 'doppelklinge',
   'hinrichtung', 'blutrausch', 'bollwerk', 'wachsamkeit', 'festungsritual',
-  'schutzkreis', 'einschuechtern', 'markieren', 'zeitfenster', 'umleitung',
+  'schutzkreis', 'aegisbrecher', 'einschuechtern', 'markieren', 'zeitfenster', 'umleitung',
   'risssalve', 'funkenflug', 'gluecksspiel', 'ueberladung',
   'phasenschritt', 'spiegelwacht', 'bannzeichen', 'schildanker',
   'rissbatterie', 'schadensumleitung',

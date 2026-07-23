@@ -1,0 +1,61 @@
+<div class="screen profile-screen">
+  <button class="btn btn-small screen-back" (click)="game.backToTitle()">← Zurück</button>
+
+  <section class="character-profile-card" aria-labelledby="profile-title">
+    <div class="character-avatar" aria-hidden="true">🧙‍♂️</div>
+    <div class="character-identity">
+      <span class="profile-kicker">Risswanderer</span>
+      <h2 id="profile-title">Charakterprofil</h2>
+      <p>Dein dauerhafter Fortschritt über Kampagne und Dungeon-Runs.</p>
+    </div>
+    <div class="profile-vitals" aria-label="Charakterwerte">
+      <span>❤️ {{ 80 + game.upgradeLevel('leben') * 4 }} Startleben</span>
+      <span>🔵 {{ 3 + game.upgradeLevel('energiekern') }} Energie</span>
+      <span>🛡️ {{ game.upgradeLevel('vorbereitung') * 7 }} Startschild</span>
+    </div>
+  </section>
+
+  <div class="profile-currency" aria-label="Vermögen">
+    <span>🔮 {{ game.meta().splitter }} Splitter</span>
+    <span>🟡 {{ game.meta().kerne }} Kerne</span>
+  </div>
+
+  <section class="profile-stat-grid" aria-label="Spielstatistiken">
+    <article class="profile-stat-card">
+      <span class="profile-stat-icon" aria-hidden="true">🏆</span>
+      <strong>{{ game.meta().wins }}</strong>
+      <span>Siege aus {{ game.meta().runs }} Runs</span>
+      <small>{{ game.profileStats().winRate }} % Siegrate</small>
+    </article>
+    <article class="profile-stat-card">
+      <span class="profile-stat-icon" aria-hidden="true">🗺️</span>
+      <strong>{{ game.profileStats().completedStages }}/{{ game.profileStats().totalStages }}</strong>
+      <span>Kampagnen-Stages</span>
+      <small>{{ game.profileStats().completedAreas }}/{{ game.profileStats().totalAreas }} Dungeon-Gebiete abgeschlossen</small>
+    </article>
+    <article class="profile-stat-card">
+      <span class="profile-stat-icon" aria-hidden="true">🟡</span>
+      <strong>{{ game.profileStats().dungeonCores }}/{{ game.profileStats().totalDungeonCores }}</strong>
+      <span>Dungeon-Kerne</span>
+      <small>Einmalige Kerne je Gebiet und Schwierigkeit</small>
+    </article>
+    <article class="profile-stat-card">
+      <span class="profile-stat-icon" aria-hidden="true">🃏</span>
+      <strong>{{ game.profileStats().uniqueCards }}/{{ game.profileStats().totalCards }}</strong>
+      <span>Verschiedene Karten</span>
+      <small>{{ game.profileStats().cardCopies }} Kartenkopien in der Sammlung</small>
+    </article>
+    <article class="profile-stat-card">
+      <span class="profile-stat-icon" aria-hidden="true">🧿</span>
+      <strong>{{ game.profileStats().artifacts }}/{{ game.profileStats().totalArtifacts }}</strong>
+      <span>Artefakte</span>
+      <small>{{ game.profileStats().resonances }}/{{ game.profileStats().totalResonances }} Resonanzen</small>
+    </article>
+    <article class="profile-stat-card">
+      <span class="profile-stat-icon" aria-hidden="true">🤝</span>
+      <strong>{{ game.profileStats().allies }}/{{ game.profileStats().totalAllies }}</strong>
+      <span>Verbündete</span>
+      <small>{{ game.profileStats().upgradeLevels }}/{{ game.profileStats().totalUpgradeLevels }} Upgrade-Stufen</small>
+    </article>
+  </section>
+</div>
