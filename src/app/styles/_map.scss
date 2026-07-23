@@ -84,6 +84,7 @@
 .player-party {
   display: flex;
   align-items: flex-end;
+  align-self: center;
   justify-content: center;
   gap: 0.65rem;
   flex-wrap: wrap;
@@ -150,7 +151,10 @@
   text-transform: uppercase;
 }
 
-.ally-hp-bar { width: 130px; }
+.ally-hp-bar {
+  width: 100%;
+  max-width: 130px;
+}
 .ally-fill { background: linear-gradient(180deg, #42c3b1, #217f78); }
 .ally-loss-preview {
   background: repeating-linear-gradient(

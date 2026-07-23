@@ -67,7 +67,16 @@
 }
 
 .card-name { font-weight: bold; font-size: 0.92rem; text-align: center; }
-.card-type { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.75; }
+.card-type {
+  display: block;
+  width: 100%;
+  font-size: 0.66rem;
+  line-height: 1.3;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+}
 
 .card-text {
   font-size: 0.78rem;
